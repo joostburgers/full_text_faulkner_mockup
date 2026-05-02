@@ -1,0 +1,1112 @@
+var event_list = {};
+var active_locations = {};
+
+function jsUcfirst(string) 
+{
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+function hide_current_locations() {
+	$.each(current_locations, function(index, value) {
+		if(value == 'loading') {
+			setTimeout(hide_current_locations, 500)
+			return;
+		}
+		value.hide();
+	})
+}
+
+function show_active_locations() {
+	$.each(active_locations, function(index, value) {
+		if(value == 'loading') {
+			setTimeout(show_active_locations, 500)
+			return;
+		}
+		value.show();
+	})
+}
+
+// function sleep (time) {
+//   return new Promise((resolve) => setTimeout(resolve, time));
+// }
+function sleepFor( sleepDuration ){
+    var now = new Date().getTime();
+    while(new Date().getTime() < now + sleepDuration){ /* do nothing */ } 
+}
+function getEvents(text) {
+	var str='';
+	if(GetURLParameter('event_begin') != null) {
+		str += '&event_begin='+GetURLParameter('event_begin');
+	}
+	if(GetURLParameter('event_end') != null) {
+		str += '&event_end='+GetURLParameter('event_end');
+	}
+	if(GetURLParameter('first_words') != null) {
+		str += '&first_words='+GetURLParameter('first_words');
+	}
+	if(GetURLParameter('event_begin') != null) {
+		str += '&event_begin='+GetURLParameter('event_begin');
+	}
+	if(GetURLParameter('char_mentioned') != null) {
+		str += '&char_mentioned='+GetURLParameter('char_mentioned');
+	}
+	if(GetURLParameter('char_present') != null) {
+		str += '&char_present='+GetURLParameter('char_present');
+	}
+	if(GetURLParameter('characters_mentioned') != null) {
+		str += '&characters_mentioned='+GetURLParameter('characters_mentioned');
+	}
+	if(GetURLParameter('characters_present') != null) {
+		str += '&characters_present='+GetURLParameter('characters_present');
+	}
+	if(GetURLParameter('characters_mentioned2') != null) {
+		str += '&characters_mentioned2='+GetURLParameter('characters_mentioned2');
+	}
+	if(GetURLParameter('characters_present2') != null) {
+		str += '&characters_present2='+GetURLParameter('characters_present2');
+	}
+	if(GetURLParameter('gender_present') != null) {
+		str += '&gender_present='+GetURLParameter('gender_present');
+	}
+	if(GetURLParameter('gender_mentioned') != null) {
+		str += '&gender_mentioned='+GetURLParameter('gender_mentioned');
+	}
+	if(GetURLParameter('race_mentioned') != null) {
+		str += '&race_mentioned='+GetURLParameter('race_mentioned');
+	}
+	if(GetURLParameter('race_present') != null) {
+		str += '&race_present='+GetURLParameter('race_present');
+	}
+	if(GetURLParameter('event_location_code') != null) {
+		str += '&event_location_code='+GetURLParameter('event_location_code');
+	}
+
+
+	if(GetURLParameter('event_location_display_label') != null) {
+		str += '&event_location_display_label='+GetURLParameter('event_location_display_label');
+	}
+
+	if(GetURLParameter('event_location') != null) {
+		str += '&event_location='+GetURLParameter('event_location');
+	}
+
+
+	if(GetURLParameter('era') != null) {
+		str += '&era='+GetURLParameter('era');
+	}
+	if(GetURLParameter('summary') != null) {
+		str += '&summary='+GetURLParameter('summary');
+	}
+	if(GetURLParameter('status') != null) {
+		str += '&status='+GetURLParameter('status');
+	}
+	if(GetURLParameter('cultural_keyword_one') != null) {
+		str += '&cultural_keyword_one='+GetURLParameter('cultural_keyword_one');
+	}
+	if(GetURLParameter('cultural_keyword_value') != null) {
+		str += '&cultural_keyword_value='+GetURLParameter('cultural_keyword_value');
+	}
+	var terms = ['environment_keyword_one', 'environment_keywords_value', 'action_keyword_one', 'action_keywords_value', 'themes_and_motifs_keyword_one', 'themes_and_motifs_keywords_value', 'relationship_keyword_one', 'relationship_keywords_value', 'aesthetic_keyword_one', 'aesthetic_keywords_value', 'all_keywords', 'rank'];
+	$.each(terms, function(k,v) {
+		if ((GetURLParameter(v) != null) && (GetURLParameter(v) != 'undefined')) {
+			str += '&'+v+'='+GetURLParameter(v);
+		}
+	})
+	var f = ['disability', 'occupation', 'vitality', 'class', 'change_class', 'class', 'gender', 'race', 'ethnicity', 'ontological_status', 'biography', 'cause_of_death', 'family', 'name', 'name_mentioned', 'name_present', 'era_mentioned', 'era_present', 'specific_job', 'origin', 'narrator']
+	$.each(f, function(k,v) {
+		if(GetURLParameter(v) != null) {
+			str += '&'+v+'='+GetURLParameter(v);
+		}
+		
+	})
+	$.ajax({ 
+    type: 'GET', 
+url: '/sinatra/?text='+text+str,
+    // url: 'http://hero.village.virginia.edu/sleepy/faulkner/events/_find?criteria='+encodeURIComponent('{"SourceTextCode":"'+text+'"}')+"&sort="+encodeURIComponent('{"PageNumber":1,"Order within Page":1}')+'&batch_size=100000',
+    // url: 'http://hero.village.virginia.edu/mongo/faulkner/events/?filter_SourceTextCode='+text, 
+      // url: 'http://hero.village.virginia.edu/~rwb3y/events.json', 
+    dataType:'json',
+    success: function (data) { 
+				var b = Date.UTC(date_start,01,01)/86400000.0;
+				var e = Date.UTC(date_end,01,01)/86400000.0;
+				var diff = e-b;
+				// contentLayer.add(event_group);
+				// console.log(diff);
+				i=1;
+				if ((GetURLParameter('event_begin') != null) && (GetURLParameter('event_begin') != '')) {
+					var start_range = parseInt(GetURLParameter('event_begin'));
+					var stop_range = date_end;
+					if ((GetURLParameter('event_end') != null) && (GetURLParameter('event_end') != '')) {
+						stop_range = parseInt(GetURLParameter('event_end'));
+					}
+					b = Date.UTC(start_range,01,01)/86400000.0;
+					e = Date.UTC(stop_range+1,01,01)/86400000.0;
+					diff = e-b;
+					date_start = start_range;
+					var years = ((stop_range+1)-start_range)/10;
+					$('#date_labels').html('<span>'+start_range+'</span>');
+					for(z=1; z < 11; z+=1) {
+						$('#date_labels').append('<span>'+parseInt(start_range+(z*years))+'</span>');
+					}
+					$('#date_labels span').css('width','79px');
+					search_start_page = data['results'][0]['page_number'];
+					search_end_page = data['results'][data['results'].length-2]['page_number'];
+				}
+				if (GetURLParameter('start') != null) {
+					section_start_page = parseInt(GetURLParameter('start'));
+					section_end_page = parseInt(GetURLParameter('stop'));
+					// start_page = section_start_page;
+					// end_page = section_start_page
+				}
+
+				// if (section_start_page != null) {
+				// 	$.each(current_locations, function(index, value) {
+				// 		value.hide();
+				// 	})
+				// 	contentLayer.draw();
+				//
+				// }
+				console.log('#event '+data["results"].length);
+				console.log(current_locations);
+				$.each(data["results"], function(index, value) {
+					if ((value['event_nid'] != null) && ((current_locations[value['event_location']] != null) || (text.includes('HEAT')))) {
+					start = parseInt(value["page_number"]);
+					stop = parseInt(value["page_end"]);
+					
+					// only add data for section if provided
+					if ((section_start_page == null) || ((section_start_page <= start) && (section_end_page >= stop))) {
+					if (start < start_page) {
+						start_page = start;
+					}
+					if (stop > end_page) {
+						end_page = stop;
+					}
+					var page;
+					if (start == 128) {
+						// console.log(128);
+					}
+					// current_locations[value['event_location']].show();
+					var image = new Image();
+					
+					// ******* need to surround all event code , not just code below.  Currently non active events are included
+					// if (current_locations[value['event_location']] != null) {
+						active_locations[value['event_location']] = current_locations[value['event_location']];
+						total_events += 1; //data["results"].length;
+					// store events in order of occurence
+					//  chron order is value in drupal, will be reset after sort after complete load
+						events_images_in_order.push([value["event_location"],value['page_number'],value['chronological'], value['first_words'], "e_"+i, value['event_nid']]);
+						chron_order.push({'location': value["event_location"],'page' : value['page_number'], 'event_num' : events_images_in_order.length-1, 'order' : value['chronological'], 'first_words' : value['first_words'], 'id' : 'e_'+i, 'nid': value['event_nid']});
+					// }
+					// events_images_in_chron_order.push([value["Location"],value['Chronological Order']]);
+					// image.onload = image_loader(value, image);
+					image.onload = function() {
+						// if (value["Type"] != 'OutOfYoknapatawpha') {
+							var x_value = -100;
+							var y_value = -100;
+							if ((all_locations[value["event_location"]] != null) && (all_locations[value["event_location"]] != "")) {
+								x_value = all_locations[value["event_location"]].getX()-25;
+								y_value = all_locations[value["event_location"]].getY()-25;
+							}
+							console.log('e = '+x_value+', '+y_value);
+							
+							var w = 100;
+							var h = 100;
+							var o = 0.35;
+							if ((value['event_source_text'] == 'HEAT') || (value['event_source_text'] == 'HEATN') || (value['event_source_text'] == 'HEATSS') || (value['event_source_text'] == 'HEATNW') || (value['event_source_text'] == 'HEATNE') || (value['event_source_text'] == 'HEATNE') || (value['event_source_text'] == 'HEATSE') || (value['event_source_text'] == 'HEATSW') || (value['event_source_text'] == 'HEATJ') || (value['event_source_text'] == 'HEATOY')) {
+								w = 2640;
+								h = 1650;
+								o = 1;
+								x_value  = 0;
+								y_value = 0;
+							}
+							
+										          img = new Konva.Image({
+										            x: x_value,    // fix locations specific to text
+										            y: y_value,
+										            image: image,
+										            width: w,
+										            height: h,
+													  opacity: o
+										          });
+					
+						img.hide();
+							          		contentLayer.add(img);
+						// contentLayer.draw();
+						img.moveToTop();
+						current_active_event_logos[value["event_location"]] = img;
+						// event_group.add(img);
+						// console.log(value["Location"]+" : "+img.getX());
+						img.setZIndex(10);
+												
+					};
+					image.src = 'bruise.png';
+					if ((value['event_source_text'] == 'HEAT') || (value['event_source_text'] == 'HEATN') || (value['event_source_text'] == 'HEATSS') || (value['event_source_text'] == 'HEATNW') || (value['event_source_text'] == 'HEATNE') || (value['event_source_text'] == 'HEATNE') || (value['event_source_text'] == 'HEATSE') || (value['event_source_text'] == 'HEATSW') || (value['event_source_text'] == 'HEATJ') || (value['event_source_text'] == 'HEATOY')) {
+						image.src  = value["event_location"];
+						// image.width = 2460;
+						// img.height = 1650;
+					}
+
+					if (GetURLParameter('values_by') != 'year') {
+						if (event_list[value["event_location"]] == null) {
+							event_list[value["event_location"]] = new Array();
+						}
+					} else {
+						if (event_list[value["event_date"].split('-')[0]] == null) {
+							event_list[value["event_date"].split('-')[0]] = new Array();
+						}
+						
+					}
+					var pages = parseInt(value["page_end"]) + 1 - value["page_number_int"];
+					var p_size = (""+value["characters_present"]).split(',').length
+					var m_size = (""+value["characters_mentioned"]).split(',').length
+					var e = {pages:pages, present:p_size, mentioned:m_size};
+					if (GetURLParameter('values_by') != 'year') {
+						event_list[value["event_location"]].push(e);
+					} else {
+						event_list[value["event_date"].split('-')[0]].push(e);
+					}
+
+					var image2 = new Image();
+					// total_events = data["results"].length;
+					// // store events in order of occurence
+					// //  chron order is value in drupal, will be reset after sort after complete load
+					// events_images_in_order.push([value["Location"],value['PageNumber'],value['Chronological Order']]);
+					// chron_order.push({'location': value["Location"],'page' : value['PageNumber'], 'event_num' : events_images_in_order.length-1, 'order' : value['Chronological Order']});
+					// events_images_in_chron_order.push([value["Location"],value['Chronological Order']]);
+					// image.onload = image_loader(value, image);
+					image2.onload = function() {
+						// if (value["Type"] != 'OutOfYoknapatawpha') {
+							var x_value = -120;
+							var y_value = -120;
+							if ((all_locations[value["event_location"]] != null) && (all_locations[value["event_location"]] != "")) {
+								x_value = all_locations[value["event_location"]].getX()-35;
+								y_value = all_locations[value["event_location"]].getY()-35;
+								
+								
+								// if (GetURLParameter('heat') != null) {
+								// 	var x_v = (all_locations[value["event_location"]].getX()+15)/2640*800;
+								// 	var y_v = (all_locations[value["event_location"]].getY()+20)/1650*500;
+								// 	console.log('m='+x_v+", "+y_v);
+								// 	heatmap.addData({x:x_v, y:y_v, value:100})
+								// }
+							}
+							var w = 120;
+							var h = 120;
+							var o = 0.5;
+							if ((value['event_source_text'] == 'HEAT') || (value['event_source_text'] == 'HEATN') || (value['event_source_text'] == 'HEATSS') || (value['event_source_text'] == 'HEATNW') || (value['event_source_text'] == 'HEATNE') || (value['event_source_text'] == 'HEATNE') || (value['event_source_text'] == 'HEATSE') || (value['event_source_text'] == 'HEATSW') || (value['event_source_text'] == 'HEATJ') || (value['event_source_text'] == 'HEATOY')) {
+								w = 2640;
+								h = 1650;
+								o = 0;
+								x_value  = 0;
+								y_value = 0;
+							}
+
+										          img2 = new Konva.Image({
+										            x: x_value,    // fix locations specific to text
+										            y: y_value,
+										            image: image2,
+										            width: w,
+										            height: h,
+													  opacity: o
+										          });
+					
+						img2.hide();
+							          		contentLayer.add(img2);
+						// contentLayer.draw();
+						img2.moveToTop();
+						current_event_logos[value["event_location"]] = img2;
+						// event_group.add(img);
+						// console.log(value["Location"]+" : "+img.getX());
+						img2.setZIndex(40);
+												
+					};
+					image2.src = 'bruise3.png';
+					if ((value['event_source_text'] == 'HEAT') || (value['event_source_text'] == 'HEATN') || (value['event_source_text'] == 'HEATSS') || (value['event_source_text'] == 'HEATNW') || (value['event_source_text'] == 'HEATNE') || (value['event_source_text'] == 'HEATNE') || (value['event_source_text'] == 'HEATSE') || (value['event_source_text'] == 'HEATSW') || (value['event_source_text'] == 'HEATJ') || (value['event_source_text'] == 'HEATOY')) {
+						image2.src  = value["event_location"];
+						// image.width = 2460;
+						// img.height = 1650;
+					}
+					
+					if (GetURLParameter('heat') != null) {
+				        // heatmap = h337.create({
+				        //   container: document.getElementById('container'),
+				        //   // a waterdrop gradient ;-)
+				        //   gradient: { .1: 'rgba(0,0,0,0)', 0.25: "rgba(0,0,90, .6)", .6: "blue", .9: "cyan", .95: 'rgba(255,255,255,.4)'},
+				        //   maxOpacity: .6,
+				        //   radius: 10,
+				        //   blur: .90
+				        // });
+				
+						var x_value = -120;
+						var y_value = -120;
+						// if ((all_locations[value["event_location"]] != null) && (all_locations[value["event_location"]] != "")) {
+						// 	x_value = (all_locations[value["event_location"]].getX()-25); ///2640*800;
+						// 	y_value = (all_locations[value["event_location"]].getY()-25);///1650*500;
+						// 	console.log(x_value+", "+y_value);
+						// 	heatmap.addData({x:x_value, y:y_value, value:100})
+						// 	x_value = (all_locations[value["event_location"]].getX()-25)/2640*800;
+						// 	y_value = (all_locations[value["event_location"]].getY()-25)/1650*500;
+						// 	console.log('m='+x_value+", "+y_value);
+						// 	heatmap.addData({x:x_value, y:y_value, value:100})
+						// }
+					}
+					
+					var date = value["event_date"];
+					if (date.indexOf(" to ") >= 0) {
+						date = parseRangeDate(date);
+					} else {
+						date = parseDate(date);
+					}
+					if (i == 28) {
+						// console.log(value['Date']);
+						// console.log(date);
+					}
+					
+					var indeterminate_class = "";
+					if (value["indeterminate"] == "1") {
+						indeterminate_class = "indeterminate";
+					}
+
+					if ((i == 1) && ((value['event_source_text'] != 'HEAT') && (value['event_source_text'] != 'HEATN') && (value['event_source_text'] != 'HEATSS') && (value['event_source_text'] != 'HEATNW') && (value['event_source_text'] != 'HEATNE') && (value['event_source_text'] != 'HEATNE') && (value['event_source_text'] != 'HEATSE') && (value['event_source_text'] != 'HEATSW') && (value['event_source_text'] != 'HEATJ') && (value['event_source_text'] != 'HEATOY'))) {
+						$("<div class=\"first_event "+indeterminate_class+"\" id=\"s_"+i+"\"></div>").appendTo('#dates');
+						$("#s_"+i).css('left', 800/diff*date[0]+0);
+						$("#s_"+i).css('width', "1px");
+						
+					}
+					$("<div class=\"range range_item "+indeterminate_class+"\" id=\"r_"+i+"\"></div>").appendTo('#dates');
+					$("#r_"+i).css('left', 800/diff*date[0]+0);
+					$("#r_"+i).css('width', ((800/diff*(date[1]-date[0]))+1)+"px");
+
+					if ((value['event_source_text'] == 'HEAT') || (value['event_source_text'] == 'HEATN') || (value['event_source_text'] == 'HEATSS') || (value['event_source_text'] == 'HEATNW') || (value['event_source_text'] == 'HEATNE') || (value['event_source_text'] == 'HEATNE') || (value['event_source_text'] == 'HEATSE') || (value['event_source_text'] == 'HEATSW') || (value['event_source_text'] == 'HEATJ') || (value['event_source_text'] == 'HEATOY')) {
+						$("#r_"+i).css('width', "3px");
+					}
+
+
+					$("<div class=\"range range_item "+indeterminate_class+"\" id=\"e_"+i+"\"></div>").appendTo('#dates');
+					$("#e_"+i).css('left', 800/diff*date[0]+0);
+					$("#e_"+i).css('width', ((800/diff*(date[1]-date[0]))+1)+"px");
+
+					if ((value['event_source_text'] == 'HEAT') || (value['event_source_text'] == 'HEATN') || (value['event_source_text'] == 'HEATSS') || (value['event_source_text'] == 'HEATNW') || (value['event_source_text'] == 'HEATNE') || (value['event_source_text'] == 'HEATNE') || (value['event_source_text'] == 'HEATSE') || (value['event_source_text'] == 'HEATSW') || (value['event_source_text'] == 'HEATJ') || (value['event_source_text'] == 'HEATOY')) {
+						$("#e_"+i).css('width', "3px");
+					}
+					
+					event_data[i] = {"location": value["event_location"], "events": new Array(), "characters": new Array(), 'characters_mentioned': new Array()}
+					event_data[i]["events"].push(value["event_nid"]);
+					if($.type(value["characters_present"]) == 'string') {
+						$.each(value["characters_present"].split(","), function(j,k) {
+							var name = $.trim(k);
+							event_data[i]["characters"].push(parseInt(name));
+							active_characters.push(parseInt(name));
+						});
+					} else {
+						event_data[i]["characters"].push(value["Characters_present"]);
+						active_characters.push(value["characters_present"]);
+					}									
+					if($.type(value["characters_mentioned"]) == 'string') {
+						$.each(value["characters_mentioned"].split(","), function(j,k) {
+							var name = $.trim(k);
+							event_data[i]["characters_mentioned"].push(parseInt(name));
+							active_characters.push(parseInt(name));
+						});
+					} else {
+						event_data[i]["characters_mentioned"].push(value["characters_mentioned"]);
+						active_characters.push(value["characters_mentioned"]);
+					}									
+					event_dates.push("#e_"+i);
+					
+					for(page=start; page <= stop; page+=1) {
+						if (current_events_start[page] == null) {
+							current_events_start[page] = events_images_in_order.length-1;
+						}
+						if (current_events[page] == null) {
+							current_events[page] = new Array();
+						}
+						current_events[page].push(value['event_location']);
+						if (current_dates[page] == null) {
+							current_dates[page] = new Array();
+						}
+						current_dates[page].push("#r_"+i);
+					
+						if (page_locations[page] == null) {
+							page_locations[page] = {}
+						}
+						if (page_locations[page][value['event_location']] == null) {
+							page_locations[page][value['event_location']] = {"event_num" : events_images_in_order.length, "events" : new Array(), "characters" : new Array(), "characters_mentioned" : new Array()};
+						}
+						var range = 'Page '+start;
+						if (start != stop) {
+							range = 'Pages '+start+'-'+stop;
+						}
+						page_locations[page][value['event_location']]["events"].push(value["event_nid"]);
+						// console.log($.type(value["CharactersPresent"]));
+						if($.type(value["characters_present"]) == 'string') {
+							$.each(value["characters_present"].split(","), function(j,k) {
+								var name = $.trim(k);
+								page_locations[page][value['event_location']]["characters"].push(parseInt(name));
+								if(people_events[name] == null) {
+									people_events[name] = new Array();
+								}
+								people_events[name].push(value["body"]);
+							});
+						} else {
+							page_locations[page][value['event_location']]["characters"].push(value["characters_present"]);
+						}									
+						if($.type(value["characters_mentioned"]) == 'string') {
+							$.each(value["characters_mentioned"].split(","), function(j,k) {
+								var name = $.trim(k);
+								page_locations[page][value['event_location']]["characters_mentioned"].push(parseInt(name));
+								if(people_events[name] == null) {
+									people_events[name] = new Array();
+								}
+								people_events[name].push(value["body"]);
+							});
+						} else {
+							page_locations[page][value['event_location']]["characters_mentioned"].push(value["CharactersMentioned"]);
+						}									
+						if(locations_events[value['event_location']] == null) {
+							locations_events[value['event_location']] = {};
+							locations_events[value['event_location']][value["event_nid"]] = true;
+						} else {
+							locations_events[value['event_location']][value["event_nid"]] = true;
+						}
+					}									
+
+					$('#r_'+i).click(function(range) {
+						start = parseInt(value["page_number"]);
+						stop = parseInt(value["page_end"]);
+						var str = "<div id=\"tabs\"><ul><li><a href=\"#tabs-2\">Event</a></li><li><a href=\"#tabs-1\">Location</a></li><li><a href=\"#tabs-3\">Characters</a></li></ul><div id=\"tabs-2\" class=\"dialog_content\"></div><div id=\"tabs-1\" class=\"dialog_content\" ></div><div id=\"tabs-3\" class=\"dialog_content\"><strong>Location:</strong> "+location_labels[value["event_location"]]+"<br><br><strong>Present:</strong><div id='present'></div><strong>Mentioned:</strong><div id='mentioned'></div></div></div>";
+						// alert(value["Location"]);
+						$( "#dialog" ).html( str); //"<strong>"+value["LocationTitle"]+"</strong><br>"+value["Description"] );
+						var pos=start;
+						var e = new Array();
+						var c = new Array();
+						var mc = new Array();
+						// console.log(location_labels);
+						while (pos <= stop) {
+							$( "#tabs-1" ).html("<strong>Location:</strong> "+location_labels[value["event_location"]]+"<br><br>"+location_descriptions[value['event_location']] );
+							var data = page_locations[pos][value["event_location"]]["events"];
+							$.each(data, function(i,v) {
+								e.push(v);
+							})
+							data = page_locations[pos][value["event_location"]]["characters_present"];
+							$.each(data, function(i,v) {
+								c.push(v);
+							})
+							data = page_locations[pos][value["event_location"]]["characters_mentioned"];
+							$.each(data, function(i,v) {
+								mc.push(v);
+							})
+							pos += 1;
+						}
+						e = array_unique(e);
+						c = array_unique(c);
+						mc = array_unique(mc);
+						getEventsByNid(e, '#tabs-2', location_labels[value["event_location"]]);
+						getCharactersByNid(c, '#present');
+						getCharactersByNid(mc, '#mentioned');
+						
+						// $.each(e.sort(), function(index, value) {
+						// 	$('#tabs-2').append(value);
+						// })
+						// $.each(c.sort(), function(index, value) {
+						// 	$('#tabs-3').append(value+"<br>");
+						// })
+						$("#tabs").tabs();
+						if($(this).css('opacity') == "1") {
+							$('#dialog').dialog('open');
+							$( "#dialog").dialog('option', 'title', 'Event Record');
+						}
+					})
+
+					$('#e_'+i).click(function() {
+						start = parseInt(value["page_number"]);
+						stop = parseInt(value["page_end"]);
+						var str = "<div id=\"tabs\"><ul><li><a href=\"#tabs-2\">Event</a></li><li><a href=\"#tabs-1\">Location</a></li><li><a href=\"#tabs-3\">Characters</a></li></ul><div id=\"tabs-2\" class=\"dialog_content\"></div><div id=\"tabs-1\" class=\"dialog_content\" ></div><div id=\"tabs-3\" class=\"dialog_content\"><strong>Location:</strong> "+location_labels[value["event_location"]]+"<br><br><strong>Present:</strong><div id='present'></div><strong>Mentioned:</strong><div id='mentioned'></div></div></div>";
+						// alert(value["Location"]);
+						$( "#dialog" ).html( str); //"<strong>"+value["LocationTitle"]+"</strong><br>"+value["Description"] );
+						var pos=start;
+						var e = new Array();
+						var c = new Array();
+						var mc = new Array();
+						$( "#tabs-1" ).html("<strong>Location:</strong> "+location_labels[value["event_location"]]+"<br><br>"+location_descriptions[value['event_location']] );
+						var i = parseInt($(this).attr('id').replace(/.*_/,''));
+						var data = event_data[i]["events"];
+						$.each(data, function(i,v) {
+							e.push(v);
+						})
+						data = event_data[i]["characters"];
+						$.each(data, function(i,v) {
+							c.push(v);
+						})
+						data = event_data[i]["characters_mentioned"];
+						$.each(data, function(i,v) {
+							mc.push(v);
+						})
+						e = array_unique(e);
+						c = array_unique(c);
+						mc = array_unique(mc);
+						getEventsByNid(e, '#tabs-2', location_labels[value["event_location"]]);
+						getCharactersByNid(c, '#present');
+						getCharactersByNid(mc, '#mentioned');
+
+						//$("#tabs").tabs();
+						//$('#dialog').dialog('open');
+						//$( "#dialog").dialog('option', 'title', 'Event Record');
+
+						var url = 'family/event_record.php?event=' + e;
+
+						var w = 500;
+						var h = 560;
+						var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : window.screenX;
+					    var dualScreenTop = window.screenTop != undefined ? window.screenTop : window.screenY;
+					    var width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+					    var height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+						//systemZoom = width / window.screen.availWidth;
+					    var systemZoom = 1;
+						var left = (width - w) / 2 / systemZoom + dualScreenLeft;
+						var top = (height - h) / 2 / systemZoom + dualScreenTop;
+						var popup_window = window.open(url, 'popup', 'toolbar=no,menubar=no,titlebar=no,status=no,location=no,scrollbars=yes,resizable=yes, width=' + w / systemZoom + ', height=' + h / systemZoom + ', top=' + top + ', left=' + left);
+						popup_window.focus();
+
+					})
+
+					i+=1;
+				}
+
+
+			}
+				})
+				prev = start_page;
+				getCharactersPG(text);
+				getSections(text);
+				
+				// show main screen
+				$( "#slider" ).slider({ min: start_page, 
+						max: end_page,
+						create: function( event, ui) {
+						},
+						slide: function( event, ui ) {
+							// if (ui.value < start_page) {
+							// 	$('#slider').slider('value', start_page);
+							// } 
+							// if (ui.value > end_page) {
+							// 	$('#slider').slider('value', end_page);
+							// } 
+							started_event_mode = true;
+							
+							if (current_events_start[ui.value] != null) {
+								$("#e_slider").slider("value", current_events_start[ui.value]);
+								try {
+									$("#c_slider").slider("value", events_images_in_chron_order[current_events_start[ui.value]][2]);
+								} catch(e) {
+									console.log('no chron data');
+								}
+							}										
+							// current_event_logos[events_images_in_order[e_prev][0]].setOpacity(0.35);
+							current_event_logos[events_images_in_order[e_prev][0]].show();
+							current_active_event_logos[events_images_in_order[e_prev][0]].hide();
+							
+							animate_location(prev, ui.value, current_events, current_locations);
+	
+							animate_section(ui.value);
+
+							animate_date(ui.value, current_dates);
+								contentLayer.draw();
+								// $(".range_item").hide();
+			          // $("#label").text('Page '+ui.value);
+			
+								// var delay = function() {
+								//             $('#label').html('Page ' + ui.value).position({
+								// 										                my: 'center bottom',
+								// 										                at: 'center top',
+								//                 of: ui.handle,
+								//                 offset: "0, -11"
+								//             });
+								//         };
+								
+				        // wait for the ui.handle to set its position
+				        setTimeout(delay, 5);
+
+			          // $("#label").css("margin-left", (ui.value-min)/(max-min)*100+"%");
+			          // $("#label").css("left", "-25px");
+								prev = ui.value;
+			      } });
+			
+				$( "#e_slider" ).slider({ 
+						min: 0, 
+						max: total_events-1, //data["results"].length-1,
+						slide: function( event, ui ) {
+							console.log(ui.value);
+							// animate_location(e_prev, ui.value, current_events, current_locations);
+							started_event_mode = true;
+							// $(".range_item").hide();
+							fade_dates();
+							if (current_events[prev] != null) {
+								$.each(current_events[prev], function(index, value) {
+									if (current_event_logos[value] != null) {
+										current_event_logos[value].show();
+										current_active_event_logos[value].setOpacity(0.35);
+										current_active_event_logos[value].hide();
+									}
+								});
+							}
+							$('#label').html('Page ' + events_images_in_order[ui.value][1]).position({
+								                of: $("#e_slider a"),
+								                my: 'center bottom',
+								                at: 'center top',
+								                offset: "0, -11"
+								            });
+							
+							$("#e_slider").slider("value", ui.value);
+							$("#slider").slider("value", events_images_in_order[ui.value][1]);
+							$("#c_slider").slider("value", events_images_in_order[ui.value][2]);
+							// $("#c_slider").slider("value", events_images_in_order[ui.value][1]);
+							// animate_date($("#slider").slider("value"), current_dates);
+							animate_event_date()
+							// alert(i);
+							current_event_logos[events_images_in_order[e_prev][0]].show();
+							current_active_event_logos[events_images_in_order[e_prev][0]].setOpacity(0.35);
+							current_active_event_logos[events_images_in_order[e_prev][0]].hide();
+							current_active_event_logos[events_images_in_order[ui.value][0]].setOpacity(1);
+							current_active_event_logos[events_images_in_order[ui.value][0]].show();
+	
+							animate_section($("#slider").slider("value"));
+
+								contentLayer.draw();
+								e_prev = ui.value;
+																			
+			      }									
+			});
+
+				$( "#c_slider" ).slider({ 
+						min: 0, 
+						max: total_events-1, //data["results"].length-1,
+						slide: function( event, ui ) {
+							// animate_location(e_prev, ui.value, current_events, current_locations);
+							started_chron_mode = true;
+							// $(".range_item").hide();
+							fade_dates();
+							if (current_events[prev] != null) {
+								$.each(current_events[prev], function(index, value) {
+									if (current_event_logos[value] != null) {
+										current_event_logos[value].show();
+										current_active_event_logos[value].setOpacity(0.35);
+										current_active_event_logos[value].hide();
+									}
+								});
+							}
+							$("#slider").slider("value", events_images_in_chron_order[ui.value][1]);
+							$('#label').html('Page ' + events_images_in_chron_order[ui.value][1]).position({
+								                of: $("#e_slider a"),
+								                my: 'center bottom',
+								                at: 'center top',
+								                offset: "0, -11"
+								            });
+							
+							$("#c_slider").slider("value", ui.value);
+							$("#e_slider").slider("value", events_images_in_chron_order[ui.value][2]);
+							// $("#e_slider").slider("value", events_images_in_chron_order[ui.value][1]);
+							// animate_date($("#slider").slider("value"), current_dates);
+							animate_event_date()
+							// alert(i);
+							current_event_logos[events_images_in_order[e_prev][0]].show();
+							current_active_event_logos[events_images_in_order[e_prev][0]].setOpacity(0.35);
+							current_active_event_logos[events_images_in_order[e_prev][0]].hide();
+							current_active_event_logos[events_images_in_order[ui.value][0]].setOpacity(1);
+							current_active_event_logos[events_images_in_order[ui.value][0]].show();
+	
+							animate_section($("#slider").slider("value"));
+
+								contentLayer.draw();
+								e_prev = ui.value;
+			      }									
+			});
+			
+				
+				$( "#dialog" ).dialog({ autoOpen: false,
+					// title:'Location',
+					// open: function(event, ui) {
+					//         $("#dialol ul li").blur();
+					//     },
+					 position: { my: "center center", at: "center center", of: $('.konvajs-content') }
+					 });
+				$( "#about_text" ).dialog({ autoOpen: false, width:400 });
+				$('#title').show();
+				s = $("#slider").slider("value", start_page);
+				// $('#label').html('Page '+start_page);
+				$('#label').html('');
+				// $('#label').html('Page ' + start_page).position({
+				// 	                my: 'center top',
+				// 	                at: 'left bottom',
+				// 	                of: $("#slider a"),
+				// 	                offset: "0, -5"
+				// 	            });
+				if (search_start_page != null) {
+					$('#start').html(search_start_page);
+					$('#stop').html(search_end_page);
+				} else if (section_start_page == null) {
+					$('#start').html(start_page);
+					$('#stop').html(end_page);
+				} else {
+					$('#show_all').show();
+					if (section_start_page != 0) {
+						$('#start').html(section_start_page);
+					} else {
+						$('#start').html(1);
+					}
+					$('#stop').html(section_end_page);								
+				}
+				$("#layers").show();
+				$("#playback_controls").show();
+				// $("#controls").show();
+				$("#event_controls").show();
+				$("#chron_controls").show();
+				$('#reset_all').show();
+				$('#section_label').show();
+				// $('#start').html('3').position({
+				//                 my: 'left top',
+				//                 at: 'left bottom',
+				//                 of: $("#slider a"),
+				//                 offset: "0, -5"
+				// 	
+				// })
+				$("#sections").show();
+				$("#dates").show();
+				$("#date_labels").show();
+   			 var control_title = 'Display Controls';
+			 
+   			 if((text == 'HEAT') || (text == 'HEATN') || (text == 'HEATSS') || (text == 'HEATNW') || (text == 'HEATNE') || (text == 'HEATSW') || (text == 'HEATSE') || (text == 'HEATJ') || (text == 'HEATOY')) {
+   				 control_title = 'Heatmaps';
+   			 }
+				$('#layer_dialog').dialog({
+						dialogClass: "no-close",
+						width: 160,
+						title: control_title,
+						position: { my: "left-162 top+20", at: "left top", of: $('#home')}, //'.konvajs-content') }, left-50
+						open: function(event, ui) {
+						        $("#plus").blur();
+						    }
+						})
+								      $.each(current_content, function(index, value) {
+					value.show();
+				});
+
+			 console.log(event_list);
+			 var control_title = 'Display Controls';
+			 
+			 if((text == 'HEAT') || (text == 'HEATN') || (text == 'HEATSS') || (text == 'HEATNW') || (text == 'HEATNE') || (text == 'HEATSW') || (text == 'HEATSE') || (text == 'HEATJ') || (text == 'HEATOY')) {
+				 control_title = 'Heatmaps';
+				 if ((manmade != null) && (natural != null)) {
+					manmade.hide();
+					natural.hide();
+				}
+			 	$('#title').hide();
+				// $("#sections").hide();
+				$('.section, .section_item').click(function() {
+					alert('p');
+					console.log('override');
+				})
+				$("#start").hide();
+				$("#stop").hide();
+				$("#label").hide();
+				$("#chron_controls").hide();
+				$("#section_label").hide();
+				$('#dialog').dialog("close");
+				$('#layer_dialog').dialog("close");
+				$('#page-order').html('');
+			 }
+
+			 if (GetURLParameter('search') != null) {
+				 performing_search = true;
+				 var str='Database: '+GetURLParameter('search')+'<br>';
+				 var keys = ['first_words', 'keywords',   'gender_present', 'gender_mentioned', 'race_present', 'race_mentioned', 'era', 'summary', 'status', 'event_begin', 'event_end', 'publication_begin', 'publication_end', 'name', 'family', 'gender', 'race', 'class', 'event_begin', 'event_end', 'vitality', 'occupation', 'specific_job', 'origin', 'disability', 'ontological_status', 'narrator', 'cause_of_death', 'biography', 'publication_begin', 'publication_end', 'change_class',  'location','authority', 'description', 'publication_begin', 'location_type','change_class'];
+				 if ((GetURLParameter('characters_mentioned') != null) && (GetURLParameter('characters_mentioned') != '')) {
+					 str += 'Character: '+GetURLParameter('characters_mentioned')+'<br>';
+				 	if ((GetURLParameter('characters_present') != null) && (GetURLParameter('characters_present') != '')) {
+						str += 'Present/Mentioned: Either<br>'
+					} else {
+						str += 'Present/Mentioned: Mentioned<br>';
+					}
+				 }
+  				 if ((GetURLParameter('characters_present') != null) && (GetURLParameter('characters_present') != '')) {
+					 if ((GetURLParameter('characters_mentioned') == null) || (GetURLParameter('characters_mentioned') == '')) {
+						 str += 'Character: '+GetURLParameter('characters_present')+'<br>';
+						 str += 'Present/Mentioned: Present<br>';
+					 }
+				 }
+
+				 if ((GetURLParameter('characters_mentioned2') != null) && (GetURLParameter('characters_mentioned2') != '')) {
+					 str += 'With Character: '+GetURLParameter('characters_mentioned2')+'<br>';
+				 	if ((GetURLParameter('characters_present2') != null) && (GetURLParameter('characters_present2') != '')) {
+						str += 'Present/Mentioned: Either<br>'
+					} else {
+						str += 'Present/Mentioned: Mentioned<br>';
+					}
+				 }
+  				 if ((GetURLParameter('characters_present2') != null) && (GetURLParameter('characters_present2') != '')) {
+					 if ((GetURLParameter('characters_mentioned2') == null) || (GetURLParameter('characters_mentioned2') == '')) {
+						 str += 'With Character: '+GetURLParameter('characters_present2')+'<br>';
+						 str += 'Present/Mentioned: Present<br>';
+					 }
+				 }
+
+				 if ((GetURLParameter('name_mentioned') != null) && (GetURLParameter('name_mentioned') != '')) {
+					 str += 'Character: '+GetURLParameter('name_mentioned')+'<br>';
+				 	if ((GetURLParameter('name_present') != null) && (GetURLParameter('name_present') != '')) {
+						str += 'Present/Mentioned: Either<br>'
+					} else {
+						str += 'Present/Mentioned: Mentioned<br>';
+					}
+				 }
+  				 if ((GetURLParameter('name_present') != null) && (GetURLParameter('name_present') != '')) {
+					 if ((GetURLParameter('name_mentioned') == null) || (GetURLParameter('name_mentioned') == '')) {
+						 str += 'Character: '+GetURLParameter('name_present')+'<br>';
+						 str += 'Present/Mentioned: Present<br>';
+					 }
+				 }
+				 $.each(keys, function(k,v) {
+					 if (GetURLParameter(v) != null) {
+						 if (v != 'change_class') {
+							 str += jsUcfirst(v.replace(/_/g,' '))+': '+GetURLParameter(v)+'<br>';
+						 } else {
+						 	str += jsUcfirst(v.replace(/_/g,' '))+': True<br>';
+						 }
+					 }
+				 	
+				 })
+				 str += '<br>Showing Events,Locations and Characters based upon your search criteria.';
+				 // if (GetURLParameter('keywords') != null) {
+				 // 					 str += 'Keywords: '+GetURLParameter('keywords')+'<br>';
+				 // }
+				 // if (GetURLParameter('era') != null) {
+				 // 					 str += 'Era: '+GetURLParameter('era')+'<br>';
+				 // }
+				 $('#search_criteria').html(str.replace(/%20/g,' '));
+ 				$('#search_criteria').dialog({
+ 						dialogClass: "no-close",
+ 						width: 170,
+ 						title: 'Your Search Criteria',
+ 						position: { my: "left+800 top+20", at: "left top", of: $('#home')}, //'.konvajs-content') },
+ 						open: function(event, ui) {
+ 						        $("#plus").blur();
+ 						    }
+ 						})
+				 
+				 $('#sections').hide();
+ 				$("#section_label").hide();
+				$('#home').hide();
+				$('#about_tab').hide();
+				$('#search_tab').hide();
+				$('#visualize_tab').hide();
+				$('#commentary_tab').hide();
+				$('#mapit_tab').show();
+				$('#close_window').show();
+				$('#event_controls_offset').show();
+			 }
+			 if ((GetURLParameter('section') != null) || (GetURLParameter('search') != null)) {
+				 hide_current_locations();
+				 show_active_locations();
+				// $.each(current_locations, function(index, value) {
+				// 	try {
+				// 		if(value == 'loading') {
+				// 			value.hide();
+				// 		}
+				// 	}
+				// 	catch(e) {
+				// 		console.log(e);
+				// 	}
+				// })
+				// $.each(active_locations, function(index, value) {
+				// 	try {
+				// 		if (value != null) {
+				// 				value.show();
+				// 		}
+				// 	} catch(e) {
+				// 		console.log(e);
+				// 	}
+				//
+				// })
+				contentLayer.draw();
+				$('#locations').removeAttr('checked');
+				$('#event-locations').attr('checked','true');
+				if (GetURLParameter('search') == 'Location') {
+					show_search_locations(text);
+				}
+			 }			 
+			 if (GetURLParameter('hide') != null) {
+ 			 	$('#title').hide();
+				$('#layer_dialog').dialog("close");
+				$.each(current_locations, function(index, value) {
+					value.hide();
+				})
+				heatmap_image.show();
+				contentLayer.draw();
+			 }			 
+			 if (GetURLParameter('heat') != null) {
+			 	console.log('shw heat '+event_list);
+				var base = GetURLParameter('b') || 1;
+				var event_count_multiplier = GetURLParameter('e') || 1;
+				var page_count_multiplier = GetURLParameter('p') || 1;
+				var character_count_multiplier = GetURLParameter('c') || 1;
+				console.log(event_count_multiplier);
+				var pages = 0;
+				var characters = 0;
+				
+				if (GetURLParameter('values_by') != 'year') {
+				
+					$('#heat-info-table').append('<tr><th>Location</th><th>Events</th><th>Pages</th><th>Characters</th><th>Value</th><th>Gradient</th><th>X</th><th>Y</th></tr>');
+				 	$.each(event_list, function(k,v) {
+						if(all_locations[k] == null) {
+							window.location=window.location;
+						}
+						// while(all_locations[k] == null) {
+						// 	console.log('check');
+						// 	sleepFor(5);
+						// }
+				 		var x_v = (all_locations[k].getX()+25)/2640*800;
+				 		var y_v = (all_locations[k].getY()+20)/1650*500;
+				 		var save_x_v = (all_locations[k].getX()+25);
+				 		var save_y_v = (all_locations[k].getY()+30);
+						pages = 0;
+						characters = 0;
+						$.each(v, function(i,data) {
+							pages += data['pages'];
+							characters += data['present'];
+							characters += data['mentioned'];
+						})
+						var value = (base*v.length*event_count_multiplier)+(base*pages*page_count_multiplier)+(base*characters*character_count_multiplier);
+				 		console.log('m='+x_v+", "+y_v+", "+value);
+						if(k == 'Memphis') {
+							// value = 2000;
+					
+							console.log('memphis ='+value);
+						}
+				 		heatmap_layer.addData({x:x_v, y:y_v, value:value})
+				 		heatmap_layer_save.addData({x:save_x_v, y:save_y_v, value:value})
+						// $('#heat-info-table').append('<tr><td>'+k+'</td><td>'+v.length+'</td><td>'+pages+'</td><td>'+characters+'</td><td>'+value+"</td><td>"+heatmap_layer.getData().max+"</td></tr>");
+				 	});
+					console.log('value at: '+heatmap_layer.getValueAt({ x: 20, y: 20 }));
+				 	$.each(event_list, function(k,v) {
+						if(all_locations[k] == null) {
+							window.location=window.location;
+						}
+						// while(all_locations[k] == null) {
+						// 	console.log('check');
+						// 	sleepFor(5);
+						// }
+				 		var x_v = (all_locations[k].getX()+25)/2640*800;
+				 		var y_v = (all_locations[k].getY()+20)/1650*500;
+				 		var save_x_v = (all_locations[k].getX()+25);
+				 		var save_y_v = (all_locations[k].getY()+30);
+						pages = 0;
+						characters = 0;
+						$.each(v, function(i,data) {
+							pages += data['pages'];
+							characters += data['present'];
+							characters += data['mentioned'];
+						})
+						var value = (base*v.length*event_count_multiplier)+(base*pages*page_count_multiplier)+(base*characters*character_count_multiplier);
+				 		// console.log('m='+x_v+", "+y_v+", "+value);
+						// if(k == 'Memphis') {
+						// 	// value = 2000;
+						//
+						// 	console.log('memphis ='+value);
+						// }
+				 		// heatmap_layer.addData({x:x_v, y:y_v, value:value})
+				 		// heatmap_layer_save.addData({x:save_x_v, y:save_y_v, value:value})
+						$('#heat-info-table').append('<tr><td>'+k+'</td><td>'+v.length+'</td><td>'+pages+'</td><td>'+characters+'</td><td>'+value+"</td><td>"+value/heatmap_layer.getData().max+"</td><td>"+(all_locations[k].getX()+25)+"</td><td>"+(1650-(all_locations[k].getY()+30))+"</td></tr>");
+				 	});
+				} else {
+					$('#heat-info-table').append('<tr><th>Location</th><th>Events</th><th>Pages</th><th>Characters</th><th>Value</th><th>Gradient</th></tr>');
+					
+				 	$.each(event_list, function(k,v) {
+						pages = 0;
+						characters = 0;
+						$.each(v, function(i,data) {
+							pages += data['pages'];
+							characters += data['present'];
+							characters += data['mentioned'];
+						})
+						var value = (base*v.length*event_count_multiplier)+(base*pages*page_count_multiplier)+(base*characters*character_count_multiplier);
+						$('#heat-info-table').append('<tr><td>'+k+'</td><td>'+v.length+'</td><td>'+pages+'</td><td>'+characters+'</td><td>'+value+"</td><td>"+value/heatmap_layer.getData().max+"</td></tr>");
+					});
+					
+				} 
+				console.log(event_list);
+			 }
+
+				contentLayer.draw();
+				var chron = [];
+				try {
+					// chron = sortHashTableByKey(chron_order, 'order');
+					chron = chron_order.sort(function(a,b){return parseFloat(a.order) - parseFloat(b.order)});
+				} catch(error) {
+					// alert(error);
+					console.log(error);
+				}
+				var e_num = 1;
+				// events_images_in_chron_order = chron;
+				$.each(chron, function (i,v) {
+					// console.log(v);
+					if ( v != null) {
+						events_images_in_chron_order.push([v['location'], v['page'], v['event_num'], v['first_words'], v['id']]);
+						events_images_in_order[v['event_num']][2] = e_num;
+						e_num += 1;
+					}
+				})
+				 // = chron_order; //sortHashTableByKey(chron_order);
+				 
+    }
+});
+
+}
+
+function getEventsByNid(nids, location, title){
+	if (nids.length > 1) {
+		$.ajax({ 
+	   type: 'GET', 
+		url:'/sinatra/events_from_event_ids?ids='+nids,
+	   success: function (data) { 
+		   $(location).html(data);
+	   }});
+	} else {
+		$.ajax({
+		   type: 'GET',
+		url:'/sinatra/events_from_ids.json?ids='+nids,
+		   dataType:'json',
+		   success: function (data) {
+					var result_size = data["results"].length;
+					var char_num = 0;
+					$(location).html('<strong>Location:</strong> '+title+'<br><br>');
+					// alert(data["results"].length);
+					$.each(data["results"], function(index, value) {
+						if (value['first_words'] != null) {
+							// alert(value['CharacterName'])
+							// if(value['source_text'] != null)
+							var range = 'Page '+value["page_number"];
+							if (value["page_number"] != value["page_end"]) {
+								range = 'Pages '+value["page_number"]+'-'+value["page_end"];
+							}
+								$(location).append("<strong>First Words:</strong>"+value["first_words"]+" ("+range+") "+"<br>");
+								$(location).append("<strong>Narrative Status:</strong>"+value["naerrative_status"]+"<br>");
+								$(location).append("<strong>Event Date:</strong>"+value["event_date"]+"<br>");
+								if(value['indeterminate'] == '1') {
+									$(location).append("(Impossible to date more precisely)<br>");
+								}
+								$(location).append("<strong>Era:</strong>"+value["era"]+"<br>");
+								$(location).append("<strong>Summary:</strong>"+value["summary"]+"");
+								var k = value['keywords'];
+								var str='';
+								if (k != null) {
+									k = k.replace(/ /g, "&nbsp;");
+									var a = k.split('|').sort();
+									$.each(a,function(i,v) {
+										str += v.replace(/:/g, "&nbsp;&gt;&nbsp;")+'<br>';
+									})
+									$(location).append("<strong>Keywords:</strong><br>"+str);
+								}
+						}
+					});
+			}});
+	}
+}

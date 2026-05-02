@@ -1,0 +1,26 @@
+function getEditorsAssoc(text) {
+	current_editors_assoc = new Array();
+	// 
+	   $.ajax({ 
+     type: 'GET', 
+     url: '/sinatra/drupal_editors_assoc?code='+text,
+     dataType:'json',
+     success: function (data) { 
+ 				$.each(data["results"], function(index, value) {
+ 					editor = {};
+					
+ 					if (value['text_code'] != null) {
+ 						var val = value;
+ 						$.each(value, function(i,v) {
+ 							editor[i] = v;
+ 						})
+ 						current_editors_assoc.push(editor);
+ 					}
+ 				})
+				// brought the following line from getEditors as defined in editors.js
+				getLocations(text);
+				// $('.mac-dock img').hide();
+     }
+  });
+	
+}

@@ -1,0 +1,74 @@
+
+function getSections(text) {				
+	current_sections = {};
+	var i=0;
+	var b = Date.UTC(1850,01,01)/86400000.0;
+	var e = Date.UTC(1925,01,01)/86400000.0;
+	var diff = end_page-start_page;
+	var prev_start = -1;
+	var prev_stop = -1;
+	// 
+	$.ajax({ 
+    type: 'GET', 
+			 // async: false,
+ url: '/sinatra/drupal_sections?code='+text,
+    // url: 'http://hero.village.virginia.edu/sleepy/faulkner/sections/_find?criteria='+encodeURIComponent('{"TextCode":"'+text+'"}')+"&sort="+encodeURIComponent('{"Start":1}')+'&batch_size=100000',
+    // url: 'http://hero.village.virginia.edu/mongo/faulkner/sections/?filter_TextCode='+text, 
+    // url: 'http://hero.village.virginia.edu/~rwb3y/data.json', 
+    dataType:'json',
+    success: function (data) { 
+				$.each(data["results"], function(index, value) {
+					if (value['text_code'] != null) {
+						var start = parseInt(value['start'])-start_page;
+						var stop = parseInt(value['stop'])-start_page;
+						if ((prev_start != start) && (prev_stop != stop)) {
+							if ((prev_stop > 0) && (prev_stop != start)){
+								start = prev_stop;
+							}
+							prev_start = start;
+							prev_stop = stop;
+							var label;
+							if ((value['tooltip_title'] != null) && (value['tooltip_title'] != '')){
+								label = value['tooltip_title'];
+							} else {
+								label = value['display_title'];
+							}
+							console.log("Section "+label+" = start="+start+", start_page="+start_page);
+							$("<div class=\"section section_item\" id=\"s_"+i+"\" title=\""+label+"\" data-text=\""+text+"\" data-start=\""+(value['start'])+"\" data-stop=\""+(value['stop'])+"\">"+value['display_title']+"</div>").appendTo('#sections');
+							$("#s_"+i).tooltip({
+							               position: {
+							                  my: "center bottom",
+							                  at: "center top-10",
+							                  collision: "none"
+							               }});
+							var sec= "s_"+i;
+			   			 if((text != 'HEAT') && (text != 'HEATN') && (text != 'HEATSS')) {
+							
+							$("#s_"+i).click(function(){
+								window.location = window.location.href.substring(0,window.location.href.indexOf("?"))+"?section="+sec+"&text="+text+"&start="+(value['start'])+"&stop="+(value['stop']);
+							})
+						} 
+							$("#s_"+i).css('left', 800/diff*start+0);
+							$("#s_"+i).css('width', ((800/diff*(stop-start)))+"px");
+							current_sections['s_'+i] = {'start':value['start'], 'stop':value['stop']};
+							if(GetURLParameter('section') == sec) {
+								$("#s_"+i).css('background', 'red'); //'#C0C0C0');
+							}
+					
+							i += 1;
+						}
+					}
+				})
+				
+				 if((text == 'HEAT') || (text == 'HEATN') || (text == 'HEATSS') || (text == 'HEATSW') || (text == 'HEATSE') || (text == 'HEATNW') || (text == 'HEATNE') || (text == 'HEATJ') || (text == 'HEATOY')) {
+					 $('#texts-total').html(data['results'].length-1+' Texts');
+					 console.log(data);
+				 }
+				
+				setTitle();
+				// getLocations(text);
+				// $('.mac-dock img').hide();
+    }
+});
+	
+}

@@ -1,0 +1,795 @@
+function getCharactersByNid(nids, location){
+if (nids != null) {
+	$.ajax({ 
+    type: 'GET', 
+	url: '/sinatra/characters_from_ids.json?ids='+nids,
+    dataType:'json',
+    success: function (data) { 
+				var char_size = data["results"].length;
+				var char_num = 0;
+				$(location).html('');
+				// alert(data["results"].length);
+				$.each(data["results"], function(index, value) {
+					// alert(value['CharacterName'])
+					if (value['name'] != null) {
+						$(location).append(value['name']+"<br>");
+					}
+				})}
+		});
+	}
+}
+
+function show_character(name) {
+		var offset = 50;
+		if (current_locations[current_characters[name]["location"]] != null) {
+			current_characters[name]["image"].setX(current_locations[current_characters[name]["location"]].getX()-offset);
+		current_characters[name]["image"].setY(current_locations[current_characters[name]["location"]].getY());
+		// console.log(current_characters[name]["image"].getX()+","+current_characters[name]["image"].getY());
+	} else {
+		console.log('missing '+current_characters[name]["location"]);
+	}
+	
+	// }
+	// console.log(fitd_locations[loc].getX());
+	// offset += 50;
+	current_characters[name]["image"].setScale(1.5);
+	current_characters[name]["image"].moveToTop(); //setZIndex(20);
+	current_characters[name]["image"].show();
+	contentLayer.draw();
+}
+
+function getCharacters(text){
+	$.ajax({ 
+    type: 'GET', 
+	url: '/sinatra/characters?text='+text,
+		//wnm 10-30-19 removed // on sinatra line above and added // to sleepy line below
+	//   url: 'http://hero.village.virginia.edu/sleepy/faulkner/characters/_find?criteria='+encodeURIComponent('{"SourceTextCode":"'+text+'"}')+"&sort="+encodeURIComponent('{"RankValue":1}')+'&batch_size=100000',
+    // url: 'http://hero.village.virginia.edu/mongo/faulkner/characters/?filter_SourceTextCode='+text, 
+    // url: 'http://hero.village.virginia.edu/~rwb3y/characters.json', 
+    dataType:'json',
+    success: function (data) { 
+				var char_size = data["results"].length;
+				var char_num = 0;
+				console.log(char_num+'='+char_size);
+				// alert(data["results"].length);
+				var char_links = {}
+				if ((char_size == 0) || (char_size == 1)) {
+					$('#loading').hide();										
+					
+				}
+				$.each(data["results"], function(index, value) {
+					if(value['Nid'] != null) {
+					// console.log(parseInt(value["X"].replace(" ","")));
+					// console.log(value["CharacterName"]);
+
+					// only keep active characters
+					if ((GetURLParameter('start') == null) || (active_characters.indexOf(parseInt(value['Nid'])) >= 0)) {
+						char_links[value['Sort Name']] = "<input type=\"checkbox\" value=\""+value["CharacterName"].replace(/"/g,"\\\"")+"\"><a href=\"#\" class=\"list_link\" onclick=\"show_character('"+value['CharacterName']+"')\">"+value["CharacterName"]+"</a><br>";
+					}
+					// $('#character_list_content').append("<input type=\"checkbox\" value=\""+value["CharacterName"].replace(/"/g,"\\\"")+"\"><a href=\"#\" class=\"list_link\" onclick=\"show_character('"+value['CharacterName']+"')\">"+value["CharacterName"]+"</a><br>");
+
+					var image = new Image();
+					image.onload = function() {
+								          img = new Konva.Image({
+								            x: 0, //parseInt(value["x"].replace(" ",""))-10,
+								            y: 0, //parseInt(value["y"].replace(" ",""))-75,
+								            image: image,
+								            width: 60,
+								            height: 60
+								          });
+						img.on('mousemove', function() {
+						                var mousePos = stage.getMousePosition();
+										if (mousePos.x >= 700) {
+											tooltip_group.setPosition(mousePos.x + 5-tooltip.getWidth(), mousePos.y + 5);
+										} else {
+											tooltip_group.setPosition(mousePos.x + 5, mousePos.y + 5);
+										}
+						                // tooltip_group.setPosition(mousePos.x + 5, mousePos.y + 5);
+						                tooltip.setText(value["CharacterName"]);
+							rect.setWidth(tooltip.getWidth());
+						                tooltip_group.show();
+						                tooltipLayer.draw();
+									        });
+						img.on("mouseout", function(){
+							                tooltip_group.hide();
+							                tooltipLayer.draw();
+							            });
+						img.on("mousedown", function(){
+							// $( "#dialog" ).html( "<strong>"+value["CharacterName"]+"</strong><br>"+value["Biograpy"] );
+							var str = "<div id=\"tabs\"><ul><li><a href=\"#tabs-1\">Biography</a></li><li><a href=\"#tabs-2\">Character Information</a></li><li><a href=\"#tabs-3\">Events</li></ul><div id=\"tabs-1\" class=\"dialog_content\"></div><div id=\"tabs-2\" class=\"dialog_content\"></div><div id=\"tabs-3\" class=\"dialog_content\"></div></div>";
+							$( "#dialog" ).html( str); //"<strong>"+value["LocationTitle"]+"</strong><br>"+value["Description"] );
+							$( "#tabs-1" ).html("<strong>"+value["CharacterName"]+"</strong><br>"+value["Biograpy"] );
+							// if (people_events[value["CharacterName"]] != null) {
+							// 	$.each(people_events[value["CharacterName"]], function(index, value) {
+							// 		$('#tabs-2').append(value+"<hr>");
+							// 	})
+							// }
+							str  = "<strong>Name:</strong> "+value["CharacterName"]+"<br><strong>Alt Names:</strong> "+value["AKA"]+"<br><strong>Location of First Appearance:</strong> "+value["FirstAppearance"]+"<br><strong>Gender:</strong> "+value["Gender"]+"<br><strong>Race:</strong> "+value["Race"]+"<br><strong>Class:</strong> "+value["Class"]+"<br><strong>Ethnicity:</strong> "+value["Ethnicity"]+"<br><strong>Disability:</strong> "+value["Disability"]+"<br><strong>Narrator:</strong> "+value["Narrator"]+"<br><strong>Ontological Status:</strong> "+value["Ontological Status"]+"<br><strong>Vitality:</strong> "+value["Vitality"]+"<br><strong>Family:</strong> "+value["Family"]+"<br><strong>Date of Birth:</strong> "+value["DateOfBirth"]+"<br><strong>Occupation:</strong> "+value["Occupation"]+"<br><strong>Home:</strong> "+value["Home"]+"<br><strong>Name:</strong> "+value["CharacterName"]+"<br><strong>Cause Of Death:</strong> "+value["CauseOfDeath"]+"<br><strong>Rank:</strong> "+value["Rank"]+"<br><strong>Other Texts:</strong> "+value["OtherTexts"];
+							$('#tabs-2').html(str);
+							$("#tabs").tabs();
+							$( "#dialog" ).dialog({
+								width: 350,
+								open: function(e,ui){
+									get_events('#tabs-3',value['Nid'], value['source_text']);
+									$('.dialog_content').height($('#dialog').height()-70);								},
+								resize: function(e,ui){
+									$('.dialog_content').height(ui.size['height']-100);
+								}
+							});
+							// $('#dialog').dialog({width:350, open:get_events('#tabs-3',value['Nid'], value['source_text'])});
+							//$( "#dialog" ).dialog('open' );
+							//$( "#dialog").dialog('option', 'title', 'Character Record');
+
+							var url = 'family/character_record.php?book=' + value['source_text'] + '&zid=' + value['Nid'];
+
+							var w = 500;
+							var h = 560;
+							var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : window.screenX;
+						    var dualScreenTop = window.screenTop != undefined ? window.screenTop : window.screenY;
+						    var width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+						    var height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+							//systemZoom = width / window.screen.availWidth;
+						    var systemZoom = 1;
+							var left = (width - w) / 2 / systemZoom + dualScreenLeft;
+							var top = (height - h) / 2 / systemZoom + dualScreenTop;
+							var popup_window = window.open(url, 'popup', 'toolbar=no,menubar=no,titlebar=no,status=no,location=no,scrollbars=yes,resizable=yes, width=' + w / systemZoom + ', height=' + h / systemZoom + ', top=' + top + ', left=' + left);
+							popup_window.focus();
+
+						});
+
+						// only keep active characters
+						if ((GetURLParameter('start') == null) || (active_characters.indexOf(parseInt(value['Nid'])) >= 0)) {
+							character_origin[value["CharacterName"]] = value['RankValue']; //{'rank':value["Rank"], 'location':value["FirstAppearance"]};
+							character_home[value["CharacterName"]] = value["Home"];
+												
+							if(locations_people[value["FirstAppearance"]] == null) {
+								locations_people[value["FirstAppearance"]] = {}
+							}
+							locations_people[value["FirstAppearance"]][value["Nid"]] = true;
+												
+							var h = {"image" : img, "location" : value["FirstAppearance"], "rank" : value["Rank"]};
+												
+							img.hide();
+									          contentLayer.add(img);
+							img.moveToTop();
+							current_characters[value["CharacterName"]] = h; //img;
+						}
+						char_num +=1;
+						// console.log(char_num+'='+char_size);
+						// alert(char_num+'='+char_size);
+						if(char_num == (char_size)) {
+							// build character line
+							$('#loading').hide();										
+							contentLayer.draw();
+							// var tmp = Array();
+							// $.each(current_characters, function(i,v) {
+							// 	tmp.push(i);
+							// 	// $('#character_list_content').append(i+"<br>");
+							// })
+							// $.each(tmp.sort(), function(i,v) {
+							// 	// $('#character_list_content').append(v+"<br>");
+							// })
+							$('#character_list').dialog({
+									autoOpen: false,
+									height: 200,
+									width: 200,
+									title: 'Character List',
+									position: { my: "right bottom", at: "right bottom", of: $('.konvajs-content') },
+									open: function(event, ui) {
+									        $("#character_list_content input").blur();
+									    },
+									beforeClose: function( event, ui ) {
+										$("#show_character_list").prop('checked', false);
+									}
+									})
+							
+						}
+								        };
+					console.log(value["Race"]);
+					if (value["IndividualGroup"] != "Group") {
+						if(value["Race"] == "White") {
+							if(value["Gender"] == "Male") {
+									        		image.src = "MWW-sq.png";
+									        		// image.src = "wm-sm-sq.png";
+							} else {
+				        		image.src = "FWW-sq.png";
+								// image.src = "wf-sm-sq.png";
+							}
+						} else if(value["Race"] == "Black") {
+								if(value["Gender"] == "Male") {
+										        		image.src = "bm-sm-sq.png";
+								} else {
+									image.src = "bf-sm-sq.png";
+								}
+							} else if(value["Race"] == "Indian"){
+								if(value["Gender"] == "Male") {
+					        		image.src = "MRR-sq.png";
+										        		// image.src = "natam_m-sm-sq.png";
+								} else {
+					        		image.src = "FRR-sq.png";
+									// image.src = "natam_f-sm-sq.png";
+								}
+							} else if(value["Race"] == "MixedBlackIndian"){
+								if(value["Gender"] == "Male") {
+										        		image.src = "MBR-sq.png";
+								} else {
+									image.src = "MBR-sq.png";
+								}
+							} else if(value["Race"] == "MixedIndianWhite"){
+								if(value["Gender"] == "Male") {
+										        		image.src = "MRW-sq.png";
+								} else {
+									image.src = "MRW-sq.png";
+								}
+							} else if(value["Race"] == "Indeterminable"){
+								if(value["Gender"] == "Male") {
+										        		image.src = "indet-m-sm-sq.png";
+								} else {
+									image.src = "indet-f-sm-sq.png";
+								}
+							} else if(value["Race"] == "Asian"){
+								if(value["Gender"] == "Male") {
+										        		image.src = "MAA-sq.png";
+								} else {
+									image.src = "FAA-sq.png";
+								}
+							} else {
+								if(value["Gender"] == "Male") {
+									image.src = "mm-sm-sq.png";									
+								} else {
+									image.src = "mf-sm-sq.png"; //need female icon
+								}
+							}
+						} else {
+							if(value["Race"] == "White") {
+								if(value["Gender"] == "Male") {
+			        		image.src = "group_icons_Male_W_icon-sm-sq.png";
+								} else if(value["Gender"] == "Female"){
+			        		image.src = "group_icons_Female_W_icon-sm-sq.png";
+								} else {
+									image.src = "group_icons_MixedGender_W_icon-sm-sq.png";
+								}
+							} else if(value["Race"] == "Black") {
+								if(value["Gender"] == "Male") {
+			        		image.src = "group_icons_Male_B_icon-sm-sq.png";
+								} else if(value["Gender"] == "Female"){
+			        		image.src = "group_icons_Female_B_icon-sm-sq.png";
+								} else {
+									image.src = "group_icons_MixedGender_B_icon-sm-sq.png";
+								}
+							} else if(value["Race"] == "Indian"){
+								if(value["Gender"] == "Male") {
+			        		image.src = "group_icons_Male_R_icon-sm-sq.png";
+								} else if(value["Gender"] == "Female"){
+			        		image.src = "group_icons_Female_R_icon-sm-sq.png";
+								} else {
+									image.src = "group_icons_MixedGender_R_icon-sm-sq.png";
+								}
+							} else if(value["Race"] == "MixedBlackIndian"){
+								image.src = "GroupMBR.png";
+							} else if(value["Race"] == "MixedIndianWhite"){
+								image.src = "GroupMRW.png";
+							} else if(value["Race"] == "Asian"){
+								if(value["Gender"] == "Male") {
+			        		image.src = "GroupMA-sq.png";
+								} else if(value["Gender"] == "Female"){
+			        		image.src = "GroupFA-sq.png";
+								} else {
+									image.src = "GroupMA-sq.png";
+								}
+							} else if(value["Race"] == "Indeterminable"){
+								if(value["Gender"] == "Male") {
+			        		image.src = "indet-group-m-sm-sq.png";
+								} else if(value["Gender"] == "Female"){
+			        		image.src = "indet-group-f-sm-sq.png";
+								} else {
+									image.src = "indet-group-mixed-sm-sq.png";
+								}
+							} else {
+								if(value["Gender"] == "Male") {
+			        		image.src = "group_icons_MixedRaceMale_icon-sm-sq.png";
+								} else if(value["Gender"] == "Female"){
+			        		image.src = "group_icons_MixedRaceFemale_icon-sm-sq.png";
+								} else {
+									image.src = "group_icons_MixedRaceGender_icon-sm-sq.png";
+								}
+							}
+							
+						}
+					}
+				})
+				// $('#loading').hide();										
+				var d = SortArrayByKeys(char_links);
+				$.each(d, function(i,v) {
+					$('#character_list_content').append(v);
+				})
+				data_loaded = true;
+				// $('#loading').hide();
+    }
+});
+	
+}
+
+function getSearchCharactersPG(text){
+	rank_values = {'Major':1, 'Secondary':2, 'Minor':3, 'Peripheral':4}
+	
+	var str='';
+	if(GetURLParameter('search') == 'Character') {
+		if(GetURLParameter('name') != null) {
+			str += '&name='+GetURLParameter('name');
+		}
+		if(GetURLParameter('name_present') != null) {
+			str += '&name_present='+GetURLParameter('name_present');
+		}
+		if(GetURLParameter('name_mentioned') != null) {
+			str += '&name_mentioned='+GetURLParameter('name_mentioned');
+		}
+		if(GetURLParameter('race') != null) {
+			str += '&race='+GetURLParameter('race');
+		}
+		if(GetURLParameter('gender') != null) {
+			str += '&gender='+GetURLParameter('gender');
+		}
+		if(GetURLParameter('class') != null) {
+			str += '&class='+GetURLParameter('class');
+		}
+		if(GetURLParameter('change_class') != null) {
+			str += '&change_class='+GetURLParameter('change_class');
+		}
+		if(GetURLParameter('family') != null) {
+			str += '&family='+GetURLParameter('family');
+		}
+		if(GetURLParameter('event_begin') != null) {
+			str += '&event_begin='+GetURLParameter('event_begin');
+		}
+		if(GetURLParameter('event_end') != null) {
+			str += '&event_end='+GetURLParameter('event_end');
+		}
+		if(GetURLParameter('vitality') != null) {
+			str += '&vitality='+GetURLParameter('vitality');
+		}
+		if(GetURLParameter('occupation') != null) {
+			str += '&occupation='+GetURLParameter('occupation');
+		}
+		if(GetURLParameter('specific_job') != null) {
+			str += '&specific_job='+GetURLParameter('specific_job');
+		}
+		if(GetURLParameter('origin') != null) {
+			str += '&origin='+GetURLParameter('origin');
+		}
+		if(GetURLParameter('disability') != null) {
+			str += '&disability='+GetURLParameter('disability');
+		}
+		if(GetURLParameter('ontological_status') != null) {
+			str += '&ontological_status='+GetURLParameter('ontological_status');
+		}
+		if(GetURLParameter('narrator') != null) {
+			str += '&narrator='+GetURLParameter('narrator');
+		}
+		if(GetURLParameter('cause_of_death') != null) {
+			str += '&cause_of_death='+GetURLParameter('cause_of_death');
+		}
+		if(GetURLParameter('biography') != null) {
+			str += '&biography='+GetURLParameter('biography');
+		}
+		if(GetURLParameter('publication_begin') != null) {
+			str += '&publication_begin='+GetURLParameter('publication_begin');
+		}
+		if(GetURLParameter('publication_end') != null) {
+			str += '&publication_end='+GetURLParameter('publication_end');
+		}
+		if(GetURLParameter('rank') != null) {
+			str += '&rank='+GetURLParameter('rank');
+		}
+	}	
+	$.ajax({ 
+    type: 'GET', 
+	url: '/sinatra/characters?code='+text+str,
+    dataType:'json',
+    success: function (data) { 
+				var char_size = data["results"].length;
+				var char_num = 0;
+				console.log(char_num+'='+char_size);
+				// alert(data["results"].length);
+				var char_links = {}
+				$.each(data["results"], function(index, value) {
+					if(value['id'] != null) {
+						search_characters[value["name"]] = current_characters[value["name"]];
+					}
+				});
+				$('#characters-search').attr('checked','true');
+				show_characters();
+				contentLayer.draw();
+				
+			}
+		});
+	}
+
+
+function getCharactersPG(text){
+	rank_values = {'Major':1, 'Secondary':2, 'Minor':3, 'Peripheral':4}
+	
+	var str='';
+	if(GetURLParameter('search') == 'Character') {
+		if(GetURLParameter('name') != null) {
+			str += '&name='+GetURLParameter('name');
+		}
+		if(GetURLParameter('race') != null) {
+			str += '&race='+GetURLParameter('race');
+		}
+		if(GetURLParameter('gender') != null) {
+			str += '&gender='+GetURLParameter('gender');
+		}
+		if(GetURLParameter('class') != null) {
+			str += '&class='+GetURLParameter('class');
+		}
+		if(GetURLParameter('family') != null) {
+			str += '&family='+GetURLParameter('family');
+		}
+		if(GetURLParameter('event_begin') != null) {
+			str += '&event_begin='+GetURLParameter('event_begin');
+		}
+		if(GetURLParameter('event_end') != null) {
+			str += '&event_end='+GetURLParameter('event_end');
+		}
+		if(GetURLParameter('vitality') != null) {
+			str += '&vitality='+GetURLParameter('vitality');
+		}
+		if(GetURLParameter('occupation') != null) {
+			str += '&occupation='+GetURLParameter('occupation');
+		}
+		if(GetURLParameter('specific_job') != null) {
+			str += '&specific_job='+GetURLParameter('specific_job');
+		}
+		if(GetURLParameter('origin') != null) {
+			str += '&origin='+GetURLParameter('origin');
+		}
+		if(GetURLParameter('disability') != null) {
+			str += '&disability='+GetURLParameter('disability');
+		}
+		if(GetURLParameter('ontological_status') != null) {
+			str += '&ontological_status='+GetURLParameter('ontological_status');
+		}
+		if(GetURLParameter('narrator') != null) {
+			str += '&narrator='+GetURLParameter('narrator');
+		}
+		if(GetURLParameter('cause_of_death') != null) {
+			str += '&cause_of_death='+GetURLParameter('cause_of_death');
+		}
+		if(GetURLParameter('biography') != null) {
+			str += '&biography='+GetURLParameter('biography');
+		}
+		if(GetURLParameter('publication_begin') != null) {
+			str += '&publication_begin='+GetURLParameter('publication_begin');
+		}
+		if(GetURLParameter('publication_end') != null) {
+			str += '&publication_end='+GetURLParameter('publication_end');
+		}
+	}	
+	$.ajax({ 
+    type: 'GET', 
+	url: '/sinatra/characters?code='+text,
+  // url: 'http://hero.village.virginia.edu/sleepy/faulkner/characters/_find?criteria='+encodeURIComponent('{"SourceTextCode":"'+text+'"}')+"&sort="+encodeURIComponent('{"RankValue":1}')+'&batch_size=100000',
+    // url: 'http://hero.village.virginia.edu/mongo/faulkner/characters/?filter_SourceTextCode='+text, 
+    // url: 'http://hero.village.virginia.edu/~rwb3y/characters.json', 
+    dataType:'json',
+    success: function (data) { 
+				var char_size = data["results"].length;
+				var char_num = 0;
+				console.log(char_num+'='+char_size);
+				// alert(data["results"].length);
+				var char_links = {}
+				if ((char_size == 0) || (char_size == 1)) {
+					$('#loading').hide();										
+					
+				}
+				$.each(data["results"], function(index, value) {
+					if(value['id'] != null) {
+					// console.log(parseInt(value["X"].replace(" ","")));
+					// console.log(value["CharacterName"]);
+
+					// only keep active characters
+					if ((GetURLParameter('start') == null) || (active_characters.indexOf(parseInt(value['id'])) >= 0)) {
+						char_links[value['sort_name']] = "<input type=\"checkbox\" value=\""+value["name"].replace(/"/g,"\\\"")+"\"><a href=\"#\" class=\"list_link\" onclick=\"show_character('"+value['name']+"')\">"+value["name"]+"</a><br>";
+					}
+					// $('#character_list_content').append("<input type=\"checkbox\" value=\""+value["name"].replace(/"/g,"\\\"")+"\"><a href=\"#\" class=\"list_link\" onclick=\"show_character('"+value['name']+"')\">"+value["name"]+"</a><br>");
+
+					var image = new Image();
+					image.onload = function() {
+								          img = new Konva.Image({
+								            x: 0, //parseInt(value["x"].replace(" ",""))-10,
+								            y: 0, //parseInt(value["y"].replace(" ",""))-75,
+								            image: image,
+								            width: 60,
+								            height: 60
+								          });
+						img.on('mousemove', function() {
+			                document.body.style.cursor = 'pointer';
+							
+						                var mousePos = stage.getPointerPosition();
+										if (mousePos.x >= 700) {
+											tooltip_group.position({x:mousePos.x + 5-tooltip.getWidth(), y:mousePos.y + 5});
+										} else {
+											tooltip_group.position({x:mousePos.x + 5, y:mousePos.y + 5});
+										}
+						                // tooltip_group.setPosition(mousePos.x + 5, mousePos.y + 5);
+						                tooltip.setText(value["name"]);
+							rect.setWidth(tooltip.getWidth());
+						                tooltip_group.show();
+						                tooltipLayer.draw();
+									        });
+						img.on("mouseout", function(){
+			                document.body.style.cursor = 'default';
+							
+							                tooltip_group.hide();
+							                tooltipLayer.draw();
+							            });
+						img.on("mousedown", function(){
+							// $( "#dialog" ).html( "<strong>"+value["name"]+"</strong><br>"+value["Biograpy"] );
+							var str = "<div id=\"tabs\"><ul><li><a href=\"#tabs-1\">Biography</a></li><li><a href=\"#tabs-2\">Character Information</a></li><li><a href=\"#tabs-3\">Events</li></ul><div id=\"tabs-1\" class=\"dialog_content\"></div><div id=\"tabs-2\" class=\"dialog_content\"></div><div id=\"tabs-3\" class=\"dialog_content\"></div></div>";
+							$( "#dialog" ).html( str); //"<strong>"+value["LocationTitle"]+"</strong><br>"+value["Description"] );
+							$( "#tabs-1" ).html("<strong>"+value["name"]+"</strong><br>"+value["biography"] );
+							// if (people_events[value["name"]] != null) {
+							// 	$.each(people_events[value["name"]], function(index, value) {
+							// 		$('#tabs-2').append(value+"<hr>");
+							// 	})
+							// }
+							var other_texts='';
+							var comma_names = ['Go Down, Moses', 'Absalom, Absalom!', '"Appendix, Compson"'];
+							value["other_text"] = value["other_text"].replace('Go Down, Moses', 'Go Down&#44; Moses');
+							value["other_text"] = value["other_text"].replace('Absalom, Absalom!', 'Absalom&#44; Absalom!');
+							value["other_text"] = value["other_text"].replace('"Appendix, Compson"', '"Appendix&#44; Compson"');
+							$.each(value["other_text"].split(','), function(i,v) {
+								console.log($.trim(v));
+								other_texts += '<a href="characters.html?text='+$.trim(v).replace(/"/g,'&quot;')+'&name='+value['name'].split(' ')[value['name'].split(' ').length-1]+'" target="_chars">'+v+'</a>, ';
+							})
+							var change = '';
+							if(value["change_class"] == 1) {
+								change = '<br>(Character\'s Class changes in this text.)';
+							}
+							str  = "<strong>Name:</strong> "+value["name"]+"<br><strong>Alt Names:</strong> "+value["aka"]+"<br><strong>Location of First Appearance:</strong> "+value["first_appear"]+"<br><strong>Gender:</strong> "+value["gender"]+"<br><strong>Race:</strong> "+value["race"]+"<br><strong>Class:</strong> "+value["class"]+change+"<br><strong>Ethnicity:</strong> "+value["ethnicity"]+"<br><strong>Disability:</strong> "+value["disability"]+"<br><strong>Narrator:</strong> "+value["narrator"]+"<br><strong>Ontological Status:</strong> "+value["ontological_status"]+"<br><strong>Vitality:</strong> "+value["vitality"]+"<br><strong>Family:</strong> "+value["family"]+"<br><strong>Date of Birth:</strong> "+value["date_of_birth"]+"<br><strong>Occupation:</strong> "+value["occupation"]+"<br><strong>Home:</strong> "+value["home"]+"<br><strong>Cause Of Death:</strong> "+value["cause_of_death"]+"<br><strong>Rank:</strong> "+value["rank"]+"<br><strong>Other Texts:</strong> "+other_texts; //value["other_text"];
+							$('#tabs-2').html(str);
+							$("#tabs").tabs();
+							$( "#dialog" ).dialog({
+								width: 350,
+								open: function(e,ui){
+									get_events('#tabs-3',value['id'], value['source_text']);
+									$('.dialog_content').height($('#dialog').height()-70);																	},
+								resize: function(e,ui){
+									$('.dialog_content').height(ui.size['height']-100);
+								}
+							});
+							// $('#dialog').dialog({width:350, open:get_events('#tabs-3',value['id'], value['source_text'])});
+							//$( "#dialog" ).dialog('open' );
+							//$( "#dialog").dialog('option', 'title', 'Character Record');
+
+							var url = 'family/character_record.php?book=' + value['source_text'] + '&zid=' + value['id'];
+
+							var w = 500;
+							var h = 560;
+							var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : window.screenX;
+						    var dualScreenTop = window.screenTop != undefined ? window.screenTop : window.screenY;
+						    var width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+						    var height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+							//systemZoom = width / window.screen.availWidth;
+						    var systemZoom = 1;
+							var left = (width - w) / 2 / systemZoom + dualScreenLeft;
+							var top = (height - h) / 2 / systemZoom + dualScreenTop;
+							var popup_window = window.open(url, 'popup', 'toolbar=no,menubar=no,titlebar=no,status=no,location=no,scrollbars=yes,resizable=yes, width=' + w / systemZoom + ', height=' + h / systemZoom + ', top=' + top + ', left=' + left);
+							popup_window.focus();
+
+						});
+
+						// only keep active characters
+						if ((GetURLParameter('start') == null) || (active_characters.indexOf(parseInt(value['id'])) >= 0)) {
+							character_origin[value["name"]] = rank_values[value['rank']]; //{'rank':value["Rank"], 'location':value["first_appearence"]};
+							character_home[value["name"]] = value["home"];
+												
+							if(locations_people[value["first_appear"]] == null) {
+								locations_people[value["first_appear"]] = {}
+							}
+							locations_people[value["first_appear"]][value["id"]] = true;
+												
+							var h = {"image" : img, "location" : value["first_appear"], "rank" : value["rank"], 'current' : people_events[value['id']]};
+												
+							img.hide();
+									          contentLayer.add(img);
+							img.moveToTop();
+							current_characters[value["name"]] = h; //img;
+						}
+						char_num +=1;
+						// console.log(char_num+'='+char_size);
+						// alert(char_num+'='+char_size);
+						if(char_num == (char_size-1)) {
+							// build character line
+							$('#loading').hide();										
+							contentLayer.draw();
+							// var tmp = Array();
+							// $.each(current_characters, function(i,v) {
+							// 	tmp.push(i);
+							// 	// $('#character_list_content').append(i+"<br>");
+							// })
+							// $.each(tmp.sort(), function(i,v) {
+							// 	// $('#character_list_content').append(v+"<br>");
+							// })
+							$('#character_list').dialog({
+									autoOpen: false,
+									height: 200,
+									width: 200,
+									title: 'Character List',
+									position: { my: "right bottom", at: "right bottom", of: $('.konvajs-content') },
+									open: function(event, ui) {
+									        $("#character_list_content input").blur();
+									    },
+									beforeClose: function( event, ui ) {
+										$("#show_character_list").prop('checked', false);
+									}
+									})
+							
+						}
+								        };
+					console.log(value["race"]);
+					if (value["individual_group"] != "Group") {
+						if(value["race"] == "White") {
+							if(value["gender"] == "Male") {
+									        		image.src = "MWW-sq.png";
+									        		// image.src = "wm-sm-sq.png";
+							} else {
+				        		image.src = "FWW-sq.png";
+								// image.src = "wf-sm-sq.png";
+							}
+						} else if(value["race"] == "Black") {
+								if(value["gender"] == "Male") {
+										        		image.src = "bm-sm-sq.png";
+								} else {
+									image.src = "bf-sm-sq.png";
+								}
+							} else if(value["race"] == "Indian"){
+								if(value["gender"] == "Male") {
+					        		image.src = "MRR-sq.png";
+										        		// image.src = "natam_m-sm-sq.png";
+								} else {
+					        		image.src = "FRR-sq.png";
+									// image.src = "natam_f-sm-sq.png";
+								}
+							} else if(value["race"] == "MixedBlackIndian"){
+								if(value["gender"] == "Male") {
+										        		image.src = "MBR-sq.png";
+								} else {
+									image.src = "FBR-sq.png";
+								}
+							} else if(value["race"] == "MixedIndianWhite"){
+								if(value["gender"] == "Male") {
+										        		image.src = "MRW-sq.png";
+								} else {
+									image.src = "FRW-sq.png";
+								}
+							} else if(value["race"] == "Indeterminable"){
+								if(value["gender"] == "Male") {
+										        		image.src = "indet-m-sm-sq.png";
+								} else {
+									image.src = "indet-f-sm-sq.png";
+								}
+							} else if(value["race"] == "Asian"){
+								if(value["gender"] == "Male") {
+										        		image.src = "MAA-sq.png";
+								} else {
+									image.src = "FAA-sq.png";
+								}
+							} else if(value["race"] == "MixedIndianWhiteBlack"){
+								// if(value["gender"] == "Male") {
+										        		image.src = "MixedRWB-sq.png";
+								// } else {
+									// image.src = "FRW-sq.png";
+								// }
+							} else {
+								if(value["gender"] == "Male") {
+									image.src = "mm-sm-sq.png";									
+								} else {
+									image.src = "mf-sm-sq.png"; //need female icon
+								}
+							}
+						} else {
+							if(value["race"] == "White") {
+								if(value["gender"] == "Male") {
+			        		image.src = "group_icons_Male_W_icon-sm-sq.png";
+								} else if(value["gender"] == "Female"){
+			        		image.src = "group_icons_Female_W_icon-sm-sq.png";
+								} else {
+									image.src = "group_icons_MixedGender_W_icon-sm-sq.png";
+								}
+							} else if(value["race"] == "Black") {
+								if(value["gender"] == "Male") {
+			        		image.src = "group_icons_Male_B_icon-sm-sq.png";
+								} else if(value["gender"] == "Female"){
+			        		image.src = "group_icons_Female_B_icon-sm-sq.png";
+								} else {
+									image.src = "group_icons_MixedGender_B_icon-sm-sq.png";
+								}
+							} else if(value["race"] == "Indian"){
+								if(value["gender"] == "Male") {
+			        		image.src = "group_icons_Male_R_icon-sm-sq.png";
+								} else if(value["gender"] == "Female"){
+			        		image.src = "group_icons_Female_R_icon-sm-sq.png";
+								} else {
+									image.src = "group_icons_MixedGender_R_icon-sm-sq.png";
+								}
+							} else if(value["race"] == "Asian"){
+								if(value["gender"] == "Male") {
+			        		image.src = "GroupMA-sq.png";
+								} else if(value["gender"] == "Female"){
+			        		image.src = "GroupFA-sq.png";
+								} else {
+									image.src = "GroupMA-sq.png";
+								}
+							} else if(value["race"] == "Indeterminable"){
+								if(value["gender"] == "Male") {
+			        		image.src = "indet-group-m-sm-sq.png";
+								} else if(value["gender"] == "Female"){
+			        		image.src = "indet-group-f-sm-sq.png";
+								} else {
+									image.src = "indet-group-mixed-sm-sq.png";
+								}
+							} else if(value["race"] == "MixedBlackIndian"){
+								image.src = "GroupMBR.png";
+							} else if(value["race"] == "MixedIndianWhite"){
+								image.src = "GroupMRW.png";
+							} else {
+								if(value["gender"] == "Male") {
+			        		image.src = "group_icons_MixedRaceMale_icon-sm-sq.png";
+								} else if(value["gender"] == "Female"){
+			        		image.src = "group_icons_MixedRaceFemale_icon-sm-sq.png";
+								} else {
+									image.src = "group_icons_MixedRaceGender_icon-sm-sq.png";
+								}
+							}
+							
+						}
+					}
+				})
+				// $('#loading').hide();										
+				var d = SortArrayByKeys(char_links);
+				$.each(d, function(i,v) {
+					$('#character_list_content').append(v);
+				})
+				data_loaded = true;
+				
+				var loc_list = {};
+				$.each(current_locations, function(i,v) {
+					loc_list[i] = "<input type=\"checkbox\" value=\""+i.replace(/"/g,'&quot;')+"\">"+i+"<br>";
+				})
+				d = SortArrayByKeys(loc_list);
+				$.each(d, function(i,v) {
+					$('#location_list_content').append(v);
+				})
+				$('#location_list').dialog({
+						autoOpen: false,
+						height: 200,
+						width: 200,
+						title: 'Location List',
+						position: { my: "right bottom", at: "right bottom", of: $('.konvajs-content') },
+						open: function(event, ui) {
+						        $("#location_list_content input").blur();
+						    },
+						beforeClose: function( event, ui ) {
+							$("#show_location_list").prop('checked', false);
+						}
+						})
+				
+				if(GetURLParameter('start_playing') == 'yes') {
+					play();
+				}
+				// $('#loading').hide();
+				if (GetURLParameter('search') == 'Character') {
+					$('#results-checkbox').html('<input type="radio" id="characters-search" name="characters" onclick="show_characters();contentLayer.draw();"  >Your Search Criteria<br>');
+					getSearchCharactersPG(text);
+					console.log(search_characters);
+					// $('#characters-all').attr('checked', 'true')
+					// show_characters();
+					// contentLayer.draw();
+				}
+				
+    }
+});
+	
+}

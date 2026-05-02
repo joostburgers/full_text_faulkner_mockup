@@ -1,0 +1,482 @@
+function show_search_locations(text){
+	
+	var str='';
+	var data = {'text' : current_text['title']};
+	if(GetURLParameter('search') == 'Location') {
+		if(GetURLParameter('location') != null) {
+			str += '&location='+GetURLParameter('location');
+			data['location'] = GetURLParameter('location');
+		}
+		if(GetURLParameter('status') != null) {
+			str += '&status='+GetURLParameter('status');
+			data['status'] = GetURLParameter('status');
+		}
+		if(GetURLParameter('authority') != null) {
+			str += '&authority='+GetURLParameter('authority');
+			data['authority'] = GetURLParameter('authority');
+		}
+		if(GetURLParameter('description') != null) {
+			str += '&description='+GetURLParameter('description');
+			data['description'] = GetURLParameter('description');
+		}
+		if(GetURLParameter('publication_begin') != null) {
+			str += '&publication_begin='+GetURLParameter('publication_begin');
+			data['publication_begin'] = GetURLParameter('publication_begin');
+		}
+		if(GetURLParameter('location_type') != null) {
+			str += '&location_type='+GetURLParameter('location_type');
+			data['location_type'] = GetURLParameter('location_type');
+		}
+		if(GetURLParameter('change_class') != null) {
+			str += '&change_class='+GetURLParameter('change_class');
+			data['change_class'] = GetURLParameter('change_class');
+		}
+		// if(GetURLParameter('family') != null) {
+		// 	str += '&family='+GetURLParameter('family');
+		// }
+		// if(GetURLParameter('event_begin') != null) {
+		// 	str += '&event_begin='+GetURLParameter('event_begin');
+		// }
+		// if(GetURLParameter('event_end') != null) {
+		// 	str += '&event_end='+GetURLParameter('event_end');
+		// }
+		// if(GetURLParameter('vitality') != null) {
+		// 	str += '&vitality='+GetURLParameter('vitality');
+		// }
+		// if(GetURLParameter('occupation') != null) {
+		// 	str += '&occupation='+GetURLParameter('occupation');
+		// }
+		// if(GetURLParameter('specific_job') != null) {
+		// 	str += '&specific_job='+GetURLParameter('specific_job');
+		// }
+		// if(GetURLParameter('origin') != null) {
+		// 	str += '&origin='+GetURLParameter('origin');
+		// }
+		// if(GetURLParameter('disability') != null) {
+		// 	str += '&disability='+GetURLParameter('disability');
+		// }
+		// if(GetURLParameter('ontological_status') != null) {
+		// 	str += '&ontological_status='+GetURLParameter('ontological_status');
+		// }
+		// if(GetURLParameter('narrator') != null) {
+		// 	str += '&narrator='+GetURLParameter('narrator');
+		// }
+		// if(GetURLParameter('cause_of_death') != null) {
+		// 	str += '&cause_of_death='+GetURLParameter('cause_of_death');
+		// }
+		// if(GetURLParameter('biography') != null) {
+		// 	str += '&biography='+GetURLParameter('biography');
+		// }
+		// if(GetURLParameter('publication_begin') != null) {
+		// 	str += '&publication_begin='+GetURLParameter('publication_begin');
+		// }
+		// if(GetURLParameter('publication_end') != null) {
+		// 	str += '&publication_end='+GetURLParameter('publication_end');
+		// }
+	}	
+	var str = JSON.stringify(data);
+	
+	$.ajax({
+	    type: 'GET',
+		url: '/sinatra/locations?params='+encodeURIComponent(str),
+	    dataType:'json',
+	    success: function (data) {
+			var current_event_logos_tmp = {};
+				$.each(data, function(index, value) {
+					search_locations[value["location_title"]] = current_locations[value["location_title"]];
+					// current_event_logos_tmp[value["location_title"]] = current_event_logos[value["location_title"]];
+				});
+				// current_event_logos = current_event_logos_tmp;
+				// $('#characters-search').attr('checked','true');
+				// show_characters();
+				// contentLayer.draw();
+				$.each(current_locations, function(index, value) {
+					value.hide();
+				})
+				$.each(search_locations, function(index, value) {
+					if (value != null) {
+							value.show();
+					}
+
+				})
+				$('#search-locations-selection').html('<input type="radio" id="location-search" name="locations" onclickk="show_characters();contentLayer.draw();"  >Your Search Criteria<br>');
+				location
+				contentLayer.draw();
+				$('#event-locations').removeAttr('checked');
+				$('#location-search').attr('checked','true');
+
+			}
+		});
+	}
+
+function getLocations(text) {
+ $.each(current_content, function(index, value) {
+		value.hide();
+	});
+	current_content = new Array();
+	current_characters = {};
+	current_events = {};
+	current_event_logos = {};
+	current_active_event_logos = {};
+	current_locations = {};
+	current_data = {};
+	current_dates = {};
+	locations_people = {};
+	locations_events = {};
+	// 
+	
+	var str='';
+	var data = {'text' : current_text['title']};
+	if(GetURLParameter('search') == 'Location') {
+		if(GetURLParameter('location') != null) {
+			str += '&location='+GetURLParameter('location');
+			data['location'] = GetURLParameter('location');
+		}
+		if(GetURLParameter('status') != null) {
+			str += '&status='+GetURLParameter('status');
+			data['status'] = GetURLParameter('status');
+		}
+		if(GetURLParameter('authority') != null) {
+			str += '&authority='+GetURLParameter('authority');
+			data['authority'] = GetURLParameter('authority');
+		}
+		if(GetURLParameter('description') != null) {
+			str += '&description='+GetURLParameter('description');
+			data['description'] = GetURLParameter('description');
+		}
+		if(GetURLParameter('publication_begin') != null) {
+			str += '&publication_begin='+GetURLParameter('publication_begin');
+			data['publication_begin'] = GetURLParameter('publication_begin');
+		}
+		if(GetURLParameter('location_type') != null) {
+			str += '&location_type='+GetURLParameter('location_type');
+			data['location_type'] = GetURLParameter('location_type');
+		}
+		if(GetURLParameter('change_class') != null) {
+			str += '&change_class='+GetURLParameter('change_class');
+			data['change_class'] = GetURLParameter('change_class');
+		}
+	}
+	$.ajax({ 
+    type: 'GET', 
+			 // async: false,
+ url: '/sinatra/drupal_locations?code='+text+str,
+    // url: 'http://hero.village.virginia.edu/sleepy/faulkner/locations/_find?criteria='+encodeURIComponent('{"SourceTextCode":"'+text+'"}')+'&batch_size=100000',
+    // url: 'http://hero.village.virginia.edu/mongo/faulkner/locations/?filter_SourceTextCode='+text, 
+    // url: 'http://hero.village.virginia.edu/~rwb3y/data.json', 
+    dataType:'json',
+    success: function (data) { 
+				$.each(data["results"], function(index, value) {
+					if(value['source_text'] != null) {
+					var val = value;
+					// console.log(parseInt(value["X"].replace(" ","")));
+					var image = new Image();
+					var tmp;
+					contentLayer.add(event_group);
+					location_labels[value['location_title']] = value['display_label'];
+					location_descriptions[value['location_title']] = value['description'];
+					// image.onload = image_loader(value, image);
+					current_locations[value["location_title"]] = 'loading';
+					console.log('initialize locaton '+value["location_title"]);
+					image.onload = function() {
+						// if (value["Type"] != 'OutOfYoknapatawpha') {
+							var x_value = -100;
+							var y_value = -100;
+							var x_offset = 25;
+							var y_offset = 75;
+							var size = 50;
+							if (value["location_type"] == 'OutOfYoknapatawpha') {
+								size = 20;
+								x_offset = 10;
+								y_offset = 60;
+							}
+							if ((value["x"] != null) && (value["x"] != "")) {
+								tmp = value["x"]+"";
+								x_value = parseInt(tmp.replace(" ",""))-x_offset;
+								// x_value = value["X"]-25;
+							}
+							if ((value["y"] != null) && (value["y"] != "")) {
+								tmp = value["y"]+"";
+								y_value = parseInt(tmp.replace(" ",""))-y_offset;
+								// y_value = value["Y"]-25;
+							}
+							// console.log(value["LocationTitle"]+" = "+x_value+","+y_value);
+		          img = new Konva.Image({
+		            x: x_value,
+		            y: y_value,
+		            image: image,
+		            width: size,
+					  height: size
+		          });
+						// } else {
+						// 					          img = new Kinetic.Image({
+						// 					            x: parseInt(value["X"].replace(" ",""))-25,
+						// 					            y: parseInt(value["Y"].replace(" ",""))-75,
+						// 					            image: image,
+						// 					            width: 300,
+						// 					            height: 300
+						// 					          });
+						// 	
+						// }
+						img.on('mousemove', function() {
+			                document.body.style.cursor = 'pointer';
+							
+							                var mousePos = stage.getPointerPosition();
+											if (mousePos.x >= 650) {
+												tooltip_group.position({x:mousePos.x + 5-tooltip.getWidth(), y:mousePos.y + 5});
+											} else {
+												tooltip_group.position({x:mousePos.x + 5, y:mousePos.y + 5});
+											}
+											// console.log(mousePos.x);
+											// console.log(tooltip.getWidth());
+							                tooltip.setText(value["display_label"]);
+															rect.setWidth(tooltip.getWidth());
+							                tooltip_group.show();
+							                tooltipLayer.draw();
+										        });
+						img.on("mouseout", function(){
+			                document.body.style.cursor = 'default';
+							
+								                tooltip_group.hide();
+								                tooltipLayer.draw();
+								            });
+						img.on("mousedown", function(){
+							// console.log(page_locations[$("#slider").slider("value")]);
+							// if a current event show only relevant info
+							var is_an_event=false;
+							if (((current_active_event_logos[value["location_title"]] != null) && (current_active_event_logos[value["location_title"]].getOpacity() > 0.35))) {
+								is_an_event=true;
+							// if (page_locations[$("#slider").slider("value")][value["LocationTitle"]] != null) {
+								var str = "<div id=\"tabs\"><ul><li><a href=\"#tabs-2\">Event</a></li><li><a href=\"#tabs-1\">Location</a></li><li><a href=\"#tabs-3\">Characters</a></li></ul><div id=\"tabs-2\" class=\"dialog_content\"><div id=\"events_data\"></div></div><div id=\"tabs-1\" class=\"dialog_content\" ></div><div id=\"tabs-3\" class=\"dialog_content\"><strong>Location:</strong> "+value["display_label"]+"<br><br><strong>Present:</strong><div id='present'></div><strong>Mentioned:</strong><div id='mentioned'></div></div></div>";
+								$( "#dialog" ).html( str); //"<strong>"+value["LocationTitle"]+"</strong><br>"+value["Description"] );
+								var structure = "";
+								if (value["location_type"] == 'Other Structure') {
+									structure = value['other_structure'];
+								} else {
+									structure = value["location_type"];
+								}
+								var event_or_not = 'Only Mentioned in Text';
+								if (locations_events[value["location_title"]] != null) {
+									event_or_not = 'Scene of Event';
+								}
+								var desc = "<strong>Location:</strong> "+value["display_label"]+"<br><br><strong>Description:</strong> "+value["description"]+"<br><strong>Type:</strong> "+structure+"<br><strong>Role:</strong> "+event_or_not+"<br><strong>Status:</strong> "+value["location_status"]+"<br><strong>Authority:</strong> "+value["authority"]+"<br><strong>Other Texts:</strong> "+value["other_texts"]+"<br><span id=\"events_"+value["location_key"]+"\"></span>";
+								$( "#tabs-1" ).html(desc); //"<strong>"+value["Display Label"]+"</strong><br>"+value["Description"] );
+								var e = Array();
+								// var data = page_locations[$("#slider").slider("value")][value["LocationTitle"]]["events"];
+								if(event_data[$("#e_slider").slider("value")+1] != null) {
+									var data = event_data[$("#e_slider").slider("value")+1]["events"];
+									$.each(data, function(i,v) {
+										e.push(v);
+									})
+									e = array_unique(e);
+									getEventsByNid(e, '#events_data', value["display_label"]);
+									// $.each(e.sort(), function(index, value) {
+									// 	$('#tabs-2').append(value);
+									// })
+									// var c = page_locations[$("#slider").slider("value")][value["LocationTitle"]]["characters"];
+									var c = event_data[$("#e_slider").slider("value")+1]["characters"];
+									getCharactersByNid(c, '#present');
+									var c = event_data[$("#e_slider").slider("value")+1]["characters_mentioned"];
+									getCharactersByNid(c, '#mentioned');
+								}
+								// $.each(c.sort(), function(index, value) {
+								// 	$('#tabs-3').append(value+"<br>");
+								// })
+							} else {
+								is_an_event=false;
+								var str = "<div id=\"tabs\"><ul><li><a href=\"#tabs-1\">Location</a></li><li><a href=\"#tabs-2\">Events</a></li><li><a href=\"#tabs-3\">Characters</a></li></ul><div id=\"tabs-1\" class=\"dialog_content\" ></div><div id=\"tabs-2\" class=\"dialog_content\"><strong>Location:</strong> "+value["display_label"]+"<br><br><div id=\"events_data\"></div></div><div id=\"tabs-3\" class=\"dialog_content\"><strong>Location:</strong> "+value["display_label"]+"<br><br><strong>Present:</strong><div id='present'></div><strong>Mentioned:</strong><div id='mentioned'></div></div></div>";
+								$( "#dialog" ).html( str); //"<strong>"+value["LocationTitle"]+"</strong><br>"+value["Description"] );
+								var structure = "";
+								if (value["location_type"] == 'Other Structure') {
+									structure = value['other_structure'];
+								} else {
+									structure = value["location_type"];
+								}
+								var event_or_not = 'Only Mentioned in Text';
+								if (locations_events[value["location_title"]] != null) {
+									event_or_not = 'Scene of Event';
+								}
+								var desc = "<strong>"+value["display_label"]+"</strong> <br><br><strong>Description:</strong> "+value["description"]+"<br><strong>Type:</strong> "+structure+"<br><strong>Role:</strong> "+event_or_not+"<br><strong>Status:</strong> "+value["location_status"]+"<br><strong>Authority:</strong> "+value["authority"]+"<br><strong>Other Texts:</strong> "+value["other_texts"]+"<br><span id=\"events_"+value["location_key"]+"\"></span>";
+								$( "#tabs-1" ).html(desc); //"<strong>"+value["Display Label"]+"</strong><br>"+value["Description"] );
+								// $( "#tabs-1" ).html("<strong>"+value["Display Label"]+"</strong><br>"+value["Description"] );
+								var t = value["location_title"].replace(/"/g,"&quot;");
+								if (locations_events[value["location_title"]] != null) {
+									var tmp = new Array()
+									$.each(locations_events[value["location_title"]], function(index, value) {
+										tmp.push(index);
+										// $('#tabs-2').append(index);
+									})
+									getEventsByNid(tmp, '#events_data');
+									// $.each(tmp.sort(), function(index, value) {
+									// 	$('#tabs-2').append(value);
+									// })
+								}
+								tmp = new Array()
+								$.each(event_data, function(index, val) {
+									if (val["location"] == value["location_title"]) {
+										var a = $.map(val["characters"], function(i,v) {return i});
+										tmp = tmp.concat(a);
+									}
+								})
+								getCharactersByNid(tmp, '#present');
+								tmp = new Array()
+								$.each(event_data, function(index, val) {
+									if (val["location"] == value["location_title"]) {
+										var a = $.map(val["characters_mentioned"], function(i,v) {return i});
+										tmp = tmp.concat(a);
+									}
+								})
+									getCharactersByNid(tmp, '#mentioned');
+								// if (locations_people[value["LocationTitle"]] != null) {
+								// 	$.each(locations_people[value["LocationTitle"]], function(index, value) {
+								// 		tmp.push(index);
+								// 		// $('#tabs-3').append(index);
+								// 	})
+								// 	getCharactersByNid(tmp, '#tabs-3');
+								// 	// $.each(tmp.sort(), function(index, value) {
+								// 	// 	$('#tabs-3').append(value);
+								// 	// })
+								// }											
+							}
+							// console.log($("#slider").slider("value"));
+							// console.log(page_locations[$("#slider").slider("value")]);
+							$("#tabs").tabs();
+							$( "#dialog" ).dialog({
+								open: function(e,ui){
+									// if(ui.size != null) {
+										$('.dialog_content').height($('#dialog').height()-70);
+									// }
+								},
+								resize: function(e,ui){
+									$('.dialog_content').height(ui.size['height']-100);
+								}
+							});
+							//$( "#dialog" ).dialog( "open");
+							var url = 'family/location_record.php?book=SF&lczn=349';
+							if(is_an_event) {
+								//$( "#dialog").dialog('option', 'title', 'Event Record');
+								url = 'family/event_record.php?event=' + e;
+							} else {
+									//$( "#dialog").dialog('option', 'title', 'Location Record');
+									url = 'family/location_record.php?book=' + text + '&lczn=' + value["location_key"];
+							}
+
+							var w = 500;
+							var h = 560;
+							var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : window.screenX;
+						    var dualScreenTop = window.screenTop != undefined ? window.screenTop : window.screenY;
+						    var width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+						    var height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+							//systemZoom = width / window.screen.availWidth;
+						    var systemZoom = 1;
+							var left = (width - w) / 2 / systemZoom + dualScreenLeft;
+							var top = (height - h) / 2 / systemZoom + dualScreenTop;
+							var popup_window = window.open(url, 'popup', 'toolbar=no,menubar=no,titlebar=no,status=no,location=no,scrollbars=yes,resizable=yes, width=' + w / systemZoom + ', height=' + h / systemZoom + ', top=' + top + ', left=' + left);
+							popup_window.focus();
+
+						});
+					
+									          // add the shape to the contentLayer
+						// display on selected texts
+						all_locations[value["location_title"]] = img;
+						// location_group.add(img);
+						// console.log(value["LocationTitle"]);
+						current_content.push(img);
+						// img.show();
+						contentLayer.add(img);
+						contentLayer.draw();
+						img.moveToTop();
+						current_locations[value["location_title"]] = img;
+						// console.log(value["LocationTitle"]+" : "+img.getX());
+						img.setZIndex(100);
+					};
+					switch (value["location_type"]) {
+						case "Event" :
+							evt.push(value);
+			        image.src = "event.png";
+							break;
+						case "Farm" :
+							farm.push(value);
+			        image.src = "Farm.png";
+							break;
+						case "House (white)" :
+							house.push(value);
+			        image.src = "House_White.png";
+							break;
+						case "House" :
+							house.push(value);
+			        image.src = "House_White.png";
+							break;
+						case "Office/store" :
+							office.push(value);
+			        image.src = "Office_Store.png";
+							break;
+						case "Cemetery" :
+							cemetery.push(value);
+			        image.src = "Cemetery.png";
+							break;
+						case "Public building" :
+							building.push(value);
+			        image.src = "PublicBuilding.png";
+							break;
+						case "Mansion" :
+							mansion.push(value);
+			        image.src = "Mansion.png";
+							break;
+						case "Cabin (black)" :
+							cabin.push(value);
+			        image.src = "Cabin.png";
+							break;
+						case "Cabin" :
+							cabin.push(value);
+			        image.src = "Cabin.png";
+							break;
+						case "Statue" :
+							statue.push(value);
+			        image.src = "Statue.png";
+							break;
+						case "Church" :
+							statue.push(value);
+			        image.src = "Church.png";
+							break;
+						case "Courthouse" :
+							statue.push(value);
+			        image.src = "CourtHouse.png";
+							break;
+						case "OutOfYoknapatawpha" :
+							outside.push(value);
+							image.src = 'OutOfYok3.png';
+							break;
+						case "YoknapatawphaInset" :
+							outside.push(value);
+							image.src = 'YokInsetIcon.png';
+							break;
+						case 'heatmap':
+							break;
+						default:
+							outside.push(value);
+							image.src = "OtherStructure.png"
+					}
+				}
+									
+	        // image.src = "event.png";
+				})
+				getOtherResources(text);
+				getEvents(text);
+
+				$("#content_3").hide();
+
+				$('.mac-dock img').hide();
+				$("#shelf_instructions").hide();
+				//$("#upClick").hide();
+				//$("#downClick").hide();
+	      	  	$.each(current_content, function(index, value) {
+					value.show();
+				});
+				contentLayer.draw();
+				// data_loaded = true;
+    }
+});
+	
+}
+

@@ -1,0 +1,614 @@
+{
+  "index": {
+    "Bad smell": [
+      "18954"
+    ],
+    "Isolation": [
+      "18954",
+      "1852",
+      "1851",
+      "1826"
+    ],
+    "Community collective": [
+      "2756",
+      "1914",
+      "1854",
+      "1852",
+      "1851",
+      "1848",
+      "1847",
+      "1844",
+      "1843",
+      "1842",
+      "1841",
+      "1834",
+      "1829",
+      "1819",
+      "1799"
+    ],
+    "Suicide": [
+      "2756"
+    ],
+    "Pity": [
+      "1914",
+      "1826"
+    ],
+    "Rumor": [
+      "1914",
+      "1834"
+    ],
+    "Class consciousness": [
+      "1914",
+      "1843",
+      "1831",
+      "1829",
+      "1826",
+      "1824",
+      "1817",
+      "1814"
+    ],
+    "Courtship": [
+      "1914",
+      "1846",
+      "1842",
+      "1834",
+      "1829",
+      "1825"
+    ],
+    "Pride": [
+      "1914",
+      "1834",
+      "1824"
+    ],
+    "Gossip": [
+      "1914",
+      "1847",
+      "1837",
+      "1834",
+      "1829"
+    ],
+    "Dignity": [
+      "1914"
+    ],
+    "Grinning": [
+      "1855"
+    ],
+    "Looking": [
+      "1855",
+      "1851",
+      "1841"
+    ],
+    "Tomb": [
+      "1855"
+    ],
+    "Gothic": [
+      "1855",
+      "1854",
+      "1852",
+      "1819",
+      "1817",
+      "1814",
+      "1811",
+      "1804",
+      "1799"
+    ],
+    "Inscription": [
+      "1855",
+      "1842"
+    ],
+    "Formal": [
+      "1855",
+      "1854",
+      "1825"
+    ],
+    "Dust": [
+      "1855"
+    ],
+    "Bedroom": [
+      "1855",
+      "1854"
+    ],
+    "Decay": [
+      "1855",
+      "1854",
+      "1819",
+      "1817",
+      "1814"
+    ],
+    "Hair": [
+      "1855",
+      "1854",
+      "1848"
+    ],
+    "Corpse": [
+      "1855",
+      "1854",
+      "1826"
+    ],
+    "Crystal": [
+      "1855",
+      "1854"
+    ],
+    "Silver": [
+      "1855",
+      "1854",
+      "1842"
+    ],
+    "Toilet set": [
+      "1855",
+      "1854",
+      "1842"
+    ],
+    "Time": [
+      "1855"
+    ],
+    "Entry": [
+      "1854",
+      "1819"
+    ],
+    "Face": [
+      "1854"
+    ],
+    "Uniform": [
+      "1854"
+    ],
+    "Clothing": [
+      "1854",
+      "1843"
+    ],
+    "Men vs women": [
+      "1854",
+      "1834",
+      "1817"
+    ],
+    "Southern woman": [
+      "1854"
+    ],
+    "Cousin": [
+      "1854",
+      "1843"
+    ],
+    "Kinship": [
+      "1854",
+      "1845",
+      "1841",
+      "1840"
+    ],
+    "Funeral": [
+      "1854",
+      "1830",
+      "1799"
+    ],
+    "Transcended": [
+      "1854"
+    ],
+    "Women": [
+      "1853",
+      "1814",
+      "1806"
+    ],
+    "Home": [
+      "1853",
+      "1851",
+      "1850",
+      "1847"
+    ],
+    "Departure": [
+      "1853",
+      "1845",
+      "1844"
+    ],
+    "Response to": [
+      "1853"
+    ],
+    "Dying": [
+      "1852"
+    ],
+    "Growing old": [
+      "1852",
+      "1851"
+    ],
+    "Employer-employee": [
+      "1852"
+    ],
+    "White-black": [
+      "1852"
+    ],
+    "Death": [
+      "1852",
+      "1848",
+      "1826",
+      "1804"
+    ],
+    "Monument": [
+      "1851",
+      "1819",
+      "1799"
+    ],
+    "Maturing": [
+      "1851"
+    ],
+    "Generational reform": [
+      "1851",
+      "1817",
+      "1814",
+      "1811"
+    ],
+    "December": [
+      "1851"
+    ],
+    "Painting": [
+      "1851",
+      "1850"
+    ],
+    "Teaching": [
+      "1850"
+    ],
+    "Taxes": [
+      "1850"
+    ],
+    "Teacher-student": [
+      "1850"
+    ],
+    "Door": [
+      "1850",
+      "1847"
+    ],
+    "Gaining weight": [
+      "1848"
+    ],
+    "Premature aging": [
+      "1848"
+    ],
+    "Body": [
+      "1848",
+      "1831",
+      "1825"
+    ],
+    "Appearance": [
+      "1848"
+    ],
+    "Seeing": [
+      "1847"
+    ],
+    "Surveillance": [
+      "1847"
+    ],
+    "Gender": [
+      "1847",
+      "1808",
+      "1799"
+    ],
+    "Hierarchical": [
+      "1847",
+      "1846",
+      "1831",
+      "1817",
+      "1814"
+    ],
+    "Father-daughter": [
+      "1847",
+      "1826",
+      "1825",
+      "1817",
+      "1808"
+    ],
+    "Neighbor": [
+      "1846"
+    ],
+    "Return": [
+      "1846"
+    ],
+    "Conflict": [
+      "1844",
+      "1830",
+      "1817"
+    ],
+    "Abandonment": [
+      "1844"
+    ],
+    "Gifting": [
+      "1843"
+    ],
+    "Purchase": [
+      "1843",
+      "1831"
+    ],
+    "Clothes": [
+      "1843"
+    ],
+    "Forced": [
+      "1843"
+    ],
+    "Visiting": [
+      "1841",
+      "1837"
+    ],
+    "Premarital": [
+      "1841",
+      "1840"
+    ],
+    "Scandal": [
+      "1841",
+      "1840"
+    ],
+    "Letter": [
+      "1840"
+    ],
+    "Religion": [
+      "1840"
+    ],
+    "Buggy": [
+      "1837",
+      "1834",
+      "1829"
+    ],
+    "Baptist": [
+      "1837"
+    ],
+    "Episcopal": [
+      "1837"
+    ],
+    "Minister and parishioner": [
+      "1837"
+    ],
+    "Glove": [
+      "1834"
+    ],
+    "Masculinity": [
+      "1834"
+    ],
+    "Cigar": [
+      "1834"
+    ],
+    "Horsewhip": [
+      "1834",
+      "1825"
+    ],
+    "Delivery": [
+      "1831"
+    ],
+    "Eyes": [
+      "1831",
+      "1814"
+    ],
+    "Flag": [
+      "1831"
+    ],
+    "Regulation": [
+      "1831"
+    ],
+    "Rat": [
+      "1831"
+    ],
+    "Complexion": [
+      "1831"
+    ],
+    "Poison": [
+      "1831"
+    ],
+    "Inheritance": [
+      "1830"
+    ],
+    "Madness": [
+      "1830",
+      "1826",
+      "1825",
+      "1824"
+    ],
+    "Reproduction": [
+      "1829"
+    ],
+    "Horses": [
+      "1829"
+    ],
+    "Paving": [
+      "1828"
+    ],
+    "Grief": [
+      "1826"
+    ],
+    "Burial": [
+      "1826"
+    ],
+    "Denial": [
+      "1826"
+    ],
+    "Communal narrative": [
+      "1826"
+    ],
+    "Poverty": [
+      "1826"
+    ],
+    "Shadow": [
+      "1825",
+      "1819"
+    ],
+    "Patriarchy": [
+      "1825"
+    ],
+    "Mental illness": [
+      "1825",
+      "1824"
+    ],
+    "Midnight": [
+      "1819"
+    ],
+    "Gender stereotype": [
+      "1817"
+    ],
+    "Romantic": [
+      "1817"
+    ],
+    "Water": [
+      "1814"
+    ],
+    "Watch": [
+      "1814"
+    ],
+    "Handwriting": [
+      "1811"
+    ],
+    "Age": [
+      "1808"
+    ],
+    "Respectability": [
+      "1808"
+    ],
+    "Communal mythology": [
+      "1808"
+    ],
+    "Apron": [
+      "1806"
+    ],
+    "Law": [
+      "1806"
+    ],
+    "Segregation": [
+      "1806"
+    ],
+    "Battle of Jefferson": [
+      "1804"
+    ],
+    "Architecture": [
+      "1804",
+      "1799"
+    ],
+    "Tradition": [
+      "1804"
+    ],
+    "Dilapidation": [
+      "1799"
+    ],
+    "Decayed house": [
+      "1799"
+    ],
+    "Ancestral": [
+      "1799"
+    ]
+  },
+  "full": {
+    "Bad smell": "Olfactory > Bad smell",
+    "Isolation": "Social > Isolation",
+    "Community collective": "Group Mentality > Community collective",
+    "Suicide": "Death > Suicide",
+    "Pity": "Emotional > Pity",
+    "Rumor": "Verbal > Rumor",
+    "Class consciousness": "Class > Class consciousness",
+    "Courtship": "Romantic > Courtship",
+    "Pride": "Character > Pride",
+    "Gossip": "Recurring Tropes > Gossip",
+    "Dignity": "Values > Dignity",
+    "Grinning": "Bodily > Grinning",
+    "Looking": "Perceptual > Looking",
+    "Tomb": "Figures of Speech > Tomb",
+    "Gothic": "Genre Conventions > Gothic",
+    "Inscription": "Typography/Orthography > Inscription",
+    "Formal": "Clothes > Formal",
+    "Dust": "Atmospheric > Dust",
+    "Bedroom": "Domestic Space > Bedroom",
+    "Decay": "Olfactory > Decay",
+    "Hair": "Body > Hair",
+    "Corpse": "Objects > Corpse",
+    "Crystal": "Objects > Crystal",
+    "Silver": "Objects > Silver",
+    "Toilet set": "Objects > Toilet set",
+    "Time": "Themes And Motifs > Time",
+    "Entry": "Violent > Entry",
+    "Face": "Figures of Speech > Face",
+    "Uniform": "Clothes > Uniform",
+    "Clothing": "Gender > Clothing",
+    "Men vs women": "Gender > Men vs women",
+    "Southern woman": "Gender > Southern woman",
+    "Cousin": "Familial > Cousin",
+    "Kinship": "Familial > Kinship",
+    "Funeral": "Death > Funeral",
+    "Transcended": "Time > Transcended",
+    "Women": "Gender > Women",
+    "Home": "Domestic Space > Home",
+    "Departure": "Arrivals/Departures > Departure",
+    "Response to": "Death > Response to",
+    "Dying": "Bodily > Dying",
+    "Growing old": "Age > Growing old",
+    "Employer-employee": "Hierarchical > Employer-employee",
+    "White-black": "Interracial > White-black",
+    "Death": "War > Death",
+    "Monument": "Figures of Speech > Monument",
+    "Maturing": "Age > Maturing",
+    "Generational reform": "Government > Generational reform",
+    "December": "Time of Year > December",
+    "Painting": "Art > Painting",
+    "Teaching": "Domestic > Teaching",
+    "Taxes": "Politics > Taxes",
+    "Teacher-student": "Hierarchical > Teacher-student",
+    "Door": "Recurring Tropes > Door",
+    "Gaining weight": "Bodily > Gaining weight",
+    "Premature aging": "Age > Premature aging",
+    "Body": "Gender > Body",
+    "Appearance": "Themes And Motifs > Appearance",
+    "Seeing": "Perceptual > Seeing",
+    "Surveillance": "Perceptual > Surveillance",
+    "Gender": "Cultural Issues > Gender",
+    "Hierarchical": "Race > Hierarchical",
+    "Father-daughter": "Familial > Father-daughter",
+    "Neighbor": "Social > Neighbor",
+    "Return": "Arrivals/Departures > Return",
+    "Conflict": "Intergenerational > Conflict",
+    "Abandonment": "Absence/Loss > Abandonment",
+    "Gifting": "Economic > Gifting",
+    "Purchase": "Economic > Purchase",
+    "Clothes": "Cultural Issues > Clothes",
+    "Forced": "Marital > Forced",
+    "Visiting": "Interaction, Social > Visiting",
+    "Premarital": "Sexuality > Premarital",
+    "Scandal": "Recurring Tropes > Scandal",
+    "Letter": "Communication > Letter",
+    "Religion": "Cultural Issues > Religion",
+    "Buggy": "Movement > Buggy",
+    "Baptist": "Religion > Baptist",
+    "Episcopal": "Religion > Episcopal",
+    "Minister and parishioner": "Institutional > Minister and parishioner",
+    "Glove": "Clothes > Glove",
+    "Masculinity": "Gender > Masculinity",
+    "Cigar": "Objects > Cigar",
+    "Horsewhip": "Objects > Horsewhip",
+    "Delivery": "Economic > Delivery",
+    "Eyes": "Body > Eyes",
+    "Flag": "Figures of Speech > Flag",
+    "Regulation": "Law > Regulation",
+    "Rat": "Animals > Rat",
+    "Complexion": "Appearance > Complexion",
+    "Poison": "Objects > Poison",
+    "Inheritance": "Law > Inheritance",
+    "Madness": "Psychological > Madness",
+    "Reproduction": "Gender > Reproduction",
+    "Horses": "Animals > Horses",
+    "Paving": "Progress > Paving",
+    "Grief": "Emotional > Grief",
+    "Burial": "Physical > Burial",
+    "Denial": "Verbal > Denial",
+    "Communal narrative": "Narrative > Communal narrative",
+    "Poverty": "Economy > Poverty",
+    "Shadow": "Figures of Speech > Shadow",
+    "Patriarchy": "Gender > Patriarchy",
+    "Mental illness": "Health and Illness > Mental illness",
+    "Midnight": "Time of Day > Midnight",
+    "Gender stereotype": "Domestic Space > Gender stereotype",
+    "Romantic": "Relationships > Romantic",
+    "Water": "Figures of Speech > Water",
+    "Watch": "Time > Watch",
+    "Handwriting": "Typography/Orthography > Handwriting",
+    "Age": "Cultural Issues > Age",
+    "Respectability": "Class > Respectability",
+    "Communal mythology": "Story-telling > Communal mythology",
+    "Apron": "Clothes > Apron",
+    "Law": "Race > Law",
+    "Segregation": "Race > Segregation",
+    "Battle of Jefferson": "Recurring Episodes > Battle of Jefferson",
+    "Architecture": "Domestic Space > Architecture",
+    "Tradition": "Community > Tradition",
+    "Dilapidation": "Domestic Space > Dilapidation",
+    "Decayed house": "Place > Decayed house",
+    "Ancestral": "Relationships > Ancestral"
+  }
+}

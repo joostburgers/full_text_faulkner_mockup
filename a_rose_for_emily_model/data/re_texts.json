@@ -1,1 +1,23 @@
-{"results":[{"code":"RE","page_start":"119","page_stop":"130","title":"A Rose for Emily","source_text":"RE","collection":"Collected Stories","year":"1950","nid":"7862"}]}
+﻿{
+    "results":  [
+                    {
+                        "code":  "RE",
+                        "page_start":  "119",
+                        "page_stop":  "130",
+                        "title":  "A Rose for Emily",
+                        "source_text":  "RE",
+                        "collection":  "Collected Stories",
+                        "year":  "1950",
+                        "nid":  "7862",
+                        "about":  "\u003cp\u003e\u0026#8220;A Rose for Emily\u0026#8221; was the first Faulkner short story to be published in a national magazine. The details of its composition are uncertain. Several scholars have suggested Faulkner started writing it as early as February, 1927, on the basis of a letter he wrote his publisher that month saying he was working on \u0026#8220;a collection of stories of my townspeople.\u0026#8221; Faulkner might have been thinking of a book like \u003cem\u003eWinesburg, Ohio\u003c/em\u003e (1919), a cycle of stories by his mentor Sherwood Anderson, but this book was never written, nor is there clear evidence to support such an early date for \u0026#8220;A Rose for Emily.\u0026#8221; It\u0026#8217;s more likely that Faulkner wrote it in 1929. The story\u0026#8217;s earliest appearance in the record is in that October, when \u003cem\u003eScribner\u0026#8217;s\u003c/em\u003e magazine wrote him a letter rejecting it. In that version Emily\u0026#8217;s last name was Wyatt, and it included a scene between her and Tobe that does not appear in the version that was published in the April, 1930, issue of \u003cem\u003eForum\u003c/em\u003e magazine. (For more on this cancelled scene, see the \u0026#8220;Manuscripts Etc.\u0026#8221; link at left.)\u003c/p\u003e\u003cp\u003eAfter 1930, Faulkner made a few more revisions for the story\u0026#8217;s publication in the collection \u003cem\u003eThese 13\u003c/em\u003e (1931). This is the version that became and remains one of Faulkner\u0026#8217;s most frequently re-published texts: it appears, for example, in \u003cem\u003eA Rose for Emily and Other Stories\u003c/em\u003e (1945), \u003cem\u003eThe Portable Faulkner\u003c/em\u003e (1946), \u003cem\u003eCollected Stories of William Faulkner\u003c/em\u003e (1950), \u003cem\u003eThe Faulkner Reader\u003c/em\u003e (1954), \u003cem\u003eA Rose for Emily\u003c/em\u003e (1956), and \u003cem\u003eSelected Short Stories of William Faulkner\u003c/em\u003e (1962). Our representation is based on its publication in the \u003cem\u003eCollected Stories\u003c/em\u003e.\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eSOURCE:\u003c/strong\u003e Joseph Blotner, ed., \u003cem\u003eSelected Letters of William Faulkner\u003c/em\u003e.\u003c/p\u003e",
+                        "citation":  "\u003cp\u003eBurgers, Johannes H., and Elizabeth Cornell. \u0026#8220;Faulkner\u0026#8217;s \u0026#8216;A Rose for Emily.\u0026#8217;\u0026#8221; Added to the project: 2012. Additional editing 2018: John Corrigan, Jennie J. Joiner. \u003cem\u003eDigital Yoknapatawpha\u003c/em\u003e, University of Virginia, \u003ca href=\"http://faulkner.iath.virginia.edu\" target=\"_blank\"\u003ehttp://faulkner.iath.virginia.edu\u003c/a\u003e\u003c/p\u003e",
+                        "first_publisher":  "Forum Magazine",
+                        "first_publisher_location":  "",
+                        "first_publisher_date":  "April 1930",
+                        "edit_copy_publisher":  "Vintage International",
+                        "edit_copy_location":  "New York",
+                        "edit_copy_date":  "1995",
+                        "publication_date":  "1930-04-30"
+                    }
+                ]
+}

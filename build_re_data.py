@@ -202,6 +202,44 @@ with open(EVENTS_CSV, encoding="utf-8-sig") as f:
 # Chronological Order is story-time order, not reading order.
 re_events.sort(key=lambda e: float(e.get("order_within_page") or 0))
 
+# ---------------------------------------------------------------------------
+# Infer first_appear (and home) for characters that don't have one.
+# DY positions characters at their first_appear location for the "All" radio
+# and at their home for the "Home" radio.  Both default to the location of
+# the first narrative-order event where each character is present.
+# ---------------------------------------------------------------------------
+# events are already sorted by order_within_page (narrative order)
+char_first_loc = {}
+char_first_mentioned = {}  # fallback for characters never present
+for ev in re_events:
+    loc = ev.get("event_location", "").strip()
+    if not loc:
+        continue
+    for cid in [c.strip() for c in ev.get("characters_present", "").split(",") if c.strip()]:
+        if cid not in char_first_loc:
+            char_first_loc[cid] = loc
+    for cid in [c.strip() for c in ev.get("characters_mentioned", "").split(",") if c.strip()]:
+        if cid not in char_first_mentioned:
+            char_first_mentioned[cid] = loc
+
+# Patch re_characters_pg.json in place
+pg_path = os.path.join(OUT_DIR, "re_characters_pg.json")
+with open(pg_path, encoding="utf-8") as f:
+    pg_data = json.load(f)
+
+for ch in pg_data.get("results", []):
+    cid = str(ch.get("id", ""))
+    inferred = char_first_loc.get(cid) or char_first_mentioned.get(cid, "")
+    if not ch.get("first_appear") and inferred:
+        ch["first_appear"] = inferred
+        print(f"  Inferred first_appear for {ch['name']}: {inferred}")
+    if not ch.get("home") and inferred:
+        ch["home"] = inferred
+
+with open(pg_path, "w", encoding="utf-8") as f:
+    json.dump(pg_data, f, indent=2, ensure_ascii=False)
+print("  -> data/re_characters_pg.json updated (first_appear / home inferred).")
+
 print(f"  {len(re_events)} RE events.")
 
 with open(os.path.join(OUT_DIR, "re_events.json"), "w", encoding="utf-8") as f:

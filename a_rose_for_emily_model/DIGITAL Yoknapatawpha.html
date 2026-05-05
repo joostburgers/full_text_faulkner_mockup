@@ -28,6 +28,7 @@
 	<script src="./DIGITAL Yoknapatawpha_files/editors_assoc.js.download"></script>
 	<script src="./DIGITAL Yoknapatawpha_files/controls.js.download"></script>
 	<script src="./DIGITAL Yoknapatawpha_files/jquery.tabletoCSV.js.download"></script>
+	<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 
 	<!-- ═══ LOCAL MOCKUP: redirect ALL Sinatra API calls to local JSON files ═══ -->
 	<script>
@@ -37,10 +38,12 @@
 		else if (/\/sinatra\/drupal_locations/.test(u))    { options.url = 'data/re_locations.json'; }
 		else if (/\/sinatra\/characters\?text=/.test(u))   { options.url = 'data/re_characters.json'; }
 		else if (/\/sinatra\/characters\?code=/.test(u))   { options.url = 'data/re_characters_pg.json'; }
-		else if (/\/sinatra\/drupal_texts/.test(u))        { options.url = 'data/re_texts.json'; }
+		else if (/\/sinatra\/drupal_texts/.test(u))        { options.url = 'data/re_texts.json'; options.cache = false; }
 		else if (/\/sinatra\/drupal_sections/.test(u))     { options.url = 'data/re_sections.json'; }
 		else if (/\/sinatra\/drupal_editors_assoc/.test(u)){ options.url = 'data/re_editors_assoc.json'; }
 		else if (/\/sinatra\/drupal_editors/.test(u))      { options.url = 'data/re_editors.json'; }
+		else if (/\/sinatra\/drupal_other_resources/.test(u)){ options.url = 'data/re_other_resources.json'; }
+		else if (/\/sinatra\/drupal_teaching/.test(u))      { options.url = 'data/re_teaching.json'; }
 		else if (/\/sinatra\//.test(u))                    { options.url = 'data/re_empty.json'; }
 	});
 	</script>
@@ -74,6 +77,7 @@ var search_end_page = null;
 			var statue = new Array();
 			var outside = new Array();
       var backgroundLayer = new Konva.Layer();
+      var heatLayer = new Konva.Layer();   // spatial heatmap — sits above map, below locations
       var contentLayer = new Konva.Layer({
 			        x: 800,
 			        y: 500,
@@ -92,6 +96,12 @@ var search_end_page = null;
 					}
 					return {x: tx, y: ty};
 				}
+			});
+			// Sync heatLayer transform whenever contentLayer is panned
+			contentLayer.on('dragmove', function() {
+				heatLayer.x(contentLayer.x());
+				heatLayer.y(contentLayer.y());
+				heatLayer.draw();
 			});
 			var controlLayer = new Konva.Layer();
 			var tooltipLayer = new Konva.Layer();
@@ -262,7 +272,6 @@ var search_end_page = null;
 	           url: '/sinatra/events_from_id?id='+encodeURIComponent(id)+'&text='+text, 
 	           // dataType:'json',
 	           success: function (data) { 
-								console.log(data);
 								$(loc).html(data);
 						}
 					});
@@ -368,70 +377,211 @@ var search_end_page = null;
 				
 				$('#title').html(str+'<div class="names">'+names+"</div>");
 				
-				// str = "<div id=\"text_tabs\"><ul><li><a href=\"#text_tabs-1\">About the Text</a></li><li><a href=\"#text_tabs-2\">About the Editors</a></li></ul><div id=\"text_tabs-1\" class=\"dialog_content\"></div><div id=\"text_tabs-2\" class=\"dialog_content\"></div></div>";
-				// $( "#about_text" ).html(str);
-				// $("#text_tabs-1").html(current_text['About']);
-				// $('#text_tabs-2').html(editor_text);
-				
-				
-				$('#title').click(function() {
-					// $('#text_tabs').tabs();
-					// $('#about_text').dialog("open");
-					var editor_text = ""
-					$.each(current_editors, function(index, value) {
-						editor_text += value['about']+"<br/><br/>";
-					})
-					var str = "<div id=\"tabs\"><ul><li><a href=\"#tabs-2\">About the Text</a></li><li><a href=\"#tabs-1\">About the Editors</a></li><li><a href=\"#tabs-3\">Citing This Resource</a></li></ul><div id=\"tabs-2\" class=\"dialog_content\"></div><div id=\"tabs-1\" class=\"dialog_content\"></div><div id=\"tabs-3\" class=\"dialog_content\"></div></div>";
-					$( "#dialog" ).html( str); //"<strong>"+value["LocationTitle"]+"</strong><br>"+value["Description"] );
-					$( "#tabs-2" ).html(current_text['about'] );
-					$( "#tabs-3" ).html(current_text['citation'] );
-					$('#tabs-1').append(editor_text);
-					$("#tabs").tabs();
-					$( "#dialog" ).dialog( {
-						// title: 'Text'.
-						width: 400,
-						close: function(){
-							$("#dialog").css("width", 300);
-							
+				// ── Populate the new map title bar ───────────────────────────
+				var _namesEl = document.querySelector('#dy-title-bar .dy-title-names');
+				if (_namesEl) {
+					var _editorNames = [];
+					$.each(current_editors, function(i, v) {
+						if (v['display_name']) _editorNames.push(v['display_name']);
+					});
+					_namesEl.textContent = _editorNames.join(', ');
+				}
+
+				var _assocEl = document.querySelector('#dy-title-bar .dy-title-assoc');
+				if (_assocEl) {
+					var _assocNames = [];
+					if (current_editors_assoc && current_editors_assoc.length) {
+						$.each(current_editors_assoc, function(i, v) {
+							if (v['display_name']) _assocNames.push(v['display_name']);
+						});
+					}
+					_assocEl.textContent = _assocNames.join(', ') || '';
+					_assocEl.closest('.dy-title-row').style.display = _assocNames.length ? '' : 'none';
+				}
+
+				var _citeBox = document.getElementById('dy-cite-box'); // legacy — no longer used
+
+				var _aboutView = document.getElementById('ft-about-view');
+				if (_aboutView) {
+					var _t = current_text;
+					var _today = new Date();
+					var _accessed = _today.toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+					var _ctitle = _t['title'] || '';
+					var _curl = 'https://faulkner.iath.virginia.edu';
+					var _edDisplay = [], _edSort = [];
+					$.each(current_editors, function(i, e) {
+						if (e['display_name']) _edDisplay.push(e['display_name']);
+						if (e['sort_name'])    _edSort.push(e['sort_name']);
+					});
+					// MLA
+					var _mlaEd = _edSort.length ? (_edSort[0] + (_edDisplay.length > 1 ? ', and ' + _edDisplay.slice(1).join(', and ') : '') + ', editors. ') : '';
+					var _mlaCite = _mlaEd + '\u201c' + _ctitle + '.\u201d <em>Digital Yoknapatawpha</em>, University of Virginia, faulkner.iath.virginia.edu. Accessed ' + _accessed + '.';
+					var _mlaPlain = _mlaEd + '\u201c' + _ctitle + '.\u201d Digital Yoknapatawpha, University of Virginia, faulkner.iath.virginia.edu. Accessed ' + _accessed + '.';
+					// APA
+					var _apaEds = [];
+					$.each(current_editors, function(i, e) {
+						var _sp = (e['sort_name'] || '').split(', ');
+						var _init = (_sp[1] || '').split(' ').map(function(w){ return w.charAt(0) + '.'; }).join(' ');
+						_apaEds.push(_sp[0] + (_init ? ', ' + _init : ''));
+					});
+					var _apaEdStr = _apaEds.length ? (_apaEds.join(' & ') + ' (' + (_apaEds.length > 1 ? 'Eds.' : 'Ed.') + '). ') : '';
+					var _apaCite = _apaEdStr + '(n.d.). ' + _ctitle + '. <em>Digital Yoknapatawpha</em>, University of Virginia. ' + _curl;
+					var _apaPlain = _apaEdStr + '(n.d.). ' + _ctitle + '. Digital Yoknapatawpha, University of Virginia. ' + _curl;
+					// Chicago
+					var _chiEd = _edSort.length ? (_edSort[0] + (_edDisplay.length > 1 ? ', and ' + _edDisplay.slice(1).join(', and ') : '') + ', eds. ') : '';
+					var _chiCite = _chiEd + '\u201c' + _ctitle + '.\u201d <em>Digital Yoknapatawpha</em>. University of Virginia. Accessed ' + _accessed + '. ' + _curl + '.';
+					var _chiPlain = _chiEd + '\u201c' + _ctitle + '.\u201d Digital Yoknapatawpha. University of Virginia. Accessed ' + _accessed + '. ' + _curl + '.';
+
+					function _citeSection(style, htmlStr, plainStr) {
+						return '<div class="ft-cite-row" data-style="' + style + '"' + (style !== 'mla' ? ' style="display:none"' : '') + '>'
+							+ '<span class="ft-cite-text">' + htmlStr + '</span>'
+							+ '<button class="ft-cite-copy" data-plain="' + plainStr.replace(/"/g, '&quot;') + '">Copy</button>'
+							+ '</div>';
+					}
+
+					// Build pub header
+					var _pubHdr = '<div id="ft-pub-header">';
+					_pubHdr += '<span class="ft-pub-title">' + (_t['title'] || '') + '</span>';
+					if (_t['first_publisher'] || _t['first_publisher_date']) {
+						_pubHdr += '<span class="ft-pub-row"><span class="ft-pub-label">First published: </span>';
+						var _parts = [];
+						if (_t['first_publisher'])           _parts.push(_t['first_publisher']);
+						if (_t['first_publisher_location'])  _parts.push(_t['first_publisher_location']);
+						if (_t['first_publisher_date'])      _parts.push(_t['first_publisher_date']);
+						_pubHdr += _parts.join(', ') + '</span>';
+					}
+					if (_t['edit_copy_publisher']) {
+						_pubHdr += '<span class="ft-pub-row"><span class="ft-pub-label">This edition: </span>';
+						var _eParts = [];
+						if (_t['edit_copy_publisher'])  _eParts.push(_t['edit_copy_publisher']);
+						if (_t['edit_copy_location'])   _eParts.push(_t['edit_copy_location']);
+						if (_t['edit_copy_date'])       _eParts.push(_t['edit_copy_date']);
+						_pubHdr += _eParts.join(', ') + '</span>';
+					}
+					if (_t['page_start'] && _t['page_stop']) {
+						_pubHdr += '<span class="ft-pub-row"><span class="ft-pub-label">Pages: </span>' + _t['page_start'] + '&#x2013;' + _t['page_stop'] + '</span>';
+					}
+					_pubHdr += '</div>';
+
+					// Build citation block
+					var _citeHtml = '<div id="ft-cite-block">';
+					_citeHtml += '<div class="ft-cite-tabs">';
+					_citeHtml += '<button class="ft-cite-tab active" data-style="mla">MLA</button>';
+					_citeHtml += '<button class="ft-cite-tab" data-style="apa">APA</button>';
+					_citeHtml += '<button class="ft-cite-tab" data-style="chicago">Chicago</button>';
+					_citeHtml += '</div>';
+					_citeHtml += _citeSection('mla', _mlaCite, _mlaPlain);
+					_citeHtml += _citeSection('apa', _apaCite, _apaPlain);
+					_citeHtml += _citeSection('chicago', _chiCite, _chiPlain);
+					_citeHtml += '</div>';
+
+					_aboutView.innerHTML = _pubHdr + _citeHtml + (current_text['about'] || '');
+
+					// Wire cite tabs
+					_aboutView.addEventListener('click', function(e) {
+						var tab = e.target.closest('.ft-cite-tab');
+						if (tab) {
+							var style = tab.getAttribute('data-style');
+							_aboutView.querySelectorAll('.ft-cite-tab').forEach(function(b){ b.classList.remove('active'); });
+							tab.classList.add('active');
+							_aboutView.querySelectorAll('.ft-cite-row').forEach(function(d){ d.style.display = 'none'; });
+							var row = _aboutView.querySelector('.ft-cite-row[data-style="' + style + '"]');
+							if (row) row.style.display = 'flex';
+							return;
+						}
+						var copyBtn = e.target.closest('.ft-cite-copy');
+						if (copyBtn) {
+							var plain = copyBtn.getAttribute('data-plain');
+							navigator.clipboard && navigator.clipboard.writeText(plain).then(function() {
+								copyBtn.textContent = 'Copied!';
+								copyBtn.classList.add('copied');
+								setTimeout(function(){ copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 1800);
+							});
 						}
 					});
-					$( "#dialog" ).dialog( "open" );
-					$( "#dialog").dialog('option', 'title', 'Information');
-				})
+				}
+
+				var _editorsView = document.getElementById('ft-about-editors-view');
+				if (_editorsView) {
+					var _editorHtml = '';
+					$.each(current_editors, function(i, v) {
+						_editorHtml += v['about'];
+						if (current_editors_assoc && current_editors_assoc.length) {
+							// editors_assoc appended below
+						}
+					});
+					if (current_editors_assoc && current_editors_assoc.length) {
+						$.each(current_editors_assoc, function(i, v) { _editorHtml += v['about'] || ''; });
+					}
+					_editorsView.innerHTML = _editorHtml || '<p><em>No editor information available.</em></p>';
+				}
+
+				var _titleBar = document.getElementById('dy-title-bar');
+				if (_titleBar) _titleBar.style.display = 'flex';
+
+				// ── Activate the About Text tab now that content is ready ────
+				if (window.dyActivatePanelTab) window.dyActivatePanelTab('about-text');
+
 			}
 			
 			function getOtherResources(text) {
-				// 
-				$.ajax({ 
-             type: 'GET', 
-					
-			 url: '/sinatra/drupal_other_resources?code='+text,
-             dataType:'json',
-             success: function (data) { 
-				 // if( data["results"].length > 1) {
-					 $('#layer_dialog').append('<strong>Other Resources</strong>:<br>');
-				 // }
-		
-							$.each(data["results"], function(index, value) {
-								if (value['code'] != null) {
-									$('#layer_dialog').append('<a href="https://faulkner.drupal.shanti.virginia.edu/node/'+value['nid']+'?canvas" target="_blank">'+value['display_title']+'</a><br>');
+				var resPanel = document.getElementById('ft-other-resources');
+				if (resPanel) resPanel.innerHTML = '<span class="ft-res-loading">Loading&#x2026;</span>';
+
+				$.ajax({
+					type: 'GET',
+					url: '/sinatra/drupal_other_resources?code=' + text,
+					dataType: 'json',
+					success: function(archiveData) {
+						$.ajax({
+							type: 'GET',
+							url: '/sinatra/drupal_teaching?code=' + text,
+							dataType: 'json',
+							success: function(teachData) {
+								if (!resPanel) return;
+								var html = '';
+
+								// ── Teaching ──────────────────────────────
+								var teachItems = '';
+								$.each(teachData['results'], function(i, v) {
+									if (v['code'] != null) {
+										teachItems += '<li><a href="' + v['url'] + '" target="_blank">' + v['title'] + '</a></li>';
+									}
+								});
+								html += '<div class="ft-res-section">';
+								html += '<h4 class="ft-res-heading">Teaching</h4>';
+								html += '<ul class="ft-res-list">' + (teachItems || '<li class="ft-res-empty">No lessons available</li>') + '</ul>';
+								html += '</div>';
+
+								// ── Archive ───────────────────────────────
+								var archiveItems = '';
+								$.each(archiveData['results'], function(i, v) {
+									if (v['code'] != null) {
+										archiveItems += '<li><a href="https://faulkner.drupal.shanti.virginia.edu/node/' + v['nid'] + '?canvas" target="_blank">' + v['display_title'] + '</a></li>';
+									}
+								});
+								if (text === 'AA') {
+									archiveItems += '<li><a href="/family/aa_events.php" target="_blank">Chronology</a></li>';
+									archiveItems += '<li><a href="/family/aa_sources.php" target="_blank">Narrative Sources</a></li>';
 								}
-							})
+								html += '<div class="ft-res-section">';
+								html += '<h4 class="ft-res-heading">Archive</h4>';
+								html += '<ul class="ft-res-list">' + (archiveItems || '<li class="ft-res-empty">No archive resources</li>') + '</ul>';
+								html += '</div>';
 
-							//Special cases:
-					 		//Absalom, Absalom!
-					 		if( text == 'AA' ) { 
-					 			$('#layer_dialog').append('<a href="/family/aa_events.php" target="_blank">Chronology</a><br>'); 
-					 			$('#layer_dialog').append('<a href="/family/aa_sources.php" target="_blank">Narrative Sources</a><br>'); 
-					 		}
+								// ── Visualizations ────────────────────────
+								var vizItems = '<li><a href="https://faulkner.iath.virginia.edu/characters-force.html?text=' + text + '" target="_blank">Location-Character Graph</a></li>';
+								html += '<div class="ft-res-section">';
+								html += '<h4 class="ft-res-heading">Visualizations</h4>';
+								html += '<ul class="ft-res-list">' + vizItems + '</ul>';
+								html += '</div>';
 
-					 		//Location-Character Graph
-							$('#layer_dialog').append('<a href="characters-force.html?text='+text+'" target="_blank">Location-Character Graph</a>');
-             }
-         });
-				
+								resPanel.innerHTML = html;
+							}
+						});
+					}
+				});
 			}
-			
 			function select_all_icons() {
 				// console.log('books = '+books.length);
 				// console.log('pub = '+texts_alphabetical.length);
@@ -444,7 +594,6 @@ var search_end_page = null;
 				$('#text_title_list').hide();
 				$.each(texts_alphabetical, function(k,v) {
 					b[books[k]['icon']] = k;
-					console.log(books[b['#'+v]]['icon']);
 					$('.mac-dock').append('<a href="/?text='+books[b['#'+v]]['book']+'"><img alt="'+books[b['#'+v]]['title']+'" src="book_covers/'+books[b['#'+v]]['thumbnail']+'" id="'+books[b['#'+v]]['icon']+'" title="'+books[b['#'+v]]['title']+'"></a> ');
 
 					var pretty_title = '&ldquo;' + books[b['#'+v]]['title'] + '&rdquo;';
@@ -452,12 +601,10 @@ var search_end_page = null;
 					$('#text_title_list').append('<p><a href="/?text='+books[b['#'+v]]['book']+'">'+pretty_title+'</a></p> ');
 
 					$(books[b['#'+v]]['icon']).click(function() {
-						console.log('click');
 					})
 				})
 				$('.mac-dock img').click(function() {
 					var i = $(this).attr('id');
-					console.log(books[b[i]]);
 					//show_book(books[b[i]]['book'], books[b[i]]['content'], books[b[i]]['manmade'], books[b[i]]['natural'], books[b[i]]['heatmap'], books[b[i]]['extra']);
 				})
 				$('.mac-dock img').show();
@@ -478,9 +625,7 @@ var search_end_page = null;
 				$('#text_title_list').empty();
 				$('#text_title_list').hide();
 				$.each(icons, function(k,v) {
-					console.log(k);
 					// b[books[k]['icon']] = k;
-					console.log(books[b['#'+v]]['icon']);
 					$('.mac-dock').append('<img alt="'+books[b['#'+v]]['title']+'" src="book_covers/'+books[b['#'+v]]['thumbnail']+'" id="'+books[b['#'+v]]['icon']+'" title="'+books[b['#'+v]]['title']+'"> ');
 
 					var pretty_title = '&ldquo;' + books[b['#'+v]]['title'] + '&rdquo;';
@@ -490,7 +635,6 @@ var search_end_page = null;
 				})
 				$('.mac-dock img').click(function() {
 					var i = $(this).attr('id');
-					console.log(books[b[i]]);
 					show_book(books[b[i]]['book'], books[b[i]]['content'], books[b[i]]['manmade'], books[b[i]]['natural'], books[b[i]]['heatmap'], books[b[i]]['extra']);
 				})
 				var w = icons.length*44;
@@ -657,7 +801,6 @@ var search_end_page = null;
 									if(current_locations[vv.replace('--',', ')] != null) {
 										current_locations[vv.replace('--',', ')].show();
 									} else {
-										console.log('missing location: '+vv);
 									}
 								})
 							})
@@ -838,7 +981,7 @@ var search_end_page = null;
 											}
 											contentLayer.position({x:tx, y:ty});
 											// contentLayer.setPosition(contentLayer.getX()/contentLayer.getScale().x  ,contentLayer.getY()/contentLayer.getScale().y );
-							        contentLayer.draw();
+							        contentLayer.draw(); drawSpatialHeatmap();
 							    }
 		            });
 		        $( "#minus" )
@@ -859,15 +1002,19 @@ var search_end_page = null;
 											}
 											contentLayer.position({x:tx, y:ty});
 											// contentLayer.setPosition(contentLayer.getX()+130  ,contentLayer.getY()+80 );
-							        contentLayer.draw();
+							        contentLayer.draw(); drawSpatialHeatmap();
 							    }
 		            });
 		        $( "#reset" )
 		            .button()
 		            .click(function( event ) {
-									reset();
+						// Reset zoom/pan only — do not reload the page
+						contentLayer.scale({ x: 0.305, y: 0.305 });
+						contentLayer.position({ x: 0, y: 0 });
+						contentLayer.draw();
+						drawSpatialHeatmap();
 		            });
-		    
+
         stage = new Konva.Stage({
           container: "container",
           width: 800,
@@ -976,6 +1123,7 @@ var search_end_page = null;
           // add the contentLayer to the stage
 					// contentLayer.hide();
           stage.add(backgroundLayer);
+          stage.add(heatLayer);
           stage.add(contentLayer);
 					stage.add(controlLayer);
 					stage.add(tooltipLayer);
@@ -1075,7 +1223,6 @@ var search_end_page = null;
 							}
 						});
 					} catch(e) {
-						console.log(loc);
 					}
 					$.each(page_locations[prev][loc]["characters"], function (index, value) {
 						if(data[value] != null) {
@@ -1105,7 +1252,6 @@ var search_end_page = null;
 						$.each(page_locations[current][loc]["characters"], function (index, value) {
 							// current book has character
 							if (value == "Unnamed Scottish Engineer") {
-								console.log(all_locations[data[value]["location"]]);
 							}
 							if(data[value] != null) {
 								var current_class = data[value]["rank"];
@@ -1143,7 +1289,6 @@ var search_end_page = null;
 							}
 						});
 					} catch(e) {
-						console.log(e+" : "+loc);
 					}
 					// $.each(page_locations[current][loc]["characters"], function (index, value) {
 					// 	if(data[value] != null) {
@@ -1183,7 +1328,6 @@ var search_end_page = null;
 					var startY=0;
 					var hash = {}
 					try {
-						console.log('--------show characters');
 						$.each(character_origin, function (index, value) {
 							if(data[index] != null) {
 								var current_class = data[index]["rank"];
@@ -1199,7 +1343,6 @@ var search_end_page = null;
 										data[index]["image"].setY(current_locations[data[index]["location"]].getY());
 										// console.log(data[index]["image"].getX()+","+data[index]["image"].getY());
 									} else {
-										console.log('missing '+data[index]["location"]);
 									}
 
 									data[index]["image"].setScale(1.5);
@@ -1212,7 +1355,6 @@ var search_end_page = null;
 							}
 						});
 					} catch(e) {
-						console.log(e+" : ");
 					}
 				contentLayer.draw();
 		}
@@ -1290,7 +1432,6 @@ var search_end_page = null;
 					var startY=0;
 					var hash = {}
 					try {
-						console.log('--------show characters');
 						// var chars = sortHashTableByKey(character_origin,'rank')
 						var chars = sortObject(character_origin);
 						
@@ -1324,7 +1465,6 @@ var search_end_page = null;
 										data[index]["image"].setY(current_locations[data[index]["location"]].getY());
 										// console.log(data[index]["image"].getX()+","+data[index]["image"].getY());
 									} else {
-										console.log('missing '+data[index]["location"]);
 									}
 									
 									// }
@@ -1340,7 +1480,6 @@ var search_end_page = null;
 							}
 						});
 					} catch(e) {
-						console.log(e+" : ");
 					}
 					// $.each(page_locations[current][loc]["characters"], function (index, value) {
 					// 	if(data[value] != null) {
@@ -1358,7 +1497,6 @@ var search_end_page = null;
 					var startY=0;
 					var hash = {}
 					try {
-						console.log('--------show characters home');
 						$.each(character_home, function (index, value) {
 							if(data[index] != null) {
 								var current_class = data[index]["rank"];
@@ -1378,7 +1516,6 @@ var search_end_page = null;
 										data[index]["image"].setY(current_locations[value].getY());
 										// console.log(data[index]["image"].getX()+","+data[index]["image"].getY());
 									} else {
-										console.log('missing '+value);
 									}
 									
 									// }
@@ -1394,7 +1531,6 @@ var search_end_page = null;
 							}
 						});
 					} catch(e) {
-						console.log(e+" : ");
 					}
 			
 		}
@@ -1720,15 +1856,12 @@ var search_end_page = null;
 				
 				heatmap_layer.addData({x:0, y:0, value:1})
 				if(baselayer) {
-					console.log(base_x+1);
 					for(var x=0;x <= 800; x+=base_x) {
 						for(var y=0;y <= 500; y+=base_y) {
 							heatmap_layer.addData({x:x, y:y, value:1})
 						}
 					}
 				}
-				console.log('contents:');
-				console.log(heatmap_layer.getData());
 
 		        heatmap_layer_save = h337.create({
 		          container: document.getElementById('heatmap-canvas'),
@@ -1781,454 +1914,16 @@ var search_end_page = null;
     </script>
 
     <link rel="stylesheet" href="./DIGITAL Yoknapatawpha_files/family.css">
-    <style>
+    <link rel="stylesheet" href="./dy-mockup.css">
 
-  	#content_2
-  	{
-		position: relative;
-		width: 1300px;
-		min-height: 900px;
-	}
-
-	/* ── Full-text panel (right col, top) ─────────────────────── */
-	#fulltext-panel {
-		position: absolute;
-		left: 810px;
-		top: 24px;
-		width: 460px;
-		height: 500px;
-		background: #fff;
-		border: 1px solid #ccc;
-		overflow-y: auto;
-		font-family: Georgia, 'Times New Roman', serif;
-		font-size: 13px;
-		line-height: 1.5;
-		display: none;
-	}
-	/* ── Event list inside text panel ────────────────────────── */
-	.ft-item {
-		border-bottom: 1px solid #eee;
-	}
-	.ft-item.active > .ft-item-bar {
-		background: #f5ede0;
-	}
-	.ft-item-bar {
-		display: grid;
-		grid-template-columns: 32px 130px 1fr;
-		align-items: baseline;
-		gap: 4px;
-		padding: 6px 10px;
-		cursor: pointer;
-	}
-	.ft-item-bar:hover { background: #faf7f3; }
-	.ft-item-page {
-		font-family: Trebuchet MS, Tahoma, sans-serif;
-		font-size: 10px;
-		color: #aaa;
-		white-space: nowrap;
-	}
-	.ft-item-loc {
-		font-family: Trebuchet MS, Tahoma, sans-serif;
-		font-size: 10px;
-		color: #888;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-	.ft-item-fw {
-		font-style: italic;
-		color: #444;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-	.ft-item-body {
-		display: none;
-		padding: 10px 14px 12px;
-		background: #fdfaf6;
-		border-top: 1px solid #ede8e0;
-	}
-	.ft-item.open > .ft-item-body { display: block; }
-	.ft-item-body .ft-sentence {
-		margin: 0 0 0.85em;
-		text-indent: 1.5em;
-		color: #333;
-		font-size: 13px;
-		line-height: 1.7;
-	}
-	.ft-item-body .ft-sentence:first-child { text-indent: 0; }
-	.ft-item-body .ft-summary {
-		font-style: italic;
-		color: #555;
-		font-size: 13px;
-		line-height: 1.6;
-		margin-bottom: 0.8em;
-	}
-	.ft-map-btn {
-		display: inline-block;
-		margin-top: 8px;
-		padding: 4px 10px;
-		font-family: Trebuchet MS, Tahoma, sans-serif;
-		font-size: 11px;
-		letter-spacing: 0.04em;
-		color: #666;
-		background: #f0f0f0;
-		border: 1px solid #ccc;
-		cursor: pointer;
-	}
-	.ft-map-btn:hover { background: #e4e4e4; color: #333; }
-	/* ── Fix controls overrunning right column ───────────────── */
-	#layers { display: none !important; }
-	/* Hide orphaned labels that sit outside the DY dialog system */
-	#reset_all, #section_label { display: none !important; }
-	#controls { margin-left: 0 !important; width: 800px !important; }
-	/* Hide absolutely-positioned playbar elements past 800px */
-	/* (#stop: left:810px; speed controls: left:840px – all clip into the text panel) */
-	#stop, #start { display: none !important; }
-	/* Speed controls: keep visible but repositioned into a new custom toolbar */
-	#e_speed_control, #speed_control, #c_speed_control { display: none !important; }
-	/* Clip the date timeline to map width */
-	#date_labels { width: 800px !important; margin-left: 0 !important; overflow: hidden !important; }
-	#dates_wrapper { width: 800px !important; left: 0 !important; overflow: hidden !important; }
-	#dates { width: 800px !important; }
-
-	/* ── Hide all remaining legacy DY controls ───────────────── */
-	#sections, #event_controls, #chron_controls, #date_labels,
-	#dates_wrapper, #playback_controls, #event_controls_offset { display: none !important; }
-
-	/* ══════════════════════════════════════════════════════════
-	   CUSTOM CONTROL TOOLBAR  (replaces DY's scattered controls)
-	   ══════════════════════════════════════════════════════════ */
-	#dy-toolbar {
-		width: 800px;
-		box-sizing: border-box;
-		background: #fff;
-		color: #222;
-		border: 1px solid #ccc;
-		border-top: none;
-		font-family: Trebuchet MS, Tahoma, sans-serif;
-		font-size: 11px;
-		padding: 0;
-		display: none;          /* shown by wiring script once data is ready */
-		user-select: none;
-	}
-	/* Row 1: section tabs */
-	#dy-tb-sections {
-		display: flex;
-		border-bottom: 1px solid #ccc;
-	}
-	.dy-sec-btn {
-		flex: 1;
-		padding: 5px 2px;
-		text-align: center;
-		background: #f5f5f5;
-		border: none;
-		border-right: 1px solid #ddd;
-		color: #555;
-		cursor: pointer;
-		font-size: 11px;
-		letter-spacing: 0.05em;
-	}
-	.dy-sec-btn:last-child { border-right: none; }
-	.dy-sec-btn:hover { background: #e8e8e8; color: #000; }
-	.dy-sec-btn.dy-sec-active { background: #fff; color: #000; font-weight: bold;
-		                          box-shadow: inset 0 -2px 0 #000; }
-
-	/* Row 2: transport + year display */
-	#dy-tb-transport {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 5px 10px;
-		border-bottom: 1px solid #ddd;
-		background: #fafafa;
-	}
-	.dy-btn {
-		width: 28px; height: 22px;
-		background: #fff; border: 1px solid #bbb;
-		border-radius: 3px; color: #222;
-		cursor: pointer; font-size: 13px;
-		line-height: 22px; text-align: center;
-		flex-shrink: 0;
-	}
-	.dy-btn:hover { background: #eee; color: #000; }
-	.dy-btn:active { background: #ddd; }
-	#dy-year-display {
-		min-width: 48px; text-align: center;
-		font-size: 13px; font-weight: bold;
-		color: #000; letter-spacing: 0.04em;
-		border: 1px solid #ccc; padding: 1px 6px;
-		background: #fff;
-	}
-	#dy-mode-toggle {
-		margin-left: auto;
-		display: flex; align-items: center; gap: 5px;
-		font-size: 10px; color: #555;
-	}
-	#dy-mode-toggle label { cursor: pointer; }
-	#dy-mode-toggle input[type=radio] { cursor: pointer; accent-color: #333; }
-	#dy-speed-wrap {
-		display: flex; align-items: center; gap: 4px;
-		font-size: 10px; color: #555;
-	}
-	#dy-speed-range {
-		width: 55px; accent-color: #333;
-	}
-	#dy-reset-btn {
-		background: #fff; border-color: #aaa; color: #333;
-		font-size: 15px;
-	}
-	#dy-reset-btn:hover { background: #eee; }
-
-	/* Row 3: event slider */
-	#dy-tb-slider {
-		padding: 4px 10px 5px;
-		background: #fafafa;
-	}
-	#dy-event-slider {
-		-webkit-appearance: none; appearance: none;
-		width: 100%; height: 5px;
-		background: #ddd; border-radius: 3px;
-		outline: none; cursor: pointer;
-		accent-color: #333;
-	}
-	#dy-event-slider::-webkit-slider-thumb {
-		-webkit-appearance: none; appearance: none;
-		width: 14px; height: 14px;
-		border-radius: 50%;
-		background: #333; cursor: pointer;
-		border: 2px solid #fff; box-shadow: 0 0 0 1px #999;
-	}
-	/* Row 4: heatmap canvas + labels */
-	#dy-tb-dates {
-		padding: 4px 10px 6px;
-		background: #fff;
-		border-top: 1px solid #eee;
-	}
-	#dy-heat-canvas {
-		display: block;
-		width: 100%; height: 28px;
-		cursor: crosshair;
-		border-radius: 3px;
-	}
-	#dy-year-labels {
-		position: relative;
-		width: 100%; height: 14px;
-		margin-top: 2px;
-	}
-	.dy-yr-lbl {
-		position: absolute;
-		transform: translateX(-50%);
-		font-size: 9px; color: #888;
-		top: 0; white-space: nowrap;
-	}
-
-	/* ── Info panel (right col, below text panel) ─────────────── */
-	#info-panel {
-		position: absolute;
-		left: 810px;
-		top: 524px;
-		width: 460px;
-		min-height: 160px;
-		background: #fff;
-		border: 1px solid #ccc;
-		border-top: none;
-		font-family: Georgia, 'Times New Roman', serif;
-		font-size: 13px;
-		line-height: 1.6;
-		color: #333;
-		display: none;
-	}
-	#info-panel .info-tabs {
-		display: flex;
-		border-bottom: 1px solid #ccc;
-		background: #f0f0f0;
-	}
-	#info-panel .info-tab {
-		flex: 1;
-		padding: 6px 4px;
-		border: none;
-		border-right: 1px solid #ccc;
-		background: #f0f0f0;
-		cursor: pointer;
-		font-family: Trebuchet MS, Tahoma, sans-serif;
-		font-size: 11px;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		color: #666;
-	}
-	#info-panel .info-tab:last-child { border-right: none; }
-	#info-panel .info-tab.active { background: #fff; color: #333; font-weight: bold; }
-	#info-panel .info-tab:hover:not(.active) { background: #e4e4e4; }
-	#info-panel .info-tab-content { display: none; padding: 10px 14px 12px; }
-	#info-panel .info-tab-content.active { display: block; }
-	#info-panel .info-tab-content strong { font-weight: bold; }
-	#info-panel .info-tab-content p { margin: 0.4em 0; line-height: 1.5; }
-	#info-panel .info-char-group { margin-bottom: 0.75em; }
-	#info-panel .info-char-group ul { margin: 3px 0 0 1.2em; }
-	#info-panel .info-char-group ul li { line-height: 1.5; }
-	#info-panel .info-mentioned { opacity: 0.65; }
-	#info-panel .info-empty { color: #aaa; font-style: italic; }
-
-	/* ── Fulltext tab label (hidden; panel header serves this role) */
-	#fulltext-tab { display: none !important; }
-
-	#main_index_content
-	{
-		position: relative;
-		top: -20px;
-		width: 100%;
-	}
-
-	#main_index_sub-content
-	{
-		position: relative;
-		width: 1300px;
-		margin-left: auto;
-		margin-right: auto;
-		}
-
-		/* note: there must be some reference to #home in the JavaScript. The layout and controls magically fail if this div is named anything else */
-		#home
-		{
-			border: 1px solid #ffffff;
-			border-top-left-radius: 5px;
-			border-top-right-radius: 5px;
-			width: 798px;
-			height: 23px;
-			text-align: center;
-			float: left;
-			background: white;
-			color: black;
-		}
-
-		#mapit_tab 
-		{
-				border: 1px solid black;
-				border-top-left-radius: 5px;
-				border-top-right-radius: 5px;
-				width: 798px;
-				height: 23px;
-				text-align: center;
-				float: left;
-				background: gray;
-				color: white;
-				display: none;
-		}
-
-		#shelf_instructions
-		{
-			/* font-size: 90%; */
-			/* line-height: 1.5em; */
-		}
-
-		#upClick 
-		{
-			position: absolute;
-			left: -50px;
-			top: 584px;
-		}
-
-		#downClick 
-		{
-			position: absolute;
-			left: 808px;
-			top: 584px;
-		}
-
-		.dialog_content p 
-		{
-			margin-top: 1px;
-			margin-bottom: 1px;
-			font-family: Trebuchet MS, Tahoma, Verdana, Arial, sans-serif;
-			font-size: 11px;
-			line-height: 14px;
-		}
-
-		.dialog_content a,
-		#layer_dialog a,
-		#event_words a
-		{
-			text-decoration: underline;
-		}
-
-		#events_data p 
-		{
-			margin-top: 1px;
-			margin-bottom: 1px;
-		}
-
-		#layer_dialog,
-		#event_words,
-		#character_list,
-		#location_list
-		{
-			font-size: 11px;
-			line-height: 13px;
-		}
-
-		#event_controls_offset 
-		{
-			width: 800px;
-			height: 30px;
-			display:none;
-		}
-
-		h3 
-		{ 
-			font-family: Georgia, "Times New Roman", Times, serif;
-			font-weight: bold;
-			font-size: 1.25rem;
-			line-height: 1.5rem;
-			margin-bottom: 1rem;
-		}
-
-		img#stamp_img { margin-bottom: 48px; }
-
-		div.intro_text
-		{
-			text-align: justify;
-			text-justify: inter-word;
-			margin-bottom: 1.75rem;
-		}
-
-		div.intro_text p,
-		{
-			font-family: Georgia, "Times New Roman", Times, serif;
-			font-size: 1rem;
-			line-height: 1.25rem;
-		}
-
-		ul#texts_order-radios li
-		{
-			font-family: Georgia, "Times New Roman", Times, serif;
-			font-size: 1rem;
-			line-height: 1.25rem;
-			padding-bottom: 0.25rem;
-		}
-
-		div#text_title_list,
-		div#text_title_list_button
-		{
-			margin-top: 12px;
-		}
-
-		div#text_title_list_button p
-		{
-			font-family: Georgia, "Times New Roman", Times, serif;
-			font-size: 1rem;
-			line-height: 1.25rem;
-		}
-
-		div#text_title_list p
-		{
-			margin-left: 1.0rem;
-			font-family: Georgia, "Times New Roman", Times, serif;
-			font-size: 1rem;
-			line-height: 1.5rem;
-		}
-
-    </style>
+  <!-- Microsoft Clarity — replace YOUR_CLARITY_PROJECT_ID with your project ID from clarity.microsoft.com -->
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "YOUR_CLARITY_PROJECT_ID");
+  </script>
 
   </head>
   <body>
@@ -2435,21 +2130,96 @@ close_all_menu_items();
 
 		<!-- ── Full-text panel: shows Faulkner sentences for the current event ── -->
 		<div id="fulltext-tab">FULL TEXT</div>
-		<div id="fulltext-panel">
-			<div class="ft-placeholder">
-				<p>Navigate to an event using the controls below<br>to see the corresponding passage from the story.</p>
+		<div id="fulltext-panel" class="dy-map-mode">
+			<div id="ft-panel-header">
+				<button class="ft-panel-tab" data-tab="events" title="Browse all story events and navigate between them">Events</button>
+				<button class="ft-panel-tab" data-tab="text" title="Read the full story text with scroll-based navigation">Text (scroll)</button>
+				<button class="ft-panel-tab" data-tab="text-hl" title="Read the annotated text with highlights for characters, locations, keywords, and narrative markup">Text (highlight)</button>
+				<button class="ft-panel-tab active" data-tab="about-text" title="Background and editorial notes about this story">About Text</button>
+				<button class="ft-panel-tab" data-tab="about-editors" title="Information about the Digital Yoknapatawpha editorial team">About Editors</button>
+				<button class="ft-panel-tab" data-tab="resources" title="Links to manuscripts, audio, illustrations, and related resources">Other Resources</button>
+				<button class="dy-panel-btn" id="ft-panel-collapse-btn" title="Minimize panel">&#8863;</button>
 			</div>
+			<div id="ft-text-toolbar">
+				<div id="ft-search-bar">
+					<select id="ft-search-mode" title="Search mode">
+						<option value="text">Text</option>
+						<option value="keyword">Keywords</option>
+					</select>
+					<input type="text" id="ft-search-input" placeholder="Search text&hellip;" autocomplete="off">
+					<datalist id="ft-kw-datalist"></datalist>
+					<button class="ft-search-nav-btn" id="ft-search-prev" title="Previous match">&uarr;</button>
+					<button class="ft-search-nav-btn" id="ft-search-next" title="Next match">&darr;</button>
+					<span id="ft-search-count"></span>
+				</div>
+				<div id="ft-section-nav">
+					<span class="ft-sec-label">Section</span>
+					<button class="ft-sec-btn" data-sec="I">I</button>
+					<button class="ft-sec-btn" data-sec="II">II</button>
+					<button class="ft-sec-btn" data-sec="III">III</button>
+					<button class="ft-sec-btn" data-sec="IV">IV</button>
+					<button class="ft-sec-btn" data-sec="V">V</button>
+					<span class="ft-sec-sep"></span>
+					<button class="ft-fontsize-btn" id="ft-font-decrease" title="Decrease text size">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M6.5 12a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM13 6.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z"/><path d="M10.344 11.742c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1 6.538 6.538 0 0 1-1.398 1.4z"/><path fill-rule="evenodd" d="M3.5 6.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1H4a.5.5 0 0 1-.5-.5z"/></svg>
+					</button>
+					<button class="ft-fontsize-btn" id="ft-font-increase" title="Increase text size">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M6.5 12a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM13 6.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z"/><path d="M10.344 11.742c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1 6.538 6.538 0 0 1-1.398 1.4z"/><path fill-rule="evenodd" d="M6.5 3a.5.5 0 0 1 .5.5V6h2.5a.5.5 0 0 1 0 1H7v2.5a.5.5 0 0 1-1 0V7H3.5a.5.5 0 0 1 0-1H6V3.5a.5.5 0 0 1 .5-.5z"/></svg>
+					</button>
+					<span class="ft-sec-sep"></span>
+					<label class="ft-show-events-label" title="Show event boundaries">
+						<input type="checkbox" id="ft-show-events-check">
+						<span class="ft-pipe-label">| Event Boundaries |</span>
+					</label>
+				</div>
+			</div>
+			<div id="ft-events-view" style="display:none">
+				<div class="ft-placeholder">
+					<p>Navigate to an event using the controls below<br>to see the corresponding passage from the story.</p>
+				</div>
+			</div>
+			<div id="ft-continuous-view"></div>
+			<div id="ft-highlight-view"></div>
+			<div id="ft-about-view"></div>
+			<div id="ft-about-editors-view"></div>
+			<div id="ft-other-resources"></div>
 		</div>
 		<div id="info-panel">
 			<div class="info-tabs">
-				<button class="info-tab active" data-tab="it-location">Location</button>
-				<button class="info-tab" data-tab="it-character">Characters</button>
-				<button class="info-tab" data-tab="it-event">Event</button>
+				<button class="info-tab active" data-tab="it-location" title="Map and description of the event's location">Location</button>
+				<button class="info-tab" data-tab="it-character" title="Characters present at or mentioned in this event">Characters</button>
+				<button class="info-tab" data-tab="it-event" title="Summary and metadata for the selected event">Event</button>
+				<button class="info-tab" data-tab="it-keywords" title="Keywords associated with this event and how often they recur across the story">Keywords</button>
+				<button class="info-collapse-btn" title="Minimize">&#8863;</button>
 			</div>
-			<div id="it-location" class="info-tab-content active"></div>
-			<div id="it-character" class="info-tab-content"></div>
-			<div id="it-event" class="info-tab-content"></div>
+			<div id="ip-body">
+				<div id="it-location" class="info-tab-content active" data-label="Location"></div>
+				<div id="it-character" class="info-tab-content" data-label="Characters"></div>
+				<div id="it-event" class="info-tab-content" data-label="Event"></div>
+				<div id="it-keywords" class="info-tab-content" data-label="Keywords"></div>
+			</div>
 		</div>
+		<div id="ft-reading">
+			<!-- ── Top control bar ───────────────────────────────────── -->
+			<div id="ft-reading-controls">
+				<!-- Text view tabs -->
+				<div id="ft-reading-tabnav">
+					<span class="ft-reading-tab active" data-rtab="scroll" title="Continuous scrollable view of the full text">Text (scroll)</span>
+					<span class="ft-reading-tab" data-rtab="highlight" title="Annotated text with highlights for characters, locations, keywords, and narrative markup">Text (highlight)</span>
+				</div>
+				<div class="ft-ctrl-sep"></div>
+				<label title="Show pipe markers at event boundaries in the text"><input type="checkbox" id="ft-boundaries-toggle" checked> Event boundaries</label>
+				<!-- Exit back to previous mode -->
+				<button id="ft-exit-btn" title="Return to the previous view">← Exit Full Text</button>
+			</div>
+			<!-- ── Body ───────────────────────────────────────────────── -->
+			<div id="ft-reading-body">
+				<div id="ft-reading-text"></div>
+				<div id="ft-reading-sidebar" class="empty">Scroll through the text to see annotations.</div>
+			</div>
+		</div>
+		<!-- ── Fulltext annotation sidebar (fixed right panel) ────── -->
+		<div id="ft-annot-panel"></div>
 			<div id="layers" style="display: block;">
 			</div>
 			<div id="reset_all" style="display: block;">
@@ -2535,28 +2305,47 @@ close_all_menu_items();
 				<div id="dy-tb-sections"></div>
 				<!-- Row 2: transport + year + mode + speed + reset -->
 				<div id="dy-tb-transport">
-					<button class="dy-btn" id="dy-prev-btn" title="Previous event">&#9664;</button>
-					<button class="dy-btn" id="dy-play-btn" title="Play">&#9654;</button>
-					<button class="dy-btn" id="dy-stop-btn" title="Stop">&#9632;</button>
-					<button class="dy-btn" id="dy-next-btn" title="Next event">&#9654;&#9654;</button>
-					<span id="dy-year-display">&mdash;</span>
+					<button class="dy-btn" id="dy-prev-btn" title="Go to previous event"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.54-.313 1.232.066 1.232.696v7.384c0 .63-.692 1.01-1.232.697L5 8.753V12a.5.5 0 0 1-1 0z"/></svg></button>
+					<button class="dy-btn" id="dy-play-btn" title="Play through events automatically"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"/></svg></button>
+					<button class="dy-btn" id="dy-stop-btn" title="Stop playback"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5"/></svg></button>
+					<button class="dy-btn" id="dy-next-btn" title="Go to next event"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.678 4 4.308v7.384c0 .63.692 1.01 1.233.697L11.5 8.753V12a.5.5 0 0 0 1 0z"/></svg></button>
+					<span id="dy-year-display" title="Year of the current event">&mdash;</span>
 					<div id="dy-mode-toggle">
-						<label><input type="radio" name="dy-mode" value="page" checked> Story</label>
-						<label><input type="radio" name="dy-mode" value="chron"> Chron</label>
+						<label title="Navigate events in story order as Faulkner wrote them"><input type="radio" name="dy-mode" value="page" checked> Story</label>
+						<label title="Navigate events in chronological order by year"><input type="radio" name="dy-mode" value="chron"> Chron</label>
 					</div>
-					<div id="dy-speed-wrap">
+					<div id="dy-speed-wrap" title="Adjust how quickly events advance during playback">
 						Slow&nbsp;<input type="range" id="dy-speed-range" min="1" max="5" value="3">&nbsp;Fast
 					</div>
-					<button class="dy-btn" id="dy-reset-btn" title="Reset map">&#8635;</button>
+								<button class="dy-btn" id="dy-reset-btn" title="Reset the map to its starting state"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2z"/><path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466"/></svg></button>
 				</div>
 				<!-- Row 3: event position slider (steps through events in current mode order) -->
 				<div id="dy-tb-slider">
-					<input type="range" id="dy-event-slider" min="0" max="34" value="0" step="1">
+					<input type="range" id="dy-event-slider" min="0" max="34" value="0" step="1" title="Drag to jump to any event in the story">
 				</div>
 				<!-- Row 4: heatmap canvas + year labels -->
 				<div id="dy-tb-dates">
-					<canvas id="dy-heat-canvas" height="28"></canvas>
+					<canvas id="dy-heat-canvas" height="56" title="Temporal heat map — darker areas indicate years with more events. Click to jump to an event."></canvas>
 					<div id="dy-year-labels"></div>
+				</div>
+			</div>
+
+			<!-- ── Aggregation panel (full-width, map mode) ─────────────── -->
+			<div id="dy-agg-panel">
+				<div id="dy-agg-tabs">
+					<button class="dy-agg-tab active" data-agg="agg-characters" title="Aggregate view of all characters across the story">Characters</button>
+					<button class="dy-agg-tab" data-agg="agg-locations" title="Aggregate view of all locations and how frequently they appear">Locations</button>
+					<button class="dy-agg-tab" data-agg="agg-events" title="Timeline and summary of all story events">Events</button>
+					<button class="dy-agg-tab" data-agg="agg-keywords" title="Most frequent keywords and themes across all events">Keywords</button>
+					<button class="dy-agg-tab" data-agg="agg-networks" title="Network graph showing relationships between characters and locations">Networks</button>
+					<button class="dy-panel-btn" id="dy-agg-collapse-btn" title="Minimize panel">&#8863;</button>
+				</div>
+				<div id="dy-agg-body">
+					<div id="agg-characters" class="dy-agg-view active"></div>
+					<div id="agg-locations" class="dy-agg-view"></div>
+					<div id="agg-events" class="dy-agg-view"></div>
+					<div id="agg-keywords" class="dy-agg-view"></div>
+					<div id="agg-networks" class="dy-agg-view"></div>
 				</div>
 			</div>
 
@@ -2591,6 +2380,20 @@ close_all_menu_items();
 		
 		
 		<div id="title"><strong><i>"A Rose for Emily"</i></strong><br><span class="edited">EDITED BY</span><br><div id="info"><img src="./DIGITAL Yoknapatawpha_files/information-sm.png"></div><div class="names">Johannes H. Burgers, Elizabeth Cornell ; John Corrigan, Jennie J. Joiner</div></div>
+		<!-- ── Title / citation overlay on map canvas ────────────────── -->
+		<div id="dy-title-bar">
+			<div class="dy-title-row">
+				<span class="dy-title-story">&#8220;A Rose for Emily&#8221;</span>
+			</div>
+			<div class="dy-title-row">
+				<span class="dy-title-label">Editors</span>
+				<span class="dy-title-names"></span>
+			</div>
+			<div class="dy-title-row">
+				<span class="dy-title-label">Associate Editors</span>
+				<span class="dy-title-assoc"></span>
+			</div>
+		</div>
 		<div id="event_dialog" title="Event Information"></div>
 		
 		<!-- <div style="position:absolute;bottom:10px;right:10px"><a href="#" onclick="show_book('ZKR')">z</a></div> -->
@@ -2698,29 +2501,80 @@ close_all_menu_items();
 
 
   
-<div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-1" style="display: none; outline: 0px; z-index: 1000; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-1" class="ui-dialog-title">Information</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="dialog" class="ui-dialog-content ui-widget-content"></div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div><div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-2" style="display: none; outline: 0px; z-index: 1000; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-2" class="ui-dialog-title">&nbsp;</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="about_text" class="ui-dialog-content ui-widget-content" style="display: block;"><div id="about_text_content"></div></div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div><div class="ui-dialog ui-widget ui-widget-content ui-corner-all no-close ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-3" style="outline: 0px; z-index: 1001; position: absolute; height: auto; width: 160px; top: 175.398px; left: 376.5px; display: none;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-3" class="ui-dialog-title">Display Controls</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="layer_dialog" class="ui-dialog-content ui-widget-content" style="display: block; width: auto; min-height: 109px; height: auto;" scrolltop="0" scrollleft="0">
-			<div class="control-buttons"><button id="plus" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only" role="button" aria-disabled="false" title="+"><span class="ui-button-icon-primary ui-icon ui-icon-plus"></span><span class="ui-button-text">+</span></button><button id="minus" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only" role="button" aria-disabled="false" title="-"><span class="ui-button-icon-primary ui-icon ui-icon-minus"></span><span class="ui-button-text">-</span></button><button id="reset" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" aria-disabled="false"><span class="ui-button-text">Reset</span></button></div>
-			<strong>Show Locations:</strong><br>
-			<input type="checkbox" id="natural" checked="">Natural<br>
-			<input type="checkbox" id="manmade" checked="">Man-made<br>
-			<input type="radio" name="locations" id="locations" checked="">All Locations<br>
-			<input type="radio" name="locations" id="event-locations">Event Locations<br>
+<div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-1" style="display: none; outline: 0px; z-index: 1000; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-1" class="ui-dialog-title">Information</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="dialog" class="ui-dialog-content ui-widget-content"></div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div><div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-2" style="display: none; outline: 0px; z-index: 1000; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-2" class="ui-dialog-title">&nbsp;</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="about_text" class="ui-dialog-content ui-widget-content" style="display: block;"><div id="about_text_content"></div></div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div><div class="ui-dialog ui-widget ui-widget-content ui-corner-all no-close ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-3" style="outline: 0px; z-index: 1001; position: absolute; height: auto; width: 160px; top: 175.398px; left: 376.5px; display: none;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-3" class="ui-dialog-title">Controls</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="layer_dialog" class="ui-dialog-content ui-widget-content" style="display: block; width: auto; min-height: 109px; height: auto;" scrolltop="0" scrollleft="0">
+			<div id="dy-display-opts">
+				<strong title="Choose how to explore the story">Mode</strong><br>
+				<label title="Bird's-eye map of Yoknapatawpha with all characters and locations visible"><input type="radio" name="dy-display" value="map" checked> Overview</label>
+				<label title="Map and event list side by side — navigate events and see them on the map"><input type="radio" name="dy-display" value="map-text"> Map + Text</label>
+				<label title="Full annotated text with character, location, keyword and narrative markup"><input type="radio" name="dy-display" value="fulltext"> Full Text</label>
+			</div>
+			<!-- map-mode controls (hidden in fulltext mode) -->
+			<div id="dy-map-layer-ctrl">
+			<div class="control-buttons">
+				<span class="dy-btn-label">Zoom</span>
+				<div class="dy-btn-row">
+					<button id="plus" class="dy-btn" title="Zoom in"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/></svg></button><button id="minus" class="dy-btn" title="Zoom out"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8"/></svg></button><button id="reset" class="dy-btn" title="Reset zoom"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/></svg></button><button id="autozoom" class="dy-btn" title="Fit view to Yoknapatawpha locations"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707zm4.344 0a.5.5 0 0 1 .707 0l4.096 4.096V11.5a.5.5 0 0 1 1 0v3.975a.5.5 0 0 1-.5.5H11.5a.5.5 0 0 1 0-1h2.768l-4.096-4.096a.5.5 0 0 1 0-.707zm0-4.344a.5.5 0 0 0 .707 0l4.096-4.096V5.5a.5.5 0 0 0 1 0V1.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707zm-4.344 0a.5.5 0 0 1-.707 0L1.025 1.732V5.5a.5.5 0 0 1-1 0V1.525a.5.5 0 0 1 .5-.5H4.5a.5.5 0 0 1 0 1H1.732l4.096 4.096a.5.5 0 0 1 0 .707z"/></svg></button>
+				</div>
+			</div>
+			<strong title="Control map zoom and fit">Locations</strong><br>
+			<input type="checkbox" id="natural" checked="" title="Show natural landscape features such as rivers, fields, and forests">Natural<br>
+			<input type="checkbox" id="manmade" checked="" title="Show man-made structures such as buildings, roads, and estates">Man-made<br>
+			<input type="radio" name="locations" id="locations" checked="" title="Display all locations in Yoknapatawpha">All Locations<br>
+			<input type="radio" name="locations" id="event-locations" title="Show only the locations that appear in this story">Event Locations<br>
 			<div id="search-locations-selection"></div>
-			<input type="radio" name="locations" id="no-locations">None<br>
-			<input type="checkbox" id="show_location_list">Alphabetic List<br>
-			<strong>Show Characters:</strong><br>
-			<input type="radio" id="characters-all" name="characters" onclick="show_characters();contentLayer.draw();">All<br>
-			<input type="radio" id="characters-major" name="characters" onclick="show_characters();contentLayer.draw();">Major<br>
-			<input type="radio" id="characters-major-regular" name="characters" onclick="show_characters();contentLayer.draw();">Major &amp; Secondary<br>
-			<input type="radio" id="characters-home" name="characters" onclick="show_characters_home();contentLayer.draw();" checked="">Home<br>
-			<div id="results-checkbox"></div>
-			<input type="radio" id="characters-none" name="characters" onclick="show_characters();contentLayer.draw();" checked="">None<br>
-			<input type="checkbox" id="show_character_list">Alphabetic List<br>
-			<strong>Show Events:</strong><br>
+			<input type="radio" name="locations" id="no-locations" title="Hide all location markers">None<br>
+			<span class="dy-ctrl-overview-only"><input type="checkbox" id="show_location_list" title="Open an alphabetical list of locations to filter the map">Alphabetic List<br></span>
+			<span class="dy-ctrl-maptext-only"><hr class="dy-rank-separator"><label title="Toggle location name labels on the map"><input type="checkbox" id="dy-loc-labels-toggle" checked> Labels</label><br></span>
+			<strong title="Control which characters are displayed on the map">Characters</strong><br>
+			<span class="dy-ctrl-overview-only">
+				<input type="radio" id="characters-all" name="characters" onclick="onCharFilterChange();" title="Show all characters across Yoknapatawpha">All<br>
+				<input type="radio" id="characters-major" name="characters" onclick="onCharFilterChange();" title="Show only major characters">Major<br>
+				<input type="radio" id="characters-major-regular" name="characters" onclick="onCharFilterChange();" title="Show major and secondary characters">Major &amp; Secondary<br>
+				<input type="radio" id="characters-home" name="characters" onclick="show_characters_home();contentLayer.draw();" checked="" title="Show characters associated with their home location">Home<br>
+				<div id="results-checkbox"></div>
+				<input type="radio" id="characters-none" name="characters" onclick="onCharFilterChange();" title="Hide all characters">None<br>
+				<input type="checkbox" id="show_character_list" title="Open an alphabetical list of characters to filter the map">Alphabetic List<br>
+			</span>
+			<span class="dy-ctrl-maptext-only">
+				<input type="checkbox" id="dy-rank-major" checked title="Show major characters on the map">Major<br>
+				<input type="checkbox" id="dy-rank-secondary" checked title="Show secondary characters on the map">Secondary<br>
+				<input type="checkbox" id="dy-rank-minor" checked title="Show minor characters on the map">Minor<br>
+				<input type="checkbox" id="dy-rank-peripheral" checked title="Show peripheral characters on the map">Peripheral<br>
+				<input type="checkbox" id="dy-rank-mentioned" checked title="Show characters who are mentioned but not physically present">Mentioned<br>
+				<hr class="dy-rank-separator">
+				<label class="dy-char-labels-row" title="Toggle character name labels on the map"><input type="checkbox" id="dy-labels-toggle" checked> Labels</label>
+			</span>
+			<span class="dy-ctrl-overview-only"><strong title="Control event markers and heat overlays">Events</strong><br>
 			<!-- <input type="checkbox" id="play_events" checked >During Play<br> -->
-			<input type="checkbox" id="events">All<br>
-			<input type="checkbox" id="heatmap_toggle">Heatmap<br>
-		<strong>Other Resources</strong>:<br><a href="https://faulkner.drupal.shanti.virginia.edu/node/7862?canvas" target="_blank">Manuscripts Etc.</a><br><a href="https://faulkner.drupal.shanti.virginia.edu/node/8140?canvas" target="_blank">Audio Clips</a><br><a href="https://faulkner.drupal.shanti.virginia.edu/node/16685?canvas" target="_blank">Magazine Illustrations</a><br><a href="https://faulkner.iath.virginia.edu/characters-force.html?text=RE" target="_blank">Location-Character Graph</a></div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div><div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-4" style="display: none; outline: 0px; z-index: 1000; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-4" class="ui-dialog-title">Location List</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="location_list" class="ui-dialog-content ui-widget-content" style="display: block;">
+			<input type="checkbox" id="events" title="Show all event markers on the map">All<br>
+			<input type="checkbox" id="heatmap_toggle" title="Show a heat map of event density across the map">Heatmap<br></span>
+			<span class="dy-ctrl-maptext-only"><strong title="Control event overlays">Events</strong><br>
+			<input type="checkbox" id="dy-spatial-heatmap-toggle" title="Show a heat map of event density by location">Heatmap<br></span>
+		<div id="dy-other-res-controls" style="display:none"><strong>Other Resources</strong><br><a href="https://faulkner.drupal.shanti.virginia.edu/node/7862?canvas" target="_blank">Manuscripts Etc.</a><br><a href="https://faulkner.drupal.shanti.virginia.edu/node/8140?canvas" target="_blank">Audio Clips</a><br><a href="https://faulkner.drupal.shanti.virginia.edu/node/16685?canvas" target="_blank">Magazine Illustrations</a><br><a href="https://faulkner.iath.virginia.edu/characters-force.html?text=RE" target="_blank">Location-Character Graph</a></div>
+		</div><!-- end #dy-map-layer-ctrl -->
+		<!-- fulltext-mode controls (hidden in map modes) -->
+		<div id="dy-ft-layer-ctrl" style="display:none">
+			<strong title="Change how annotations are highlighted in the text">Edit Styling</strong>
+			<label title="Subtle underlines only — color-coded by category"><input type="radio" name="ft-style" value="minimal"> Minimalist</label>
+			<label title="Colored text with underlines — default view"><input type="radio" name="ft-style" value="summary" checked> Balanced</label>
+			<label title="Colored text, underlines, and background tints — maximum visual distinction"><input type="radio" name="ft-style" value="full"> Maximalist</label>
+			<strong title="Choose which annotation categories are highlighted in the text">Annotations</strong>
+			<label title="Highlight location references in the text"><input type="checkbox" data-annot="locations" checked> Locations</label>
+			<label title="Highlight character references in the text"><input type="checkbox" data-annot="characters" checked> Characters</label>
+			<label title="Highlight event boundaries in the text"><input type="checkbox" data-annot="events" checked> Events</label>
+			<label title="Highlight keyword occurrences in the text"><input type="checkbox" data-annot="keywords" checked> Keywords</label>
+			<strong title="Apply color-coded structural markup to the text">Markup</strong>
+			<label title="Color-code passages by their narrative position — flashback, linear, or flashforward"><input type="checkbox" id="ft-markup-narrative"> Narrative Progression</label>
+			<div id="ft-markup-narrative-opts" style="display:none">
+				<label><input type="checkbox" id="ft-markup-flashforward" checked> Flashforward (<span class="ft-markup-icon ft-flashforward"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M7.596 7.304a.802.802 0 0 1 0 1.392l-6.363 3.692C.713 12.69 0 12.345 0 11.692V4.308c0-.653.713-.998 1.233-.696z"/><path d="M15.596 7.304a.802.802 0 0 1 0 1.392l-6.363 3.692C8.713 12.69 8 12.345 8 11.692V4.308c0-.653.713-.998 1.233-.696z"/></svg></span>)</label>
+				<label><input type="checkbox" id="ft-markup-flashback" checked> Flashback (<span class="ft-markup-icon ft-flashback"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M8.404 7.304a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/><path d="M.404 7.304a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/></svg></span>)</label>
+				<label><input type="checkbox" id="ft-markup-linear" checked> Linear (<span class="ft-markup-icon ft-linear"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5zm14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5z"/></svg></span>)</label>
+			</div>
+			<label title="Color-code passages by narrative status — intradiegetic, extradiegetic, or metadiegetic"><input type="checkbox" id="ft-markup-ns"> Narrative Status</label>
+			<div id="ft-markup-ns-opts" style="display:none"></div>
+			<label title="Color-code passages by their temporal relation to the story present — past, present, or future"><input type="checkbox" id="ft-markup-temporality"> Temporality</label>
+			<div id="ft-markup-temporality-opts" style="display:none"></div>
+		</div></div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div><div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-4" style="display: none; outline: 0px; z-index: 1000; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-4" class="ui-dialog-title">Location List</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="location_list" class="ui-dialog-content ui-widget-content" style="display: block;">
 			<div id="location_list_content"><input type="checkbox" value="Alabama">Alabama<br><input type="checkbox" value="Baptist Parsonage">Baptist Parsonage<br><input type="checkbox" value="Grierson House">Grierson House<br><input type="checkbox" value="Jefferson Cemetery">Jefferson Cemetery<br><input type="checkbox" value="Jefferson Courthouse and Square">Jefferson Courthouse and Square<br><input type="checkbox" value="Jefferson Department Store">Jefferson Department Store<br><input type="checkbox" value="Jefferson Drugstore">Jefferson Drugstore<br><input type="checkbox" value="Jefferson Jeweler">Jefferson Jeweler<br><input type="checkbox" value="Jefferson Town Hall">Jefferson Town Hall<br></div>
 			<div style="text-align:center"><input type="button" onclick="show_specific_locations()" value="Show"><input type="button" onclick="reset_location_selection()" value="Reset"></div>
 		</div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div><div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-5" style="display: none; outline: 0px; z-index: 1000; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-5" class="ui-dialog-title">Character List</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="character_list" class="ui-dialog-content ui-widget-content" style="display: block;">
@@ -2728,590 +2582,5 @@ close_all_menu_items();
 			<div style="text-align:center"><input type="button" onclick="show_specific_characters()" value="Show"><input type="button" onclick="reset_character_selection()" value="Reset"></div>
 		</div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     FULL-TEXT + INFO PANEL WIRING
-     Shows scrollable event list; click first words to expand full
-     text; "Reveal on map" button assembles characters.
-════════════════════════════════════════════════════════════════ -->
-<script>
-(function () {
-	// ── Data lookups ─────────────────────────────────────────────
-	var reSentences  = {};
-	var reEventsMap  = {};
-	var reEventsList = [];
-	var charById     = {};
-	var locByTitle   = {};
-
-	// ── State ─────────────────────────────────────────────────────
-	var currentEv       = null;
-	var currentLocation = null;
-	var dataReady       = false;
-	var eventsReady     = false;
-
-	// ── Load supporting data ──────────────────────────────────────
-	Promise.all([
-		fetch('data/re_sentences.json').then(function(r) { return r.json(); }),
-		fetch('data/re_events.json').then(function(r) { return r.json(); }),
-		fetch('data/re_characters_pg.json').then(function(r) { return r.json(); }),
-		fetch('data/re_locations.json').then(function(r) { return r.json(); })
-	]).then(function(results) {
-		reSentences  = results[0];
-		reEventsList = results[1].results || [];
-		reEventsList.forEach(function(ev) { reEventsMap[String(ev.event_nid)] = ev; });
-		(results[2].results || []).forEach(function(ch) { charById[String(ch.id)] = ch.name; });
-		(results[3].results || []).forEach(function(loc) { locByTitle[loc.location_title] = loc; });
-		dataReady = true;
-		if (eventsReady) buildEventList();
-	}).catch(function(err) { console.warn('DY full-text: data load error', err); });
-
-	// ── Helpers ───────────────────────────────────────────────────
-	function esc(str) {
-		return String(str || '')
-			.replace(/&/g, '&amp;').replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-	}
-	function splitSentences(text) {
-		var parts = text.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g);
-		return parts ? parts.map(function(s) { return s.trim(); }).filter(Boolean) : [text];
-	}
-	function idsToNames(csvIds) {
-		if (!csvIds) return [];
-		return csvIds.split(',').map(function(s) { return s.trim(); }).filter(Boolean)
-			.map(function(id) { return charById[id] || null; }).filter(Boolean);
-	}
-
-	// ── Build scrollable event list ───────────────────────────────
-	function buildEventList() {
-		var panel = document.getElementById('fulltext-panel');
-		if (!panel || !reEventsList.length) return;
-		var html = '<div class="ft-list">';
-		reEventsList.forEach(function(ev) {
-			var nid   = esc(String(ev.event_nid));
-			var sents = reSentences[String(ev.event_nid)] || [];
-			html += '<div class="ft-item" data-nid="' + nid + '">';
-			html += '<div class="ft-item-bar">';
-			html += '<span class="ft-item-page">p.' + esc(String(ev.page_number)) + '</span>';
-			html += '<span class="ft-item-loc">' + esc(ev.event_location) + '</span>';
-			html += '<span class="ft-item-fw">' + esc(ev.first_words || ev.summary || '') + '</span>';
-			html += '</div>';
-			html += '<div class="ft-item-body">';
-			if (sents.length) {
-				sents.forEach(function(block) {
-					splitSentences(block).forEach(function(s) {
-						html += '<p class="ft-sentence">' + esc(s) + '</p>';
-					});
-				});
-			} else if (ev.summary) {
-				html += '<p class="ft-summary">' + esc(ev.summary) + '</p>';
-			}
-			html += '<button class="ft-map-btn" data-nid="' + nid + '">&#9654; Reveal on map</button>';
-			html += '</div>';
-			html += '</div>';
-		});
-		html += '</div>';
-		panel.innerHTML = html;
-		// Activate first item
-		var first = reEventsList[0];
-		activateItem(String(first.event_nid), true);
-		updateInfoPanel(first, first.event_location);
-		currentEv = first; currentLocation = first.event_location;
-		buildToolbar();
-		updateToolbarState(first);
-	}
-
-	// ── Activate an event item ────────────────────────────────────
-	function activateItem(nid, open) {
-		var panel = document.getElementById('fulltext-panel');
-		if (!panel) return;
-		panel.querySelectorAll('.ft-item.active').forEach(function(el) { el.classList.remove('active'); });
-		var item = panel.querySelector('.ft-item[data-nid="' + nid + '"]');
-		if (!item) return;
-		item.classList.add('active');
-		if (open && !item.classList.contains('open')) {
-			panel.querySelectorAll('.ft-item.open').forEach(function(el) { el.classList.remove('open'); });
-			item.classList.add('open');
-		}
-		item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-	}
-
-	// ── Info panel ───────────────────────────────────────────────
-	function updateInfoPanel(ev, location) {
-		var locData = locByTitle[location] || {};
-		var locHtml = '<strong>' + esc(location) + '</strong>';
-		if (locData.description) locHtml += '<p>' + esc(locData.description) + '</p>';
-		if (locData.location_type) {
-			locHtml += '<p><em>' + esc(locData.location_type.replace(/([A-Z])/g, ' $1').trim()) + '</em></p>';
-		}
-		var locEl = document.getElementById('it-location');
-		if (locEl) locEl.innerHTML = locHtml;
-
-		var present   = idsToNames(ev.characters_present);
-		var mentioned = idsToNames(ev.characters_mentioned);
-		var mentOnly  = mentioned.filter(function(n) { return present.indexOf(n) < 0; });
-		var charHtml  = '';
-		if (present.length) {
-			charHtml += '<div class="info-char-group"><strong>Present</strong><ul>';
-			present.forEach(function(n) { charHtml += '<li>' + esc(n) + '</li>'; });
-			charHtml += '</ul></div>';
-		}
-		if (mentOnly.length) {
-			charHtml += '<div class="info-char-group info-mentioned"><strong>Mentioned</strong><ul>';
-			mentOnly.forEach(function(n) { charHtml += '<li>' + esc(n) + '</li>'; });
-			charHtml += '</ul></div>';
-		}
-		var charEl = document.getElementById('it-character');
-		if (charEl) charEl.innerHTML = charHtml || '<p class="info-empty">No characters recorded</p>';
-
-		var evHtml = '';
-		if (ev.first_words)      evHtml += '<p><em>' + esc(ev.first_words) + '</em></p>';
-		if (ev.summary)          evHtml += '<p>' + esc(ev.summary) + '</p>';
-		if (ev.event_date)       evHtml += '<p><strong>Date:</strong> ' + esc(ev.event_date) + '</p>';
-		if (ev.narrative_status) evHtml += '<p><strong>Narrative status:</strong> ' + esc(ev.narrative_status) + '</p>';
-		var evEl = document.getElementById('it-event');
-		if (evEl) evEl.innerHTML = evHtml || '<p class="info-empty">No event data available</p>';
-
-		var ip = document.getElementById('info-panel');
-		if (ip) ip.style.display = 'block';
-	}
-
-	// ── Map character assembly ────────────────────────────────────
-	function updateMapCharacters(ev, location) {
-		if (typeof current_characters === 'undefined' || typeof contentLayer === 'undefined') return;
-		$.each(current_characters, function(name, ch) {
-			if (ch && ch.image) { ch.image.hide(); ch.image.setOpacity(1); }
-		});
-		var locObj = (typeof current_locations !== 'undefined') ? current_locations[location] : null;
-		if (!locObj || typeof locObj === 'string') { contentLayer.draw(); return; }
-		var locX = locObj.getX(), locY = locObj.getY();
-		var present   = idsToNames(ev.characters_present);
-		var mentioned = idsToNames(ev.characters_mentioned);
-		var mentOnly  = mentioned.filter(function(n) { return present.indexOf(n) < 0; });
-		var sz = 60, gap = 6;
-		present.forEach(function(name, i) {
-			var ch = current_characters[name]; if (!ch || !ch.image) return;
-			ch.image.setX(locX - (present.length * (sz + gap) - gap) / 2 + i * (sz + gap));
-			ch.image.setY(locY - 145);
-			ch.image.setScale(1); ch.image.setOpacity(1); ch.image.moveToTop(); ch.image.show();
-		});
-		mentOnly.forEach(function(name, i) {
-			var ch = current_characters[name]; if (!ch || !ch.image) return;
-			ch.image.setX(locX - (mentOnly.length * (sz + gap) - gap) / 2 + i * (sz + gap));
-			ch.image.setY(locY - 80);
-			ch.image.setScale(1); ch.image.setOpacity(0.5); ch.image.moveToTop(); ch.image.show();
-		});
-		contentLayer.draw();
-	}
-
-	// ── Own play/nav helpers (bypass broken DY dialog calls) ──────
-	var dyEvListChron = null;
-	var dyPlayTimer   = null;
-	var dyVisitedNids = {};   // legacy; kept for compat
-	var dyHeatCounts  = {};   // nid → visit count for heatmap
-	var dyYearMin = 1850, dyYearMax = 1924; // set by buildDateTicks
-
-	// Plasma colormap (6 stops: dark-purple → purple → magenta → orange → yellow)
-	function plasmaColor(t) {
-		var s = [
-			[13,8,135],[106,0,168],[177,42,144],[226,98,97],[252,167,63],[240,249,33]
-		];
-		var n = s.length - 1;
-		var i = Math.min(Math.floor(t * n), n - 1);
-		var f = t * n - i;
-		var a = s[i], b = s[i+1];
-		return [
-			Math.round(a[0]+f*(b[0]-a[0])),
-			Math.round(a[1]+f*(b[1]-a[1])),
-			Math.round(a[2]+f*(b[2]-a[2]))
-		];
-	}
-
-	function dyDrawHeatmap(activeEv) {
-		var canvas = document.getElementById('dy-heat-canvas');
-		if (!canvas) return;
-		var W = canvas.offsetWidth || 760;
-		var H = canvas.height || 28;
-		if (canvas.width !== W) canvas.width = W;
-		var ctx = canvas.getContext('2d');
-
-		// Grey background so plasma glow reads without being too dark
-		ctx.clearRect(0, 0, W, H);
-		ctx.fillStyle = '#d0d0d0';
-		ctx.fillRect(0, 0, W, H);
-
-		var scaleStart = dyYearMin - 2;
-		var scaleSpan  = (dyYearMax + 2) - scaleStart;
-		function xFor(yr) { return (yr - scaleStart) / scaleSpan * W; }
-
-		// ── Aggregate dyHeatCounts (keyed by nid) into yearCounts ──
-		// All events at the same calendar year pool their heat together.
-		var yearCounts = {};
-		Object.keys(dyHeatCounts).forEach(function(nid) {
-			var ev = reEventsMap[nid];
-			if (!ev || !ev.event_date) return;
-			var ym = ev.event_date.match(/^(\d{4})/); if (!ym) return;
-			var yr = parseInt(ym[1]);
-			yearCounts[yr] = (yearCounts[yr] || 0) + dyHeatCounts[nid];
-		});
-
-		var maxCount = 1;
-		Object.keys(yearCounts).forEach(function(yr) {
-			if (yearCounts[yr] > maxCount) maxCount = yearCounts[yr];
-		});
-
-		// Normalize: first hit → t=0 (dark purple), max hits → t=1 (yellow/white)
-		// Using (count-1)/(maxCount-1) so a single visit is always the coldest color.
-		var tScale = Math.max(maxCount - 1, 1);
-
-		// Sort cool-first so hot blobs render on top
-		var entries = Object.keys(yearCounts).map(function(yr) {
-			return { yr: parseInt(yr), count: yearCounts[yr] };
-		}).sort(function(a, b) { return a.count - b.count; });
-
-		var blobR = Math.max(W * 0.028, 14); // radius of each blob
-
-		entries.forEach(function(e) {
-			var x  = xFor(e.yr);
-			var t  = (e.count - 1) / tScale;  // 0 = first visit, 1 = most visited
-			var c  = plasmaColor(t);
-
-			// Full-height ellipse via transform: draw circle then scale y
-			var scaleY = H / (blobR * 2.2);
-			ctx.save();
-			ctx.transform(1, 0, 0, scaleY, 0, H / 2 * (1 - scaleY));
-
-			var gx = ctx.createRadialGradient(x, H/2, 0, x, H/2, blobR);
-			gx.addColorStop(0,    'rgba('+c[0]+','+c[1]+','+c[2]+',0.95)');
-			gx.addColorStop(0.55, 'rgba('+c[0]+','+c[1]+','+c[2]+',0.55)');
-			gx.addColorStop(1,    'rgba('+c[0]+','+c[1]+','+c[2]+',0)');
-			ctx.fillStyle = gx;
-			ctx.beginPath();
-			ctx.arc(x, H/2, blobR, 0, Math.PI * 2);
-			ctx.fill();
-			ctx.restore();
-		});
-
-		// White-hot specular only once something has been visited more than once
-		entries.filter(function(e) { return e.count === maxCount && maxCount > 1; })
-			.forEach(function(e) {
-				var x = xFor(e.yr);
-				var sg = ctx.createRadialGradient(x, H/2, 0, x, H/2, blobR * 0.45);
-				sg.addColorStop(0,    'rgba(255,255,230,0.95)');
-				sg.addColorStop(0.5,  'rgba(255,240,180,0.5)');
-				sg.addColorStop(1,    'rgba(255,240,180,0)');
-				ctx.fillStyle = sg;
-				ctx.beginPath();
-				ctx.arc(x, H/2, blobR * 0.45, 0, Math.PI * 2);
-				ctx.fill();
-			});
-
-		// Current-event tick: dark line on grey bg
-		var aev = activeEv || currentEv;
-		if (aev && aev.event_date) {
-			var ym = aev.event_date.match(/^(\d{4})/);
-			if (ym) {
-				var ax = xFor(parseInt(ym[1]));
-				ctx.strokeStyle = 'rgba(0,0,0,0.85)';
-				ctx.lineWidth = 2;
-				ctx.beginPath();
-				ctx.moveTo(ax, 1); ctx.lineTo(ax, H - 1);
-				ctx.stroke();
-			}
-		}
-	}
-	function getDyList() {
-		var mode = (document.querySelector('input[name="dy-mode"]:checked') || {}).value;
-		if (mode === 'chron') {
-			if (!dyEvListChron) {
-				dyEvListChron = reEventsList.slice().sort(function(a, b) {
-					var ya = a.event_date ? parseInt((a.event_date.match(/^(\d{4})/) || [0,0])[1]) : 9999;
-					var yb = b.event_date ? parseInt((b.event_date.match(/^(\d{4})/) || [0,0])[1]) : 9999;
-					return ya - yb || parseFloat(a.order_within_page||0) - parseFloat(b.order_within_page||0);
-				});
-			}
-			return dyEvListChron;
-		}
-		return reEventsList;
-	}
-	function dyCurrentIdx() {
-		if (!currentEv) return 0;
-		var list = getDyList();
-		return list.findIndex(function(e) { return String(e.event_nid) === String(currentEv.event_nid); });
-	}
-	function dyGoto(ev) {
-		if (!ev) return;
-		var nid = String(ev.event_nid);
-		dyHeatCounts[nid] = (dyHeatCounts[nid] || 0) + 1; // heat up this spot
-		dyVisitedNids[nid] = true;
-		currentEv = ev; currentLocation = ev.event_location;
-		activateItem(nid, true);
-		updateInfoPanel(ev, ev.event_location);
-		updateMapCharacters(ev, ev.event_location);
-		updateToolbarState(ev);
-	}
-	function dyStop() {
-		if (dyPlayTimer) { clearTimeout(dyPlayTimer); dyPlayTimer = null; }
-	}
-	function dyPlayStep() {
-		var list = getDyList(), idx = dyCurrentIdx();
-		if (idx < list.length - 1) {
-			dyGoto(list[idx + 1]);
-			var sv = parseInt((document.getElementById('dy-speed-range') || {}).value) || 3;
-			dyPlayTimer = setTimeout(dyPlayStep, 2400 - sv * 400); // 1→2s 3→1.2s 5→0.4s
-		} else {
-			dyPlayTimer = null;
-		}
-	}
-
-	// ── Toolbar: build, date ticks, state update ─────────────────
-	var toolbarBuilt = false;
-	function buildToolbar() {
-		if (toolbarBuilt) return;
-		toolbarBuilt = true;
-
-		// Section tab buttons from existing #sections elements
-		var secDiv = document.getElementById('dy-tb-sections');
-		if (secDiv) {
-			document.querySelectorAll('#sections .section_item').forEach(function(s) {
-				var btn = document.createElement('button');
-				btn.className = 'dy-sec-btn';
-				btn.textContent = s.textContent.trim() + '\u00a0';
-				var label = s.getAttribute('title') || s.textContent.trim();
-				btn.title = 'Section ' + label;
-				btn.dataset.start = s.dataset.start;
-				btn.dataset.stop  = s.dataset.stop;
-				btn.addEventListener('click', function() {
-					dyStop();
-					var start = parseInt(this.dataset.start), stop = parseInt(this.dataset.stop);
-					var ev = reEventsList.filter(function(e) {
-						return parseInt(e.page_number) >= start && parseInt(e.page_number) < stop;
-					})[0];
-					if (ev) dyGoto(ev);
-				});
-				secDiv.appendChild(btn);
-			});
-		}
-
-		// Build event tick marks on the date bar
-		buildDateTicks(); // also sets dyYearMin / dyYearMax
-
-		// Slider tracks calendar year so it hops in story mode, sweeps in chron mode
-		var slider = document.getElementById('dy-event-slider');
-		if (slider) {
-			slider.min = dyYearMin;
-			slider.max = dyYearMax;
-			slider.step = 1;
-			slider.addEventListener('input', function() {
-				dyStop();
-				var targetYear = parseInt(this.value);
-				// Navigate to the event with the closest start year
-				var list = getDyList();
-				var best = list[0], bestDist = Infinity;
-				list.forEach(function(e) {
-					if (!e.event_date) return;
-					var ym = e.event_date.match(/^(\d{4})/);
-					if (!ym) return;
-					var d = Math.abs(parseInt(ym[1]) - targetYear);
-					if (d < bestDist) { bestDist = d; best = e; }
-				});
-				if (best) dyGoto(best);
-			});
-		}
-
-		// Transport buttons — use our own loop; DY's native play throws dialog errors
-		document.getElementById('dy-prev-btn').addEventListener('click', function() {
-			dyStop();
-			var list = getDyList(), idx = dyCurrentIdx();
-			if (idx > 0) dyGoto(list[idx - 1]);
-		});
-		document.getElementById('dy-play-btn').addEventListener('click', function() {
-			dyStop(); dyPlayStep();
-		});
-		document.getElementById('dy-stop-btn').addEventListener('click', function() {
-			dyStop();
-		});
-		document.getElementById('dy-next-btn').addEventListener('click', function() {
-			dyStop();
-			var list = getDyList(), idx = dyCurrentIdx();
-			if (idx < list.length - 1) dyGoto(list[idx + 1]);
-		});
-		document.getElementById('dy-reset-btn').addEventListener('click', function() {
-			dyStop();
-			dyEvListChron = null;
-			dyVisitedNids = {};
-			dyHeatCounts  = {};   // clear heatmap
-			dyDrawHeatmap(null);  // redraw blank bar
-			if (typeof reset === 'function') { try { reset(); } catch(e2) {} }
-			var first = reEventsList[0]; if (first) dyGoto(first);
-		});
-
-		// Speed range → DY's hidden jQuery UI speed sliders
-		var speedRange = document.getElementById('dy-speed-range');
-		if (speedRange) {
-			speedRange.addEventListener('input', function() {
-				// Map 1-5 → 0-100 for jQuery UI sliders (higher = faster)
-				var val = (parseInt(this.value) - 1) / 4 * 100;
-				if ($ && $('#e_speed').length) $('#e_speed').slider('value', val);
-				if ($ && $('#speed').length)   $('#speed').slider('value', val);
-				if ($ && $('#c_speed').length)  $('#c_speed').slider('value', val);
-			});
-		}
-
-		document.getElementById('dy-toolbar').style.display = 'block';
-	}
-
-	function buildDateTicks() {
-		// Extract start years from event dates
-		var years = [];
-		reEventsList.forEach(function(ev) {
-			if (ev.event_date) {
-				var m = ev.event_date.match(/^(\d{4})/);
-				if (m) years.push(parseInt(m[1]));
-			}
-		});
-		dyYearMin = years.length ? Math.min.apply(null, years) : 1850;
-		dyYearMax = years.length ? Math.max.apply(null, years) : 1924;
-
-		// Size canvas now that we know the container width
-		var canvas = document.getElementById('dy-heat-canvas');
-		if (canvas) {
-			canvas.width = canvas.parentElement.clientWidth || 760;
-			// Click canvas to navigate to nearest event at that year
-			canvas.addEventListener('click', function(e) {
-				var rect = canvas.getBoundingClientRect();
-				var pct  = (e.clientX - rect.left) / rect.width;
-				var scaleStart = dyYearMin - 2;
-				var scaleSpan  = (dyYearMax + 2) - scaleStart;
-				var clickYear  = scaleStart + pct * scaleSpan;
-				var best = reEventsList[0], bestDist = Infinity;
-				reEventsList.forEach(function(ev) {
-					if (!ev.event_date) return;
-					var ym = ev.event_date.match(/^(\d{4})/); if (!ym) return;
-					var d = Math.abs(parseInt(ym[1]) - clickYear);
-					if (d < bestDist) { bestDist = d; best = ev; }
-				});
-				dyStop(); if (best) dyGoto(best);
-			});
-			dyDrawHeatmap(null); // draw the initial empty bar
-		}
-
-		// Year labels below canvas: every 10 years within the data range
-		var labelsDiv = document.getElementById('dy-year-labels');
-		if (labelsDiv) {
-			labelsDiv.innerHTML = '';
-			var scaleStart = dyYearMin - 2;
-			var scaleSpan  = (dyYearMax + 2) - scaleStart;
-			var firstLabel = Math.ceil(dyYearMin / 10) * 10;
-			for (var yr = firstLabel; yr <= dyYearMax; yr += 10) {
-				var sp = document.createElement('span');
-				sp.className = 'dy-yr-lbl';
-				sp.textContent = yr;
-				sp.style.left = ((yr - scaleStart) / scaleSpan * 100).toFixed(2) + '%';
-				labelsDiv.appendChild(sp);
-			}
-		}
-	}
-
-	function updateToolbarState(ev) {
-		if (!ev) return;
-		// Year display
-		var yearEl = document.getElementById('dy-year-display');
-		if (yearEl) {
-			var m = ev.event_date ? ev.event_date.match(/^(\d{4})/) : null;
-			yearEl.textContent = m ? m[1] : '\u2014';
-		}
-		// Slider: set to event's calendar year (hops in story mode)
-		var slider = document.getElementById('dy-event-slider');
-		if (slider && ev.event_date) {
-			var ym = ev.event_date.match(/^(\d{4})/);
-			if (ym) slider.value = parseInt(ym[1]);
-		}
-		// Redraw heatmap canvas (ev already added to dyHeatCounts in dyGoto)
-		dyDrawHeatmap(ev);
-		// Active section tab
-		document.querySelectorAll('.dy-sec-btn').forEach(function(btn) {
-			var start = parseInt(btn.dataset.start), stop = parseInt(btn.dataset.stop);
-			var pg = parseInt(ev.page_number);
-			btn.classList.toggle('dy-sec-active', pg >= start && pg < stop);
-		});
-	}
-
-	// ── Event delegation ─────────────────────────────────────────
-	document.addEventListener('click', function(e) {
-		if (!e.target || !e.target.closest) return;
-
-		// Info-panel tab
-		var tabBtn = e.target.closest('.info-tab');
-		if (tabBtn) {
-			var tabId = tabBtn.getAttribute('data-tab');
-			if (!tabId) return;
-			document.querySelectorAll('#info-panel .info-tab').forEach(function(b) { b.classList.remove('active'); });
-			document.querySelectorAll('#info-panel .info-tab-content').forEach(function(c) { c.classList.remove('active'); });
-			tabBtn.classList.add('active');
-			var tc = document.getElementById(tabId);
-			if (tc) tc.classList.add('active');
-			return;
-		}
-
-		// "Reveal on map" button
-		var mapBtn = e.target.closest('.ft-map-btn');
-		if (mapBtn) {
-			e.stopPropagation();
-			if (currentEv) updateMapCharacters(currentEv, currentLocation);
-			return;
-		}
-
-		// Event row click: expand/collapse
-		var bar = e.target.closest('.ft-item-bar');
-		if (bar) {
-			var item = bar.closest('.ft-item');
-			if (!item) return;
-			var nid = item.getAttribute('data-nid');
-			var ev  = reEventsMap[nid] || {};
-			currentEv = ev; currentLocation = ev.event_location || '';
-			var wasOpen = item.classList.contains('open');
-			document.querySelectorAll('.ft-item.open').forEach(function(el) { el.classList.remove('open'); });
-			if (!wasOpen) item.classList.add('open');
-			activateItem(nid, false);
-			updateInfoPanel(ev, ev.event_location || '');
-			// Show characters at this event's location
-			updateMapCharacters(ev, ev.event_location || '');
-			updateToolbarState(ev);
-		}
-	});
-
-	// ── show_event_side_dialog override (slider/button navigation) ─
-	window.show_event_side_dialog = function(events) {
-		var nid      = String(events[5]);
-		var location = events[0];
-		var ev = reEventsMap[nid] || { first_words: events[3], event_location: location };
-		currentEv = ev; currentLocation = location;
-		activateItem(nid, true);
-		updateInfoPanel(ev, location);
-		// Show characters at this event's location
-		updateMapCharacters(ev, location);
-		updateToolbarState(ev);
-	};
-
-	// ── Suppress default show_characters ─────────────────────────
-	// Characters at first_appear locations don't match our event-based display.
-	// The ft-map-btn click handler handles character assembly instead.
-	$(document).ready(function() {
-		if (typeof window.show_characters === 'function') {
-			window.show_characters = function() {};
-		}
-	});
-
-	// ── Show panels + build list when events JSON loads ───────────
-	$(document).ajaxComplete(function(event, xhr, settings) {
-		if (settings.url && settings.url.indexOf('re_events.json') >= 0) {
-			var fp = document.getElementById('fulltext-panel');
-			if (fp) fp.style.display = 'block';
-			var ip = document.getElementById('info-panel');
-			if (ip) ip.style.display = 'block';
-			eventsReady = true;
-			if (dataReady) buildEventList();
-		}
-	});
-})();
-</script>
+<script src="./dy-mockup.js"></script>
 </body></html>

@@ -1,1 +1,16 @@
-{"results": []}
+﻿{
+    "results":  [
+                    {
+                        "text_code":  "RE",
+                        "display_name":  "Elizabeth Cornell",
+                        "sort_name":  "Cornell, Elizabeth",
+                        "about":  "\u003cp\u003eElizabeth Cornell is the Senior Writer for Internal Communications at New York Public Radio. Her publications include articles on Faulkner and the digital humanities in \u003cem\u003eSouth Central Review\u003c/em\u003e and \u003cem\u003eMississippi Quarterly.\u003c/em\u003e\u003c/p\u003e\n"
+                    },
+                    {
+                        "text_code":  "RE",
+                        "display_name":  "Johannes H. Burgers",
+                        "sort_name":  "Burgers, Johannes H.",
+                        "about":  "\u003cp\u003eJohannes Burgers is an Associate Professor of English and Digital Humanities at James Madison University in Virginia and the Co-Director of Digital Yoknapatawpha. Together with Chris Rieger, he directed Teaching and Learning Faulkner in the Digital Age, an NEH grant-funded project to add new learning modules to the site\u0027s teaching and learning section. He works on advanced data visualizations of DY\u0027s data, and has published in venues such as \u003cem\u003eMississippi Quarterly\u003c/em\u003e, \u003cem\u003eCultural Analytics\u003c/em\u003e, and \u003cem\u003eDigital Humanities Quarterly\u003c/em\u003e.\u003c/p\u003e\n"
+                    }
+                ]
+}

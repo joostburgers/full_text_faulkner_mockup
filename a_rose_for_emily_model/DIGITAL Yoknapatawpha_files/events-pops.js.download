@@ -778,15 +778,7 @@ url: '/sinatra/?text='+text+str,
    			 if((text == 'HEAT') || (text == 'HEATN') || (text == 'HEATSS') || (text == 'HEATNW') || (text == 'HEATNE') || (text == 'HEATSW') || (text == 'HEATSE') || (text == 'HEATJ') || (text == 'HEATOY')) {
    				 control_title = 'Heatmaps';
    			 }
-				$('#layer_dialog').dialog({
-						dialogClass: "no-close",
-						width: 160,
-						title: control_title,
-						position: { my: "left-162 top+20", at: "left top", of: $('#home')}, //'.konvajs-content') }, left-50
-						open: function(event, ui) {
-						        $("#plus").blur();
-						    }
-						})
+				// #layer_dialog is CSS-positioned by the mockup; no jQuery UI dialog needed
 								      $.each(current_content, function(index, value) {
 					value.show();
 				});
@@ -812,7 +804,6 @@ url: '/sinatra/?text='+text+str,
 				$("#chron_controls").hide();
 				$("#section_label").hide();
 				$('#dialog').dialog("close");
-				$('#layer_dialog').dialog("close");
 				$('#page-order').html('');
 			 }
 
@@ -935,7 +926,6 @@ url: '/sinatra/?text='+text+str,
 			 }			 
 			 if (GetURLParameter('hide') != null) {
  			 	$('#title').hide();
-				$('#layer_dialog').dialog("close");
 				$.each(current_locations, function(index, value) {
 					value.hide();
 				})

@@ -1,1 +1,16 @@
-{"results": []}
+﻿{
+    "results":  [
+                    {
+                        "text_code":  "RE",
+                        "display_name":  "John Corrigan",
+                        "sort_name":  "Corrigan, John",
+                        "about":  "\u003cp\u003eJohn Michael Corrigan is Professor of English at National Chengchi University in Taiwan. His books include \u003cem\u003eFaulkner\u0026#8217;s Cartographies of Consciousness\u003c/em\u003e (Cambridge University Press, Forthcoming 2024). \u003cem\u003eAmerican Metempsychosis: Emerson, Whitman, and the New Poetry\u003c/em\u003e (Fordham University Press, 2012), and the edited volume \u003cem\u003eRomantic Legacies: Transnational and Transdisciplinary Contexts\u003c/em\u003e (Routledge, 2019).\u003c/p\u003e"
+                    },
+                    {
+                        "text_code":  "RE",
+                        "display_name":  "Jennie J. Joiner",
+                        "sort_name":  "Joiner, Jennie J.",
+                        "about":  "\u003cp\u003eJennie J. Joiner is a Professor of English at Keuka College in upstate New York, where she teaches American literature courses grounded in studies of place and geography. Her publications include articles on William Faulkner in the \u003cem\u003eFaulkner Journal\u003c/em\u003e, \u003cem\u003eMississippi Quarterly\u003c/em\u003e, the \u003cem\u003eFlannery O\u0026#8217;Connor Review\u003c/em\u003e, and \u003cem\u003eDigitizing Faulkner: Yoknapatawpha in the Twenty-First Century\u003c/em\u003e, edited by Theresa M. Towner and published by the University of Virginia Press.\u003c/p\u003e"
+                    }
+                ]
+}

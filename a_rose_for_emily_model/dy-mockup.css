@@ -213,8 +213,16 @@
 
 	/* Row 3: event slider */
 	#dy-tb-slider {
-		padding: 4px 10px 5px;
+		padding: 4px 10px 4px;
 		background: #fafafa;
+	}
+	#dy-tb-slider::before {
+		content: 'page';
+		display: block;
+		font-size: 9px; color: #aaa;
+		text-transform: uppercase; letter-spacing: 0.06em;
+		margin-bottom: 2px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
 	}
 	#dy-event-slider {
 		-webkit-appearance: none; appearance: none;
@@ -230,15 +238,46 @@
 		background: #333; cursor: pointer;
 		border: 2px solid #fff; box-shadow: 0 0 0 1px #999;
 	}
+	/* Page-number tick marks below the slider track */
+	#dy-slider-ticks {
+		position: relative;
+		width: 100%; height: 18px;
+		margin-top: 2px;
+	}
+	.dy-pg-tick {
+		position: absolute;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		transform: translateX(-50%);
+	}
+	.dy-pg-tick-line {
+		width: 1px; height: 5px;
+		background: rgba(80,80,80,0.45);
+	}
+	.dy-pg-tick-label {
+		font-size: 9px; color: #999;
+		white-space: nowrap;
+		margin-top: 1px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+	}
 	/* Row 4: heatmap canvas + labels */
 	#dy-tb-dates {
 		padding: 4px 10px 6px;
 		background: #fff;
 		border-top: 1px solid #eee;
 	}
+	#dy-tb-dates::before {
+		content: 'year';
+		display: block;
+		font-size: 9px; color: #aaa;
+		text-transform: uppercase; letter-spacing: 0.06em;
+		margin-bottom: 2px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+	}
 	#dy-heat-canvas {
 		display: block;
-		width: 100%; height: 56px;
+		width: 100%; height: 25px;
 		cursor: crosshair;
 		border-radius: 3px;
 	}
@@ -397,7 +436,7 @@
 	#info-panel .info-tab.active { background: #fff; color: #333; font-weight: bold; }
 	#info-panel .info-tab:hover:not(.active) { background: #e4e4e4; }
 	#info-panel .info-tab-content { display: none; padding: 10px 14px 12px; }
-	#info-panel .info-tab-content.active { display: block; max-height: 120px; overflow-y: auto; }
+	#info-panel .info-tab-content.active { display: block; max-height: 130px; overflow-y: auto; }
 	#info-panel .info-tab-content strong { font-weight: bold; }
 	#info-panel .info-tab-content p { margin: 0.4em 0; line-height: 1.5; }
 	#info-panel .info-char-group { margin-bottom: 0.75em; }

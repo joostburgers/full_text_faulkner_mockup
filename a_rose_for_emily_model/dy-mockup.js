@@ -1188,6 +1188,7 @@
 		return r + ',' + g + ',' + bv;
 	}
 	var dyYearMin = 1850, dyYearMax = 1924; // set by buildDateTicks
+	var _sliderEvPositions = []; // float positions parallel to getDyList(); rebuilt by buildSliderTicks
 	var dyActiveSection = null; // { yearMin, yearMax } or null when no section selected
 
 	// Plasma colormap (6 stops: dark-purple → purple → magenta → orange → yellow)
@@ -1303,7 +1304,7 @@
 
 		// ── Tick marks ──────────────────────────────────────────────
 		// Semi-transparent overlay at bottom edge so ticks are legible
-		var TICK_AREA = 14;
+		var TICK_AREA = 7;
 		ctx.fillStyle = 'rgba(255,255,255,0.38)';
 		ctx.fillRect(0, H - TICK_AREA, W, TICK_AREA);
 		// Minor ticks every 5 years
@@ -1313,7 +1314,7 @@
 		ctx.setLineDash([]);
 		for (var tyr = firstMinor; tyr <= scaleStart + scaleSpan; tyr += 5) {
 			var tx = xFor(tyr);
-			ctx.beginPath(); ctx.moveTo(tx, H - 5); ctx.lineTo(tx, H); ctx.stroke();
+			ctx.beginPath(); ctx.moveTo(tx, H - 3); ctx.lineTo(tx, H); ctx.stroke();
 		}
 		// Major ticks every 10 years (taller, darker)
 		var firstMajor = Math.ceil(scaleStart / 10) * 10;
@@ -1491,21 +1492,27 @@
 		// Build event tick marks on the date bar
 		buildDateTicks(); // also sets dyYearMin / dyYearMax
 
-		// Slider steps linearly through events in current mode order (0 → N-1)
+		// Slider: range and ticks are set by buildSliderTicks(); handler maps position → nearest event
 		var slider = document.getElementById('dy-event-slider');
 		if (slider) {
-			var list0 = getDyList();
-			slider.min   = 0;
-			slider.max   = Math.max(0, list0.length - 1);
-			slider.step  = 1;
-			slider.value = 0;
 			slider.addEventListener('input', function() {
 				dyStop();
+				var pos  = parseFloat(this.value);
 				var list = getDyList();
-				var idx = Math.min(parseInt(this.value), list.length - 1);
-				if (list[idx]) dyGoto(list[idx]);
+				var best = 0, bestDist = Infinity;
+				_sliderEvPositions.forEach(function(p, i) {
+					var d = Math.abs(p - pos);
+					if (d < bestDist) { bestDist = d; best = i; }
+				});
+				if (list[best]) dyGoto(list[best]);
 			});
 		}
+
+		// Build page tick marks; rebuild whenever Story/Chron mode switches
+		buildSliderTicks();
+		document.querySelectorAll('input[name="dy-mode"]').forEach(function(r) {
+			r.addEventListener('change', function() { if (r.checked) buildSliderTicks(); });
+		});
 
 		// Transport buttons — use our own loop; DY's native play throws dialog errors
 		document.getElementById('dy-prev-btn').addEventListener('click', function() {
@@ -1529,12 +1536,15 @@
 			dyEvListChron = null;
 			dyVisitedNids = {};
 			dyHeatCounts     = {};   // clear temporal heatmap
-			dyHeatCeiling    = 1;
+			// dyHeatCeiling is pre-computed from data and must not be reset here —
+			// resetting it to 1 causes every blob to render at full intensity on the
+			// second playthrough (count=1, ceiling=1 → t=1.0).
 			dyLocHeatCounts  = {};   // clear spatial heatmap
 			dyActiveSection  = null;
 			dyDrawHeatmap(null);     // redraw blank bar
 			drawSpatialHeatmap();    // clear spatial blobs
-			// Return play thumb to 0
+			// Rebuild tick positions (section filter cleared) and reset thumb
+			buildSliderTicks();
 			var slider = document.getElementById('dy-event-slider');
 			if (slider) { slider.value = 0; slider.dispatchEvent(new Event('input')); }
 		});
@@ -1656,6 +1666,82 @@
 		}
 	}
 
+	function buildSliderTicks() {
+		var ticksDiv = document.getElementById('dy-slider-ticks');
+		var slider   = document.getElementById('dy-event-slider');
+		if (!ticksDiv || !slider) return;
+		ticksDiv.innerHTML = '';
+		_sliderEvPositions = [];
+		var list = getDyList();
+		var N = list.length;
+		if (N < 2) {
+			slider.min = 0; slider.max = 1; slider.step = 1; slider.value = 0;
+			return;
+		}
+		var mode = (document.querySelector('input[name="dy-mode"]:checked') || {}).value;
+
+		// Collect unique pages and per-page event counts from the current list
+		var seenPages = [], pageOrder = {}, pageTotals = {}, subCounts = {};
+		list.forEach(function(ev) {
+			var pg = String(ev.page_number);
+			if (!(pg in pageOrder)) { pageOrder[pg] = seenPages.length; seenPages.push(pg); }
+			pageTotals[pg] = (pageTotals[pg] || 0) + 1;
+		});
+
+		// ── Story mode ─────────────────────────────────────────────
+		// Pages are in story order (already sequential). Thumb creeps
+		// steadily left-to-right; date marker hops back and forth.
+		//
+		// ── Chron mode ─────────────────────────────────────────────
+		// Re-sort pages numerically so tick marks are evenly spaced by
+		// page number regardless of the year-driven list order.
+		// Each event's position maps to its page slot, so the thumb
+		// snaps to whichever page the current chronological event
+		// lives on — jumping back and forth — while the date marker
+		// on the heatmap advances steadily through years.
+		if (mode === 'chron') {
+			seenPages.sort(function(a, b) { return parseInt(a) - parseInt(b); });
+			seenPages.forEach(function(pg, i) { pageOrder[pg] = i; });
+		}
+
+		var P = seenPages.length;
+
+		// Float position: pageIndex + subIndex/pageTotal
+		// In story mode this produces a smooth creep within each page.
+		// In chron mode the pageIndex jumps non-sequentially, causing
+		// the thumb to hop; sub-positions provide fine movement when
+		// consecutive chron events share the same page.
+		_sliderEvPositions = list.map(function(ev) {
+			var pg  = String(ev.page_number);
+			var pi  = pageOrder[pg];
+			var sub = subCounts[pg] || 0;
+			subCounts[pg] = sub + 1;
+			return pi + sub / pageTotals[pg];
+		});
+
+		// Slider range: 0 to P-1, fine step so sub-page positions register
+		slider.min   = 0;
+		slider.max   = P - 1;
+		slider.step  = 0.001;
+		slider.value = 0;
+
+		// Tick marks: one per unique page at equal visual intervals
+		seenPages.forEach(function(pg, pi) {
+			var pct = P > 1 ? (pi / (P - 1) * 100).toFixed(2) : '0.00';
+			var tick = document.createElement('div');
+			tick.className = 'dy-pg-tick';
+			tick.style.left = pct + '%';
+			var line = document.createElement('div');
+			line.className = 'dy-pg-tick-line';
+			var label = document.createElement('div');
+			label.className = 'dy-pg-tick-label';
+			label.textContent = pg;
+			tick.appendChild(line);
+			tick.appendChild(label);
+			ticksDiv.appendChild(tick);
+		});
+	}
+
 	function buildDateTicks() {
 		// Extract start years from event dates
 		var years = [];
@@ -1718,13 +1804,14 @@
 			var pg = ev.page_number ? '\u00a0p.' + ev.page_number : '';
 			yearEl.textContent = yr + pg;
 		}
-		// Slider: linear index in current list
+		// Slider: set thumb to this event's page-proportional position
 		var slider = document.getElementById('dy-event-slider');
 		if (slider) {
 			var list = getDyList();
 			var idx  = list.findIndex(function(e) { return String(e.event_nid) === String(ev.event_nid); });
-			slider.max   = Math.max(0, list.length - 1);
-			slider.value = idx >= 0 ? idx : 0;
+			if (idx >= 0 && idx < _sliderEvPositions.length) {
+				slider.value = _sliderEvPositions[idx];
+			}
 		}
 		// Redraw heatmap canvas (ev already added to dyHeatCounts in dyGoto)
 		dyDrawHeatmap(ev);

@@ -2311,8 +2311,8 @@ close_all_menu_items();
 					<button class="dy-btn" id="dy-next-btn" title="Go to next event"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.678 4 4.308v7.384c0 .63.692 1.01 1.233.697L11.5 8.753V12a.5.5 0 0 0 1 0z"/></svg></button>
 					<span id="dy-year-display" title="Year of the current event">&mdash;</span>
 					<div id="dy-mode-toggle">
-						<label title="Navigate events in story order as Faulkner wrote them"><input type="radio" name="dy-mode" value="page" checked> Story</label>
-						<label title="Navigate events in chronological order by year"><input type="radio" name="dy-mode" value="chron"> Chron</label>
+						<label title="Navigate events in page order as Faulkner wrote them"><input type="radio" name="dy-mode" value="page" checked> Page order</label>
+						<label title="Navigate events in chronological date order by year"><input type="radio" name="dy-mode" value="chron"> Date order</label>
 					</div>
 					<div id="dy-speed-wrap" title="Adjust how quickly events advance during playback">
 						Slow&nbsp;<input type="range" id="dy-speed-range" min="1" max="5" value="3">&nbsp;Fast
@@ -2322,10 +2322,11 @@ close_all_menu_items();
 				<!-- Row 3: event position slider (steps through events in current mode order) -->
 				<div id="dy-tb-slider">
 					<input type="range" id="dy-event-slider" min="0" max="34" value="0" step="1" title="Drag to jump to any event in the story">
+					<div id="dy-slider-ticks"></div>
 				</div>
 				<!-- Row 4: heatmap canvas + year labels -->
 				<div id="dy-tb-dates">
-					<canvas id="dy-heat-canvas" height="56" title="Temporal heat map — darker areas indicate years with more events. Click to jump to an event."></canvas>
+					<canvas id="dy-heat-canvas" height="25" title="Temporal heat map — darker areas indicate years with more events. Click to jump to an event."></canvas>
 					<div id="dy-year-labels"></div>
 				</div>
 			</div>

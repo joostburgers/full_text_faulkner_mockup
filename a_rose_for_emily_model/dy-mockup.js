@@ -1511,7 +1511,14 @@
 		// Build page tick marks; rebuild whenever Story/Chron mode switches
 		buildSliderTicks();
 		document.querySelectorAll('input[name="dy-mode"]').forEach(function(r) {
-			r.addEventListener('change', function() { if (r.checked) buildSliderTicks(); });
+			r.addEventListener('change', function() {
+				if (!r.checked) return;
+				buildSliderTicks();
+				if (typeof clarity === 'function') {
+					clarity('event', 'mode_switch');           // marks the moment in recordings
+					clarity('set', 'navigation_mode', r.value); // tags session: 'page' or 'chron'
+				}
+			});
 		});
 
 		// Transport buttons — use our own loop; DY's native play throws dialog errors
@@ -2247,8 +2254,15 @@
 	function _posAnnotPanel() {}
 
 	function setDisplayMode(mode) {
+		var prevMode = dyDisplayMode;
 		_resetAllPanels();
 		dyDisplayMode = mode;
+		// Track display-mode switches (skip the silent initial call on page load)
+		if (prevMode !== mode && typeof clarity === 'function') {
+			clarity('upgrade', 'display_mode_switch');   // force full recording of this session
+			clarity('event', 'display_mode_switch');
+			clarity('set', 'display_mode', mode); // 'map' | 'map-text' | 'fulltext'
+		}
 		var ftPanel    = document.getElementById('fulltext-panel');
 		var infoPanel  = document.getElementById('info-panel');
 		var container  = document.getElementById('container');

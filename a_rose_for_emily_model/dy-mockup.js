@@ -456,7 +456,7 @@
 			return h + '</div>';
 		}
 
-		var catOrder = ['Actions','Aesthetics','Cultural Issues','Environment','Relationships','Themes & Motifs'];
+		var catOrder = ['Actions','Aesthetics','Cultural Issues','Environment','Relationships','Themes and Motifs'];
 		var colsHtml = '<div class="agg-kw-cols">';
 		colsHtml += colHtml('Top Terms', topN(all, 3));
 		catOrder.forEach(function(cat) {
@@ -658,6 +658,7 @@
 		initInfoCollapse();
 		initFpCollapse();
 		initAggPanelCollapse();
+		initPanelResize();
 	}
 
 	// ── Activate an event item ────────────────────────────────────
@@ -676,48 +677,6 @@
 				}
 				item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 			}
-		}
-		// Continuous text view — past events revealed, active event highlighted, future dimmed
-		var cont = document.getElementById('ft-continuous-view');
-		if (cont) {
-			var _passedActive = false;
-			var _didScroll = false; // only scrollIntoView once per dyGoto call
-			var _ftMode = (dyDisplayMode === 'fulltext');
-			cont.querySelectorAll('.ft-block[data-nid], .ft-cont-inline[data-nid]').forEach(function(u) {
-				var isBlock = u.classList.contains('ft-block');
-				if (u.dataset.nid === String(nid)) {
-					_passedActive = true;
-					u.classList.remove('dimmed', 'ft-block-past');
-					if (isBlock) {
-						u.classList.remove('dimmed');
-						u.classList.add('ft-block-active');
-					} else {
-						u.classList.add('ft-block-active');
-					}
-					if (!fromScroll && !_didScroll) {
-						_didScroll = true;
-						_suppressScroll = true;
-						var _cont = document.getElementById('ft-continuous-view');
-						if (_cont) {
-							var _top = u.getBoundingClientRect().top - _cont.getBoundingClientRect().top + _cont.scrollTop;
-							_cont.scrollTo({ top: _top, behavior: 'smooth' });
-						}
-						setTimeout(function() { _suppressScroll = false; }, 900);
-					}
-				} else if (!_passedActive) {
-					u.classList.remove('dimmed', 'ft-block-active');
-					if (!_ftMode) u.classList.add('ft-block-past');
-					else u.classList.remove('ft-block-past');
-				} else {
-					u.classList.remove('ft-block-active', 'ft-block-past');
-					if (!_ftMode) {
-						if (isBlock) u.classList.add('dimmed');
-						else u.classList.add('dimmed');
-					} else {
-						u.classList.remove('dimmed');
-					}
-				}
-			});
 		}
 		// Highlighted text view — past full opacity, active highlighted, future dimmed (not in fulltext mode)
 		var hlCont = document.getElementById('ft-highlight-view');
@@ -741,13 +700,6 @@
 			var activeSpan = hlCont.querySelector('.ft-hl-span.ft-hl-active');
 			if (activeSpan) scrollToEl(hlCont, activeSpan);
 		}
-		// Reading view
-		var rtext = document.getElementById('ft-reading-text');
-		if (rtext) {
-			rtext.querySelectorAll('.ft-rblock').forEach(function(b) {
-				b.classList.toggle('ft-rblock-active', b.dataset.nid === String(nid));
-			});
-		}
 	}
 
 	// ── Info panel ───────────────────────────────────────────────
@@ -756,9 +708,13 @@
 		var locIcon = locData.location_type
 			? '<img src="' + locIconUrl(locData.location_type) + '" alt="" style="height:13px;width:auto;vertical-align:middle;margin-right:5px;">'
 			: '';
-		var locHtml = '<strong style="display:flex;align-items:center;">' + locIcon + esc(location) + '</strong>';
+		var locHtml = '<strong style="display:flex;align-items:center;">' + locIcon + esc(location);
+		if (locData.location_type === 'OutOfYoknapatawpha') {
+			locHtml += '<span class="loc-out-of-yok-badge">Outside Yoknapatawpha</span>';
+		}
+		locHtml += '</strong>';
 		if (locData.description) locHtml += '<p>' + esc(locData.description) + '</p>';
-		if (locData.location_type) {
+		if (locData.location_type && locData.location_type !== 'OutOfYoknapatawpha') {
 			locHtml += '<p><em>' + esc(locData.location_type.replace(/([A-Z])/g, ' $1').trim()) + '</em></p>';
 		}
 		var locEl = document.getElementById('it-location');
@@ -807,10 +763,13 @@
 				}
 				colOrder.forEach(function(col) {
 					if (!kwData[col] || !kwData[col].length) return;
+					var sortedPairs = kwData[col].slice().sort(function(a, b) {
+						return (a[1] || '').localeCompare(b[1] || '');
+					});
 					kwHtml += '<div class="ft-kw-group">';
 					kwHtml += '<div class="ft-kw-col-label">' + esc(col) + '</div>';
 					kwHtml += '<div class="ft-kw-terms">';
-					kwData[col].forEach(function(pair) {
+					sortedPairs.forEach(function(pair) {
 						var t = pair[1];
 						kwHtml += '<span class="ft-kw-term" data-term="' + esc(t) + '">' + esc(t) + _kwCount(t) + '</span>';
 					});
@@ -1896,21 +1855,19 @@
 		var btn = document.querySelector('.ft-panel-tab[data-tab="' + tabName + '"]');
 		if (btn) btn.classList.add('active');
 		var evtsView    = document.getElementById('ft-events-view');
-		var textView    = document.getElementById('ft-continuous-view');
 		var hlView      = document.getElementById('ft-highlight-view');
 		var aboutView   = document.getElementById('ft-about-view');
 		var editorsView = document.getElementById('ft-about-editors-view');
 		var resView     = document.getElementById('ft-other-resources');
 		var toolbar = document.getElementById('ft-text-toolbar');
 		if (toolbar) {
-			toolbar.classList.toggle('active', tabName === 'text' || tabName === 'events' || tabName === 'text-hl');
+			toolbar.classList.toggle('active', tabName === 'events' || tabName === 'text-hl');
 			toolbar.dataset.mode = tabName;
 			// Clear search when switching between tabs to avoid stale marks
 			var inp = document.getElementById('ft-search-input');
 			if (inp && inp.value) { inp.value = ''; inp.dispatchEvent(new Event('input')); }
 		}
 		if (evtsView)    evtsView.style.display    = (tabName === 'events')         ? ''      : 'none';
-		if (textView)    textView.style.display    = (tabName === 'text')           ? 'block' : 'none';
 		if (hlView)      hlView.style.display      = (tabName === 'text-hl')        ? 'block' : 'none';
 		if (aboutView)   aboutView.style.display   = (tabName === 'about-text')     ? 'block' : 'none';
 		if (editorsView) editorsView.style.display = (tabName === 'about-editors')  ? 'block' : 'none';
@@ -1918,16 +1875,9 @@
 		// Disable event-boundaries toggle in Events tab; enable it in text views
 		var showEvLabel = document.querySelector('.ft-show-events-label');
 		var showEvCheck = document.getElementById('ft-show-events-check');
-		var isTextTab = (tabName === 'text' || tabName === 'text-hl');
+		var isTextTab = (tabName === 'text-hl');
 		if (showEvCheck) showEvCheck.disabled = !isTextTab;
 		if (showEvLabel) showEvLabel.classList.toggle('ft-show-events-disabled', !isTextTab);
-		if (tabName === 'text') {
-			buildContinuousView();
-			setTimeout(function() {
-				var active = textView && textView.querySelector('.ft-block-active');
-				if (active) active.scrollIntoView({ block: 'nearest' });
-			}, 50);
-		}
 		if (tabName === 'text-hl') {
 			buildHighlightView();
 			initTextToolbar();
@@ -1946,7 +1896,6 @@
 		if (_textToolbarInited) return;
 		_textToolbarInited = true;
 		var toolbar   = document.getElementById('ft-text-toolbar');
-		var textCont  = document.getElementById('ft-continuous-view');
 		var evCont    = document.getElementById('ft-events-view');
 		var hlCont    = document.getElementById('ft-highlight-view');
 		var input     = document.getElementById('ft-search-input');
@@ -1960,19 +1909,17 @@
 		function activeContainer() {
 			var mode = toolbar && toolbar.dataset.mode;
 			if (mode === 'events')  return evCont;
-			if (mode === 'text-hl') return hlCont;
-			return textCont;
+			return hlCont;
 		}
 
 		function hitSelector() {
 			var mode = toolbar && toolbar.dataset.mode;
 			if (mode === 'events')  return '.ft-item-bar';
-			if (mode === 'text-hl') return 'p';
-			return '.ft-block-text';
+			return 'p';
 		}
 
 		function clearMarks() {
-			[textCont, evCont, hlCont].forEach(function(c) {
+			[evCont, hlCont].forEach(function(c) {
 				if (!c) return;
 				c.querySelectorAll('mark.ft-search-hit').forEach(function(m) {
 					var parent = m.parentNode;
@@ -2171,6 +2118,11 @@
 		document.querySelectorAll('.ft-sec-btn').forEach(function(btn) {
 			btn.addEventListener('click', function() {
 				var sec = btn.dataset.sec;
+				// In section-by-section mode, filter to this section instead of scrolling
+				if (_ftReadMode === 'section') {
+					_applyFtSectionFilter(sec);
+					return;
+				}
 				if (toolbar && toolbar.dataset.mode === 'events') {
 					// Scroll events view to the first item of this section
 					var nid = _sectionNids[sec];
@@ -2206,8 +2158,7 @@
 		var _ftFontSizes = [11, 12, 13, 14, 16, 18, 20];
 		var _ftFontIdx   = 2; // default: 13px
 		var _ftFontTargets = [
-			'#ft-continuous-view', '#ft-highlight-view', '#ft-events-view',
-			'#ft-reading-text'
+			'#ft-highlight-view', '#ft-events-view'
 		];
 		function applyFtFontSize() {
 			var sz = _ftFontSizes[_ftFontIdx] + 'px';
@@ -2257,6 +2208,13 @@
 		var prevMode = dyDisplayMode;
 		_resetAllPanels();
 		dyDisplayMode = mode;
+		// Sync global nav active state
+		document.querySelectorAll('#dy-global-nav .dy-nav-btn').forEach(function(b) {
+			b.classList.toggle('active', b.dataset.mode === mode);
+		});
+		// Sync legacy radio buttons
+		var legacyRadio = document.querySelector('input[name="dy-display"][value="' + mode + '"]');
+		if (legacyRadio) legacyRadio.checked = true;
 		// Track display-mode switches (skip the silent initial call on page load)
 		if (prevMode !== mode && typeof clarity === 'function') {
 			clarity('upgrade', 'display_mode_switch');   // force full recording of this session
@@ -2421,168 +2379,6 @@
 		});
 	}
 
-	// ── Continuous text scroll view ───────────────────────────────
-	var _continuousBuilt = false;
-	function buildContinuousView() {
-		if (_continuousBuilt) return;
-		_continuousBuilt = true;
-		var cont = document.getElementById('ft-continuous-view');
-		if (!cont) return;
-		var html = '';
-		reEventsList.forEach(function(ev) {
-			var nid   = esc(String(ev.event_nid));
-			var _rs   = reSentences[String(ev.event_nid)] || {};
-			var paras = _rs.paras || [];
-			var isCont = !!_rs.cont;
-			var _romanRe = /^[IVX]+$/;
-			var textHtml = paras.length
-				? paras.map(function(p) {
-					return _romanRe.test(p.trim())
-						? '<div class="ft-section-num">' + esc(p.trim()) + '</div>'
-						: '<p>' + esc(p) + '</p>';
-				}).join('')
-				: '<p>' + esc(ev.summary || '') + '</p>';
-			var blockClass = 'ft-block dimmed' + (isCont ? ' ft-block-cont' : '');
-			html += '<div class="' + blockClass + '" data-nid="' + nid + '">';
-			html += '<div class="ft-block-meta">p.' + esc(String(ev.page_number)) + ' &middot; ' + esc(ev.event_location) + '</div>';
-			html += '<div class="ft-block-text">' + textHtml + '</div>';
-			html += '</div>';
-		});
-		cont.innerHTML = html;
-
-		// Merge continuation first-paragraphs inline with the preceding block's last <p>
-		// so mid-paragraph event boundaries don't create visible line breaks.
-		cont.querySelectorAll('.ft-block-cont').forEach(function(contBlock) {
-			var prevBlock = contBlock.previousElementSibling;
-			if (!prevBlock) return;
-			var prevLastP = prevBlock.querySelector('.ft-block-text p:last-of-type');
-			var contFirstP = contBlock.querySelector('.ft-block-text p:first-of-type');
-			if (!prevLastP || !contFirstP) return;
-			// Wrap the cont text in an inline span and append to prev last <p>
-			var inlineSpan = document.createElement('span');
-			inlineSpan.className = 'ft-cont-inline';
-			inlineSpan.dataset.nid = contBlock.dataset.nid;
-			inlineSpan.innerHTML = contFirstP.innerHTML;
-			// Ensure a space between the end of the previous paragraph and the appended span
-			var prevText = prevLastP.textContent;
-			if (prevText.length && prevText[prevText.length - 1] !== ' ') {
-				prevLastP.appendChild(document.createTextNode(' '));
-			}
-			prevLastP.appendChild(inlineSpan);
-			contFirstP.remove();
-		});
-
-		// Click to navigate + toggle annotation
-		cont.querySelectorAll('.ft-block').forEach(function(block) {
-			block.addEventListener('click', function() {
-				var ev = reEventsMap[block.dataset.nid];
-				if (!ev) return;
-				var nid = String(ev.event_nid);
-				if (currentEv && String(currentEv.event_nid) === nid) {
-					if (dyDisplayMode !== 'fulltext') { dyDeactivate(); return; }
-					// Already current — toggle annotation
-					if (_annotatedNid === nid) { clearReadingAnnotation(); } else { showReadingAnnotation(ev); }
-				} else {
-					dyGoto(ev);
-					if (dyDisplayMode === 'fulltext') showReadingAnnotation(ev);
-				}
-			});
-		});
-		cont.querySelectorAll('.ft-cont-inline').forEach(function(span) {
-			span.addEventListener('click', function(e) {
-				e.stopPropagation();
-				var ev = reEventsMap[span.dataset.nid];
-				if (!ev) return;
-				var nid = String(ev.event_nid);
-				if (currentEv && String(currentEv.event_nid) === nid) {
-					if (dyDisplayMode !== 'fulltext') { dyDeactivate(); return; }
-					if (_annotatedNid === nid) { clearReadingAnnotation(); } else { showReadingAnnotation(ev); }
-				} else {
-					dyGoto(ev);
-					if (dyDisplayMode === 'fulltext') showReadingAnnotation(ev);
-				}
-			});
-		});
-
-		// IntersectionObserver scrollytelling detector.
-		// Observes all non-ghost units against a trigger zone = top 25% of the container.
-		// rootMargin '0px 0px -75% 0px' shrinks the root's bottom edge so the effective
-		// intersection zone is from 0 to 25% of the container height.
-		//
-		// A unit is "above the trigger" when its top has crossed the 25% line going down.
-		// We maintain a Set of such units; the winner is the last one in DOM order.
-		//
-		// On isIntersecting=false: check whether the unit exited ABOVE the container
-		// (keep in set — still "past") or below the trigger (remove — not yet reached).
-
-		var _ioAbove = new Set(); // units whose top has crossed the trigger line
-
-		// Build stable list once, excluding empty ghost shells left by the inline merge.
-		var _ioUnits = Array.from(
-			cont.querySelectorAll('.ft-block[data-nid], .ft-cont-inline[data-nid]')
-		).filter(function(u) { return u.textContent.trim() !== ''; });
-
-		var _ioIdx = new Map();
-		_ioUnits.forEach(function(u, i) { _ioIdx.set(u, i); });
-
-		function _ioPick() {
-			// Suppress during programmatic snap-scroll to avoid feedback loops
-			if (_suppressScroll) return;
-			var bestIdx = -1, best = null;
-			_ioAbove.forEach(function(u) {
-				var i = _ioIdx.get(u);
-				if (i !== undefined && i > bestIdx) { bestIdx = i; best = u; }
-			});
-			// Fallback: nothing has crossed the line yet — use first unit
-			if (!best && _ioUnits.length) best = _ioUnits[0];
-			if (best) {
-				var nid = best.dataset.nid;
-				if (!currentEv || String(currentEv.event_nid) !== nid) {
-					var ev = reEventsMap[nid];
-					// fromScroll=false → snap-scroll to top of the new event
-					if (ev) dyGoto(ev, false);
-				}
-			}
-		}
-
-		var _io = new IntersectionObserver(function(entries) {
-			entries.forEach(function(entry) {
-				if (entry.isIntersecting) {
-					// Element entered the trigger zone — it has been reached
-					_ioAbove.add(entry.target);
-				} else {
-					// Element left the zone. Two possible directions:
-					//   DOWN-exit (user scrolled back UP): element.top > zone_bottom → remove (not reached yet)
-					//   UP-exit  (user scrolled DOWN past it, fast or slow): keep as "past"
-					// We ONLY remove on down-exit to avoid false deactivation on fast scroll-through.
-					var rb = entry.rootBounds;
-					if (rb && entry.boundingClientRect.top > rb.bottom) {
-						_ioAbove.delete(entry.target);
-					}
-					// Otherwise (exited above, or passed through quickly): keep in set
-				}
-			});
-			_ioPick();
-		}, {
-			root: cont,
-			rootMargin: '0px 0px -75% 0px', // trigger zone = top 25% of container
-			threshold: 0
-		});
-
-		_ioUnits.forEach(function(u) { _io.observe(u); });
-
-		// Mark current active if already set
-		if (currentEv) {
-			var nid = String(currentEv.event_nid);
-			cont.querySelectorAll('.ft-block[data-nid], .ft-cont-inline[data-nid]').forEach(function(u) {
-				if (u.dataset.nid === nid) { u.classList.remove('dimmed'); u.classList.add('ft-block-active'); }
-			});
-		}
-
-		initTextToolbar();
-	}
-
-	// ── Info panel slide-down collapse ───────────────────────────
 	function initInfoCollapse() {
 		var ip  = document.getElementById('info-panel');
 		var fp  = document.getElementById('fulltext-panel');
@@ -2736,6 +2532,173 @@
 		});
 	}
 
+	// ── Panel resize grips (drag-to-resize + click-to-collapse) ──
+	function initPanelResize() {
+		function makeGrip(orientation) {
+			var g = document.createElement('div');
+			g.className = 'dy-resize-grip dy-grip-' + orientation;
+			g.title = 'Drag to resize · Click to collapse';
+			g.innerHTML = '<span class="dy-grip-bar"></span><span class="dy-grip-bar"></span>';
+			return g;
+		}
+
+		// Horizontal resize helper (changes panel width only)
+		// gripEdge 'right': drag right=wider; 'left': drag left=wider
+		function initH(panel, grip, opts) {
+			var defaultW = opts.defaultW || 460;
+			var minW     = opts.minW     || 12;
+			var maxW     = opts.maxW     || 680;
+			var sign     = (opts.gripEdge === 'right') ? 1 : -1;
+			var collapsed = false;
+
+			function collapse() {
+				collapsed = true;
+				defaultW = (panel.offsetWidth > minW) ? panel.offsetWidth : defaultW;
+				panel.style.width = defaultW + 'px';
+				panel.offsetWidth; // force reflow before transition
+				panel.style.width = minW + 'px';
+			}
+			function expand() {
+				collapsed = false;
+				panel.style.width = defaultW + 'px';
+			}
+
+			var drag = null;
+			grip.addEventListener('mousedown', function(e) {
+				e.preventDefault(); e.stopPropagation();
+				drag = { x: e.clientX, w: panel.offsetWidth, moved: false };
+				grip.classList.add('is-dragging');
+				document.addEventListener('mousemove', onMove);
+				document.addEventListener('mouseup', onUp);
+			});
+			function onMove(e) {
+				if (!drag) return;
+				var dx = e.clientX - drag.x;
+				if (Math.abs(dx) > 3) drag.moved = true;
+				if (!drag.moved) return;
+				var newW = Math.max(minW, Math.min(maxW, drag.w + sign * dx));
+				panel.style.transition = 'none';
+				panel.style.width = newW + 'px';
+				collapsed = (newW <= minW + 5);
+			}
+			function onUp() {
+				document.removeEventListener('mousemove', onMove);
+				document.removeEventListener('mouseup', onUp);
+				grip.classList.remove('is-dragging');
+				panel.style.transition = '';
+				if (!drag.moved) {
+					if (collapsed) expand(); else collapse();
+				} else {
+					var w = panel.offsetWidth;
+					if (w <= minW + 10) {
+						defaultW = Math.max(drag.w, 80);
+						panel.style.width = minW + 'px';
+						collapsed = true;
+					} else {
+						defaultW = w;
+						collapsed = false;
+					}
+				}
+				drag = null;
+			}
+		}
+
+		// Vertical resize helper (changes panel height + top for top-edge grip)
+		function initV(panel, grip, opts) {
+			var minH      = opts.minH || 10;
+			var maxH      = opts.maxH || 600;
+			var defaultH  = 0;
+			var collapsed = false;
+
+			function collapse() {
+				collapsed = true;
+				defaultH = (panel.offsetHeight > minH) ? panel.offsetHeight : defaultH;
+				panel.style.height = defaultH + 'px';
+				panel.offsetHeight;
+				panel.style.height = minH + 'px';
+			}
+			function expand() {
+				collapsed = false;
+				panel.style.height = defaultH ? (defaultH + 'px') : '';
+			}
+
+			var drag = null;
+			grip.addEventListener('mousedown', function(e) {
+				e.preventDefault(); e.stopPropagation();
+				drag = { y: e.clientY, h: panel.offsetHeight, top: panel.offsetTop, moved: false };
+				grip.classList.add('is-dragging');
+				document.addEventListener('mousemove', onMove);
+				document.addEventListener('mouseup', onUp);
+			});
+			function onMove(e) {
+				if (!drag) return;
+				var dy = e.clientY - drag.y;
+				if (Math.abs(dy) > 3) drag.moved = true;
+				if (!drag.moved) return;
+				// top-edge grip: drag up (dy<0) = taller
+				var newH   = Math.max(minH, Math.min(maxH, drag.h - dy));
+				var newTop = drag.top + dy;
+				if (newH <= minH) newTop = drag.top + drag.h - minH;
+				panel.style.transition = 'none';
+				panel.style.height = newH + 'px';
+				panel.style.top    = newTop + 'px';
+				collapsed = (newH <= minH + 5);
+			}
+			function onUp() {
+				document.removeEventListener('mousemove', onMove);
+				document.removeEventListener('mouseup', onUp);
+				grip.classList.remove('is-dragging');
+				panel.style.transition = '';
+				if (!drag.moved) {
+					if (collapsed) expand(); else collapse();
+				} else {
+					var h = panel.offsetHeight;
+					if (h <= minH + 10) {
+						defaultH = Math.max(drag.h, 40);
+						panel.style.height = minH + 'px';
+						collapsed = true;
+					} else {
+						defaultH = h;
+						collapsed = false;
+					}
+				}
+				drag = null;
+			}
+		}
+
+		// ── Left controls panel — right-edge grip ────────────────
+		var ctrlPanel = document.getElementById('dy-controls-panel');
+		if (ctrlPanel) {
+			var cGrip = makeGrip('v');
+			ctrlPanel.appendChild(cGrip);
+			initH(ctrlPanel, cGrip, { defaultW: 192, minW: 12, maxW: 320, gripEdge: 'right' });
+		}
+
+		// ── Fulltext panel — left-edge grip ──────────────────────
+		var fpanel = document.getElementById('fulltext-panel');
+		if (fpanel) {
+			var fGrip = makeGrip('v');
+			fpanel.insertBefore(fGrip, fpanel.firstChild);
+			initH(fpanel, fGrip, { defaultW: 460, minW: 12, maxW: 490, gripEdge: 'left' });
+		}
+
+		// ── Info panel — left-edge grip ──────────────────────────
+		var ipanel = document.getElementById('info-panel');
+		if (ipanel) {
+			var iGrip = makeGrip('v');
+			ipanel.insertBefore(iGrip, ipanel.firstChild);
+			initH(ipanel, iGrip, { defaultW: 460, minW: 12, maxW: 490, gripEdge: 'left' });
+		}
+
+		// ── Aggregation panel — top-edge grip ────────────────────
+		var aggPanel = document.getElementById('dy-agg-panel');
+		if (aggPanel) {
+			var aGrip = makeGrip('h');
+			aggPanel.insertBefore(aGrip, aggPanel.firstChild);
+			initV(aggPanel, aGrip, { minH: 10, maxH: 500 });
+		}
+	}
+
 	// ── Highlighted text view ─────────────────────────────────────
 	var _highlightBuilt = false;
 	function buildHighlightView() {
@@ -2797,94 +2760,148 @@
 				var nid = String(ev.event_nid);
 				if (currentEv && String(currentEv.event_nid) === nid) {
 					if (dyDisplayMode !== 'fulltext') { dyDeactivate(); return; }
-					if (_annotatedNid === nid) { clearReadingAnnotation(); } else { showReadingAnnotation(ev); }
+					if (_annotatedNid === nid) { clearReadingAnnotation(); } else { showReadingAnnotation(ev, span); }
 				} else {
 					dyGoto(ev);
-					if (dyDisplayMode === 'fulltext') showReadingAnnotation(ev);
+					if (dyDisplayMode === 'fulltext') showReadingAnnotation(ev, span);
 				}
 			});
 		});
+		_wrapHlSections();
 	}
-
-	// ── Full Text reading view ────────────────────────────────────
-	var _readingBuilt = false;
-	function buildReadingView() {
-		if (_readingBuilt) return;
-		_readingBuilt = true;
-		var rtext = document.getElementById('ft-reading-text');
-		if (!rtext) return;
-		var html = '';
-		reEventsList.forEach(function(ev) {
-			var nid   = esc(String(ev.event_nid));
-			var _rs2  = reSentences[String(ev.event_nid)] || {};
-			var sents = _rs2.paras || [];
-			var text  = sents.join(' ') || ev.summary || '';
-			html += '<div class="ft-rblock" data-nid="' + nid + '">';
-			html += '<div class="ft-rblock-boundary"></div>';
-			html += esc(text);
-			html += '</div>';
-		});
-		rtext.innerHTML = html;
-
-		rtext.querySelectorAll('.ft-rblock').forEach(function(block) {
-			block.addEventListener('click', function() {
-				var ev = reEventsMap[block.dataset.nid];
-				if (!ev) return;
-				var nid = String(ev.event_nid);
-				rtext.querySelectorAll('.ft-rblock.ft-rblock-active').forEach(function(b) { b.classList.remove('ft-rblock-active'); });
-				block.classList.add('ft-rblock-active');
-				if (_annotatedNid === nid) { clearReadingAnnotation(); } else { showReadingAnnotation(ev); }
-			});
-		});
-
-		// Boundary toggle
-		var toggle = document.getElementById('ft-boundaries-toggle');
-		function applyBoundaries() {
-			var show = toggle ? toggle.checked : true;
-			rtext.querySelectorAll('.ft-rblock-boundary').forEach(function(b) {
-				b.style.display = show ? '' : 'none';
-			});
-		}
-		applyBoundaries();
-		if (toggle) toggle.addEventListener('change', applyBoundaries);
-
-		// Mark current active block (no annotation on load — annotation is click-only)
-		if (currentEv) {
-			var active = rtext.querySelector('.ft-rblock[data-nid="' + esc(String(currentEv.event_nid)) + '"]');
-			if (active) active.classList.add('ft-rblock-active');
-		}
-	}
-
 	var _readingControlsInited = false;
+
+	// ── Reading mode state ────────────────────────────────────────
+	var _ftReadMode   = 'scroll';  // 'scroll' | 'section' | 'page'
+	var _ftActiveSec  = 'I';
+	var _ftSections   = ['I','II','III','IV','V'];
+
+
+	// Wrap highlight-view content in per-section divs (run once after build)
+	function _wrapHlSections() {
+		var hlCont = document.getElementById('ft-highlight-view');
+		if (!hlCont || hlCont.dataset.secWrapped) return;
+		hlCont.dataset.secWrapped = '1';
+		var nodes = Array.from(hlCont.childNodes);
+		var wrapper = null;
+		nodes.forEach(function(node) {
+			if (node.nodeType === 1 && node.classList && node.classList.contains('ft-section-num')) {
+				wrapper = document.createElement('div');
+				wrapper.className = 'ft-hl-section';
+				wrapper.dataset.section = node.textContent.trim();
+				hlCont.appendChild(wrapper);
+			}
+			if (wrapper) wrapper.appendChild(node);
+			// Nodes before first section header stay at root — that's fine (there are none here)
+		});
+	}
+
+	function _setFtReadMode(mode) {
+		_ftReadMode = mode;
+		document.querySelectorAll('.ft-read-mode-btn').forEach(function(btn) {
+			btn.classList.toggle('active', btn.dataset.rmode === mode);
+		});
+		var prevBtn  = document.getElementById('ft-sec-prev');
+		var nextBtn  = document.getElementById('ft-sec-next');
+		var posLabel = document.getElementById('ft-read-pos-label');
+		var hlCont   = document.getElementById('ft-highlight-view');
+
+		if (mode === 'scroll') {
+			if (hlCont)   hlCont.classList.remove('ft-page-mode');
+			// Restore all hidden sections
+			if (hlCont)   hlCont.querySelectorAll('.ft-hl-section.ft-sec-hide').forEach(function(b) { b.classList.remove('ft-sec-hide'); });
+			document.querySelectorAll('.ft-sec-btn.ft-sec-active').forEach(function(b) { b.classList.remove('ft-sec-active'); });
+			if (prevBtn)  prevBtn.style.display  = 'none';
+			if (nextBtn)  nextBtn.style.display  = 'none';
+			if (posLabel) posLabel.style.display = 'none';
+		} else if (mode === 'section') {
+			if (hlCont)   hlCont.classList.remove('ft-page-mode');
+			if (prevBtn)  prevBtn.style.display  = 'inline-block';
+			if (nextBtn)  nextBtn.style.display  = 'inline-block';
+			if (posLabel) posLabel.style.display = 'inline-block';
+			_applyFtSectionFilter(_ftActiveSec);
+		} else if (mode === 'page') {
+			// Show all sections first
+			if (hlCont)   hlCont.querySelectorAll('.ft-hl-section.ft-sec-hide').forEach(function(b) { b.classList.remove('ft-sec-hide'); });
+			document.querySelectorAll('.ft-sec-btn.ft-sec-active').forEach(function(b) { b.classList.remove('ft-sec-active'); });
+			if (hlCont)   hlCont.classList.add('ft-page-mode');
+			if (prevBtn)  prevBtn.style.display  = 'inline-block';
+			if (nextBtn)  nextBtn.style.display  = 'inline-block';
+			if (posLabel) posLabel.style.display = 'inline-block';
+			_updatePageLabel();
+		}
+	}
+
+	function _applyFtSectionFilter(sec) {
+		_ftActiveSec = sec;
+		var hlCont   = document.getElementById('ft-highlight-view');
+
+		if (hlCont) {
+			_wrapHlSections();
+			hlCont.querySelectorAll('.ft-hl-section').forEach(function(wrap) {
+				wrap.classList.toggle('ft-sec-hide', wrap.dataset.section !== sec);
+			});
+			hlCont.scrollTop = 0;
+		}
+		document.querySelectorAll('.ft-sec-btn').forEach(function(btn) {
+			btn.classList.toggle('ft-sec-active', btn.dataset.sec === sec);
+		});
+		var posLabel = document.getElementById('ft-read-pos-label');
+		if (posLabel) posLabel.textContent = 'Section ' + sec + '\u2009/\u2009' + _ftSections.length;
+	}
+
+	function _getActiveFtView() {
+		return document.getElementById('ft-highlight-view');
+	}
+
+	function _updatePageLabel() {
+		var posLabel = document.getElementById('ft-read-pos-label');
+		if (!posLabel) return;
+		var el = _getActiveFtView();
+		if (!el) return;
+		var maxScroll = el.scrollHeight - el.clientHeight;
+		var pct = maxScroll > 0 ? Math.round(el.scrollTop / maxScroll * 100) : 0;
+		posLabel.textContent = pct + '%';
+	}
+
+	function _ftPageNav(dir) {
+		var el = _getActiveFtView();
+		if (!el) return;
+		// Advance by clientHeight minus a 40px gutter so partial lines
+		// at the bottom always carry over to the top of the next screen.
+		var step = Math.max(el.clientHeight - 40, 40);
+		el.scrollTop += dir * step;
+		setTimeout(_updatePageLabel, 50);
+	}
+
+	function _ftSectionNav(dir) {
+		var idx = _ftSections.indexOf(_ftActiveSec);
+		var newIdx = idx + dir;
+		if (newIdx >= 0 && newIdx < _ftSections.length) {
+			_applyFtSectionFilter(_ftSections[newIdx]);
+		}
+	}
+
 	function initReadingControls() {
 		if (_readingControlsInited) return;
 		_readingControlsInited = true;
 
-		// Annotation checkboxes → show/hide sections in #ft-annot-panel
+		// Annotation checkboxes → show/hide sections in #ft-annot-body
 		document.querySelectorAll('input[data-annot]').forEach(function(cb) {
 			cb.addEventListener('change', function() {
+				var body = document.getElementById('ft-annot-body');
 				var panel = document.getElementById('ft-annot-panel');
-				if (!panel) return;
-				var sec = panel.querySelector('[data-annot="' + cb.dataset.annot + '"]');
+				var container = body || panel;
+				if (!container) return;
+				var sec = container.querySelector('[data-annot="' + cb.dataset.annot + '"]');
 				if (sec) sec.style.display = cb.checked ? '' : 'none';
 			});
 		});
 
-		// Style radios → re-render annotation panel + notify markup sections
-		document.querySelectorAll('input[name="ft-style"]').forEach(function(r) {
-			r.addEventListener('change', function() {
-				if (!r.checked) return;
-				var hlv = document.getElementById('ft-highlight-view');
-				if (hlv) hlv.dataset.style = r.value;
-				document.dispatchEvent(new CustomEvent('ft-style-change', { detail: r.value }));
-				if (_annotatedNid && currentEv && dyDisplayMode === 'fulltext') showReadingAnnotation(currentEv);
-			});
-		});
-		// Set initial data-style on highlight view
+		// Style radios removed — always 'full' detail; set data-style on highlight view once
 		(function() {
-			var init = document.querySelector('input[name="ft-style"]:checked');
-			var hlv  = document.getElementById('ft-highlight-view');
-			if (init && hlv) hlv.dataset.style = init.value;
+			var hlv = document.getElementById('ft-highlight-view');
+			if (hlv) hlv.dataset.style = 'full';
 		}());
 
 		// Markup controls — Narrative radio + flashforward/flashback checkboxes
@@ -2959,7 +2976,7 @@
 						styleEl.id = 'ft-ns-style';
 						document.head.appendChild(styleEl);
 					}
-					var ftStyle = (document.querySelector('input[name="ft-style"]:checked') || {}).value || 'summary';
+					var ftStyle = 'full'; // styling radios removed
 					var rules = [];
 					nsOpts.querySelectorAll('.ft-ns-avail input:checked').forEach(function(cb) {
 						var item = cb.closest('.ft-ns-item');
@@ -3032,7 +3049,7 @@
 						styleEl.id = 'ft-temp-style';
 						document.head.appendChild(styleEl);
 					}
-					var ftStyle = (document.querySelector('input[name="ft-style"]:checked') || {}).value || 'summary';
+					var ftStyle = 'full'; // styling radios removed
 					var checked = tempOpts.querySelectorAll('input:checked');
 					var rules = [];
 					checked.forEach(function(cb) {
@@ -3096,19 +3113,78 @@
 			}
 		}()); // end Temporality IIFE
 
-		// Tab nav (scroll / highlight) — reuse existing fulltext-panel tab infrastructure
+		// Tab nav — only Text (highlight) remains
 		document.querySelectorAll('.ft-reading-tab').forEach(function(tab) {
 			tab.addEventListener('click', function() {
 				document.querySelectorAll('.ft-reading-tab').forEach(function(t) { t.classList.remove('active'); });
 				tab.classList.add('active');
-				// Map to the fulltext-panel tab names
-				var tabMap = { scroll: 'text', highlight: 'text-hl' };
-				var target = tabMap[tab.dataset.rtab] || 'text';
-				_activatePanelTab(target);
-				// Show the ft-reading-text area only for scroll mode
-				var rtext = document.getElementById('ft-reading-text');
-				if (rtext) rtext.style.display = tab.dataset.rtab === 'scroll' ? '' : 'none';
+				_activatePanelTab('text-hl');
+				if (_ftReadMode !== 'scroll') _setFtReadMode(_ftReadMode);
 			});
+		});
+
+		// Inject controls-panel header + ghost stub (shared class pattern)
+		(function() {
+			var ctrl   = document.getElementById('dy-controls-panel');
+			var layout = document.getElementById('ft-layout');
+			if (!ctrl || !layout || document.getElementById('ft-ctrl-header')) return;
+
+			// Header bar
+			var hdr = document.createElement('div');
+			hdr.id = 'ft-ctrl-header';
+			hdr.className = 'ft-panel-header';
+			hdr.innerHTML = '<span class="ft-panel-header-label">Settings</span>'
+				+ '<button id="ft-ctrl-toggle-btn" class="ft-panel-collapse-btn" title="Hide settings panel">&#8249;</button>';
+			ctrl.insertBefore(hdr, ctrl.firstChild);
+
+			// Ghost stub — inserted right after the controls panel
+			var ghost = document.createElement('div');
+			ghost.id = 'ft-ctrl-ghost';
+			ghost.className = 'ft-panel-ghost';
+			ghost.innerHTML = '<button id="ft-ctrl-ghost-expand" class="ft-panel-ghost-expand" title="Show settings panel">&#8250;</button>'
+				+ '<span class="ft-panel-ghost-label">Settings</span>';
+			layout.insertBefore(ghost, ctrl.nextSibling);
+
+			function _toggleCtrl() {
+				var collapsed = layout.classList.toggle('ft-ctrl-collapsed');
+				var btn = document.getElementById('ft-ctrl-toggle-btn');
+				if (btn) { btn.innerHTML = collapsed ? '&#8250;' : '&#8249;'; btn.title = collapsed ? 'Show settings panel' : 'Hide settings panel'; }
+			}
+			document.getElementById('ft-ctrl-toggle-btn').addEventListener('click', _toggleCtrl);
+			document.getElementById('ft-ctrl-ghost-expand').addEventListener('click', _toggleCtrl);
+		}());
+
+		// Inject annotation-panel ghost stub (header built by initAnnotPanelHeader)
+		(function() {
+			var layout = document.getElementById('ft-layout');
+			var annotPnl = document.getElementById('ft-annot-panel');
+			if (!layout || !annotPnl || document.getElementById('ft-annot-ghost')) return;
+
+			var ghost = document.createElement('div');
+			ghost.id = 'ft-annot-ghost';
+			ghost.className = 'ft-panel-ghost';
+			ghost.innerHTML = '<button id="ft-annot-ghost-expand" class="ft-panel-ghost-expand" title="Show annotation panel">&#8249;</button>'
+				+ '<span class="ft-panel-ghost-label">Annotations</span>';
+			layout.insertBefore(ghost, annotPnl);
+
+			document.getElementById('ft-annot-ghost-expand').addEventListener('click', _toggleAnnotPanel);
+		}());
+
+		// Reading mode toggle buttons
+		document.querySelectorAll('.ft-read-mode-btn').forEach(function(btn) {
+			btn.addEventListener('click', function() { _setFtReadMode(btn.dataset.rmode); });
+		});
+
+		// Prev / next (section or page)
+		var prevBtn = document.getElementById('ft-sec-prev');
+		var nextBtn = document.getElementById('ft-sec-next');
+		if (prevBtn) prevBtn.addEventListener('click', function() {
+			if (_ftReadMode === 'section') _ftSectionNav(-1);
+			else if (_ftReadMode === 'page') _ftPageNav(-1);
+		});
+		if (nextBtn) nextBtn.addEventListener('click', function() {
+			if (_ftReadMode === 'section') _ftSectionNav(1);
+			else if (_ftReadMode === 'page') _ftPageNav(1);
 		});
 
 		// Exit button → return to map-text mode
@@ -3126,8 +3202,7 @@
 	}
 
 	function _ftStyle() {
-		var r = document.querySelector('input[name="ft-style"]:checked');
-		return r ? r.value : 'summary';
+		return 'full'; // styling radios removed; always use full detail level
 	}
 
 	function _clearKwActivePills() {
@@ -3135,12 +3210,136 @@
 		if (_doKwSearch) _doKwSearch('');
 	}
 
-	function clearReadingAnnotation() {
-		var panel = document.getElementById('ft-annot-panel');
-		if (panel) {
-			panel.innerHTML = '<p class="ft-annot-help">Click on a text event to see annotations.</p>';
-			panel.style.display = '';
+	// ── Horizontal detail popup ──────────────────────────────────
+	var _hPopup     = null;
+	var _hPopupRow  = null; // the row that triggered the popup
+
+	function _closeHPopup() {
+		if (_hPopup && _hPopup.parentNode) _hPopup.parentNode.removeChild(_hPopup);
+		_hPopup = null;
+		if (_hPopupRow) { _hPopupRow.classList.remove('expanded'); _hPopupRow = null; }
+	}
+
+	function _showHDetailPopup(row) {
+		_closeHPopup();
+		var detail = row.querySelector('.fa-detail');
+		if (!detail) return;
+		var rect = row.getBoundingClientRect();
+		var popup = document.createElement('div');
+		popup.className = 'fa-h-popup';
+		popup.innerHTML = detail.innerHTML;
+		document.body.appendChild(popup);
+		// Position: top-aligned with row, to the RIGHT of the annotation panel
+		var left = rect.right + 10;
+		var popupH = popup.offsetHeight || 200;
+		var top  = Math.min(rect.top, window.innerHeight - popupH - 8);
+		// Clamp to viewport right edge
+		var popupW = popup.offsetWidth || 280;
+		if (left + popupW > window.innerWidth - 4) left = window.innerWidth - popupW - 4;
+		popup.style.left = Math.max(4, left) + 'px';
+		popup.style.top  = Math.max(4, top) + 'px';
+		_hPopup    = popup;
+		_hPopupRow = row;
+		row.classList.add('expanded');
+		// Close on outside click (deferred so this click doesn't immediately close)
+		setTimeout(function() {
+			function outsideClose(e) {
+				if (!_hPopup) { document.removeEventListener('click', outsideClose); return; }
+				if (!_hPopup.contains(e.target) && !row.contains(e.target)) {
+					_closeHPopup();
+					document.removeEventListener('click', outsideClose);
+				}
+			}
+			document.addEventListener('click', outsideClose);
+		}, 0);
+	}
+
+	// ── Annotation layout (Horizontal / Vertical) ────────────────
+	var _annotLayout = 'horizontal'; // 'horizontal' | 'vertical'
+	var _vertPopup   = null;         // currently open inline popup element
+
+	function _closeVertPopup() {
+		if (_vertPopup) {
+			if (_vertPopup.parentNode) _vertPopup.parentNode.removeChild(_vertPopup);
+			_vertPopup = null;
 		}
+	}
+
+	// Build (once) the persistent toggle header at the top of #ft-annot-panel.
+	// Creates #ft-annot-layout-toggle and #ft-annot-body inside the panel.
+	function initAnnotPanelHeader() {
+		var panel = document.getElementById('ft-annot-panel');
+		if (!panel || panel.querySelector('#ft-annot-layout-toggle')) return;
+
+		var hdr = document.createElement('div');
+		hdr.id = 'ft-annot-layout-toggle';
+		hdr.className = 'ft-panel-header';
+		hdr.innerHTML =
+			'<span class="ft-annot-layout-label ft-panel-header-label">Annotations</span>' +
+			'<span class="ft-annot-layout-label" style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0;margin:0 2px">|</span>' +
+			'<span class="ft-annot-layout-label" style="color:#bbb;font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">Layout</span>' +
+			'<button class="ft-annot-layout-btn' + (_annotLayout === 'horizontal' ? ' active' : '') + '" data-layout="horizontal" title="Show annotations in the right sidebar panel">' +
+			'<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm5-1v12h9a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM4 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2z"/></svg>' +
+			' H</button>' +
+			'<button class="ft-annot-layout-btn' + (_annotLayout === 'vertical' ? ' active' : '') + '" data-layout="vertical" title="Expand annotations inline below the clicked text">' +
+			'<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1"/></svg>' +
+			' V</button>' +
+			'<button id="ft-annot-collapse-btn" class="ft-panel-collapse-btn" title="Hide annotation panel">&#8250;</button>';
+
+		var body = document.createElement('div');
+		body.id = 'ft-annot-body';
+		if (_annotLayout === 'horizontal') body.classList.add('fa-layout-h');
+
+		panel.innerHTML = '';
+		panel.appendChild(hdr);
+		panel.appendChild(body);
+
+		// Wire layout toggle buttons
+		hdr.querySelectorAll('.ft-annot-layout-btn').forEach(function(btn) {
+			btn.addEventListener('click', function() {
+				_annotLayout = btn.dataset.layout;
+				hdr.querySelectorAll('.ft-annot-layout-btn').forEach(function(b) {
+					b.classList.toggle('active', b.dataset.layout === _annotLayout);
+				});
+				var b2 = document.getElementById('ft-annot-body');
+				if (b2) b2.classList.toggle('fa-layout-h', _annotLayout === 'horizontal');
+				if (_annotLayout !== 'vertical') _closeVertPopup();
+				if (_annotLayout !== 'horizontal') _closeHPopup();
+			});
+		});
+
+		// Wire collapse button (wired once; ghost may not exist yet — use layout toggle)
+		var collapseBtn = document.getElementById('ft-annot-collapse-btn');
+		if (collapseBtn) {
+			collapseBtn.addEventListener('click', _toggleAnnotPanel);
+		}
+	}
+
+	function _toggleAnnotPanel() {
+		var layout = document.getElementById('ft-layout');
+		if (!layout) return;
+		var collapsed = layout.classList.toggle('ft-annot-collapsed');
+		var btn = document.getElementById('ft-annot-collapse-btn');
+		if (btn) {
+			btn.innerHTML = collapsed ? '&#8249;' : '&#8250;';
+			btn.title = collapsed ? 'Show annotation panel' : 'Hide annotation panel';
+		}
+		// Ghost expand button keeps icon facing ›
+		var ghostBtn = document.getElementById('ft-annot-ghost-expand');
+		if (ghostBtn) ghostBtn.innerHTML = collapsed ? '&#8249;' : '&#8249;';
+	}
+
+	function clearReadingAnnotation() {
+		_closeVertPopup();
+		_closeHPopup();
+		initAnnotPanelHeader();
+		var body  = document.getElementById('ft-annot-body');
+		var panel = document.getElementById('ft-annot-panel');
+		var target = body || panel;
+		if (target) {
+			target.innerHTML = '<p class="ft-annot-help">Click on a text event to see annotations.</p>';
+		}
+		if (panel) panel.style.display = '';
 		// Remove locked highlight from all spans
 		var hlCont = document.getElementById('ft-highlight-view');
 		if (hlCont) hlCont.querySelectorAll('.ft-hl-span.ft-hl-locked').forEach(function(s) { s.classList.remove('ft-hl-locked'); });
@@ -3148,17 +3347,19 @@
 		_annotatedNid = null;
 	}
 
-	function showReadingAnnotation(ev) {
+	function showReadingAnnotation(ev, triggerEl) {
 		var panel = document.getElementById('ft-annot-panel');
 		if (!panel) return;
+		initAnnotPanelHeader();
 		// If switching to a different event, deactivate any active keyword pill
 		if (_annotatedNid !== null && _annotatedNid !== String(ev.event_nid)) {
 			_clearKwActivePills();
+			_closeVertPopup();
 		}
 		_annotatedNid = String(ev.event_nid);
-		panel.style.display = 'block';
+		panel.style.display = ''; // let CSS flex layout take over (panel is inside #ft-layout)
 
-		var style    = _ftStyle();
+		var style    = 'full'; // always full detail; styling radios removed
 		var present  = idsToChars(ev.characters_present  || '');
 		var mentioned= idsToChars(ev.characters_mentioned || '');
 		var mentOnly = mentioned.filter(function(c) {
@@ -3176,32 +3377,45 @@
 			return iconImg(locIconUrl(lt));
 		}
 
-		// ── Character row builder ─────────────────────────────────
+		// ── Character row builder — name only; click to expand details ─
 		function charRow(ch) {
-			var row = '<div class="fa-row">' + charIcon(ch);
-			row += '<div class="fa-row-body"><span class="fa-name">' + esc(ch.name) + '</span>';
-			if (style === 'summary' || style === 'full') {
-				var meta = [ch.race, ch.gender, ch['class'], ch.family].filter(Boolean).join(' · ');
+			var meta = [ch.race, ch.gender, ch['class'], ch.family].filter(Boolean).join(' · ');
+			var hasDetail = meta || ch.biography;
+			var row = '<div class="fa-row' + (hasDetail ? ' fa-expandable' : '') + '">';
+			row += charIcon(ch);
+			row += '<div class="fa-row-body">';
+			row += '<div class="fa-name-line"><span class="fa-name">' + esc(ch.name) + '</span>';
+			if (hasDetail) row += '<span class="fa-expand-icon">&#9654;</span>';
+			row += '</div>';
+			if (hasDetail) {
+				row += '<div class="fa-detail">';
 				if (meta) row += '<div class="fa-meta">' + esc(meta) + '</div>';
-			}
-			if (style === 'full' && ch.biography) {
-				row += '<div class="fa-desc">' + esc(ch.biography) + '</div>';
+				if (ch.biography) row += '<div class="fa-desc">' + esc(ch.biography) + '</div>';
+				row += '</div>';
 			}
 			row += '</div></div>';
 			return row;
 		}
 
-		// ── Location block ────────────────────────────────────────
+		// ── Location block — name only; click to expand details ─────
 		function locBlock() {
+			var hasDetail = locData.location_type || locData.description;
 			var h = '<div class="fa-section" data-annot="locations">';
 			h += '<div class="fa-heading">Location</div>';
-			h += '<div class="fa-row">' + locIcon(locData.location_type || '');
-			h += '<div class="fa-row-body"><span class="fa-name">' + esc(ev.event_location || '—') + '</span>';
-			if ((style === 'summary' || style === 'full') && locData.location_type) {
-				h += '<div class="fa-meta">' + esc(locData.location_type) + '</div>';
-			}
-			if (style === 'full' && locData.description) {
-				h += '<div class="fa-desc">' + esc(locData.description) + '</div>';
+			h += '<div class="fa-row' + (hasDetail ? ' fa-expandable' : '') + '">';
+			h += locIcon(locData.location_type || '');
+			h += '<div class="fa-row-body">';
+			h += '<div class="fa-name-line"><span class="fa-name">' + esc(ev.event_location || '—') + '</span>';
+			if (hasDetail) h += '<span class="fa-expand-icon">&#9654;</span>';
+			h += '</div>';
+			if (hasDetail) {
+				h += '<div class="fa-detail">';
+				if (locData.location_type) h += '<div class="fa-meta">' + esc(locData.location_type) + '</div>';
+				if (locData.description) h += '<div class="fa-desc">' + esc(locData.description) + '</div>';
+				if (locData.in_yok !== undefined) {
+					h += '<div class="fa-meta">' + (locData.location_type === 'OutOfYoknapatawpha' ? 'Outside Yoknapatawpha' : 'In Yoknapatawpha') + '</div>';
+				}
+				h += '</div>';
 			}
 			h += '</div></div></div>';
 			return h;
@@ -3224,20 +3438,14 @@
 			return h;
 		}
 
-		// ── Events block ──────────────────────────────────────────
+		// ── Events block — always shows summary + metadata ───────────
 		function evBlock() {
 			var h = '<div class="fa-section" data-annot="events">';
 			h += '<div class="fa-heading">Event</div>';
-			if (style === 'minimal') {
-				h += '<div class="fa-desc">' + esc(ev.summary || '') + '</div>';
-			} else if (style === 'summary') {
-				h += '<div class="fa-desc">' + esc(ev.summary || '') + '</div>';
-				if (ev.event_date) h += '<div class="fa-meta">' + esc(ev.event_date) + '</div>';
-			} else { // full
-				h += '<div class="fa-desc">' + esc(ev.summary || '') + '</div>';
-				if (ev.event_date) h += '<div class="fa-meta">' + esc(ev.event_date) + '</div>';
-				if (ev.narrative_status) h += '<div class="fa-meta">' + esc(ev.narrative_status) + '</div>';
-			}
+			if (ev.first_words) h += '<div class="fa-meta fa-first-words">&ldquo;' + esc(ev.first_words) + '&hellip;&rdquo;</div>';
+			h += '<div class="fa-desc">' + esc(ev.summary || '') + '</div>';
+			if (ev.event_date) h += '<div class="fa-meta">' + esc(ev.event_date) + '</div>';
+			if (ev.narrative_status) h += '<div class="fa-meta">' + esc(ev.narrative_status) + '</div>';
 			h += '</div>';
 			return h;
 		}
@@ -3303,16 +3511,81 @@
 			return h;
 		}
 
-		panel.innerHTML = locBlock() + charsBlock() + evBlock() + kwBlock();
+		var contentHtml = locBlock() + charsBlock() + evBlock() + kwBlock();
+
+		// Determine target container based on layout mode
+		var target;
+		if (_annotLayout === 'vertical') {
+			// Build an inline popup inserted after the last span for this NID (or the trigger span)
+			_closeVertPopup();
+			var hlCont2 = document.getElementById('ft-highlight-view');
+			var nidSpans = hlCont2
+				? Array.from(hlCont2.querySelectorAll('.ft-hl-span[data-nid="' + _annotatedNid + '"]'))
+				: [];
+			var insertAfter = nidSpans.length ? nidSpans[nidSpans.length - 1] : (triggerEl || null);
+
+			var popup = document.createElement('div');
+			popup.className = 'ft-inline-popup';
+			popup.innerHTML = '<button class="ft-ip-close" title="Close">&#x2715;</button>' + contentHtml;
+
+			if (insertAfter && insertAfter.parentNode) {
+				insertAfter.parentNode.insertBefore(popup, insertAfter.nextSibling);
+			}
+			_vertPopup = popup;
+
+			popup.querySelector('.ft-ip-close').addEventListener('click', function() {
+				_closeVertPopup();
+				_annotatedNid = null;
+				var hlC = document.getElementById('ft-highlight-view');
+				if (hlC) hlC.querySelectorAll('.ft-hl-span.ft-hl-locked').forEach(function(s) { s.classList.remove('ft-hl-locked'); });
+			});
+
+			// Click-outside-to-close (deferred so the triggering click doesn't immediately close)
+			var _popupRef = popup;
+			setTimeout(function() {
+				function outsideClose(e) {
+					if (!_popupRef.parentNode) { document.removeEventListener('click', outsideClose); return; }
+					if (!_popupRef.contains(e.target)) {
+						_closeVertPopup();
+						_annotatedNid = null;
+						var hlC = document.getElementById('ft-highlight-view');
+						if (hlC) hlC.querySelectorAll('.ft-hl-span.ft-hl-locked').forEach(function(s) { s.classList.remove('ft-hl-locked'); });
+						document.removeEventListener('click', outsideClose);
+					}
+				}
+				document.addEventListener('click', outsideClose);
+			}, 0);
+
+			target = popup;
+		} else {
+			// Horizontal mode: write to #ft-annot-body inside the panel
+			var body = document.getElementById('ft-annot-body');
+			target = body || panel;
+			target.innerHTML = contentHtml;
+		}
+
+		// Wire click-to-expand on character and location rows
+		target.querySelectorAll('.fa-row.fa-expandable').forEach(function(row) {
+			row.addEventListener('click', function(e) {
+				e.stopPropagation();
+				if (_annotLayout === 'horizontal') {
+					// Toggle: if this row is already open, close; otherwise open new popup
+					if (_hPopupRow === row) { _closeHPopup(); } else { _showHDetailPopup(row); }
+				} else {
+					row.classList.toggle('expanded');
+				}
+			});
+		});
+
 		// Wire keyword term clicks → keyword search in highlight view
-		panel.querySelectorAll('.ft-kw-term').forEach(function(el) {
+		target.querySelectorAll('.ft-kw-term').forEach(function(el) {
 			el.addEventListener('click', function(e) {
 				e.stopPropagation(); // prevent document outside-click handler from firing
 				var term = el.dataset.term;
 				if (!term) return;
 				var isActive = el.classList.contains('ft-kw-active');
-				// Deactivate all pills in panel
-				panel.querySelectorAll('.ft-kw-term').forEach(function(p) { p.classList.remove('ft-kw-active'); });
+				// Deactivate all pills in target
+				target.querySelectorAll('.ft-kw-term').forEach(function(p) { p.classList.remove('ft-kw-active'); });
 				if (isActive) {
 					// Re-clicking active pill → clear the search
 					if (_doKwSearch) _doKwSearch('');
@@ -3330,11 +3603,13 @@
 				}
 			});
 		});
-		// Apply current checkbox visibility state
-		document.querySelectorAll('input[data-annot]').forEach(function(cb) {
-			var sec = panel.querySelector('[data-annot="' + cb.dataset.annot + '"]');
-			if (sec) sec.style.display = cb.checked ? '' : 'none';
-		});
+		// Apply current checkbox visibility state (horizontal only; vertical popup shows all)
+		if (_annotLayout !== 'vertical') {
+			document.querySelectorAll('input[data-annot]').forEach(function(cb) {
+				var sec = target.querySelector('[data-annot="' + cb.dataset.annot + '"]');
+				if (sec) sec.style.display = cb.checked ? '' : 'none';
+			});
+		}
 		// Lock highlight on the matching span(s) in the highlight view
 		var hlCont = document.getElementById('ft-highlight-view');
 		if (hlCont) {
@@ -3346,15 +3621,126 @@
 	// ── Suppress default show_characters ─────────────────────────
 	// In Map Only mode the native radios work; in other modes we take over.
 	$(document).ready(function() {
+		// ── Story catalog dropdown ────────────────────────────────
+		(function initStoryCatalog() {
+			var sel = document.getElementById('dy-story-select');
+			if (!sel) return;
+			// Current story code from URL ?text=XX
+			var params = new URLSearchParams(window.location.search);
+			var currentCode = (params.get('text') || 'RE').toUpperCase();
+			// Full DY catalog in display order
+			var catalog = [
+				// Novels
+				{code:'FD', label:'Flags in the Dust', type:'novel'},
+				{code:'SF', label:'The Sound and the Fury', type:'novel'},
+				{code:'LD', label:'As I Lay Dying', type:'novel'},
+				{code:'SY', label:'Sanctuary', type:'novel'},
+				{code:'LA', label:'Light in August', type:'novel'},
+				{code:'AA', label:'Absalom, Absalom!', type:'novel'},
+				{code:'UV', label:'The Unvanquished', type:'novel'},
+				{code:'H',  label:'The Hamlet', type:'novel'},
+				{code:'GDM',label:'Go Down, Moses', type:'novel'},
+				{code:'ID', label:'Intruder in the Dust', type:'novel'},
+				{code:'RQ', label:'Requiem for a Nun', type:'novel'},
+				{code:'T',  label:'The Town', type:'novel'},
+				{code:'M',  label:'The Mansion', type:'novel'},
+				{code:'R',  label:'The Reivers', type:'novel'},
+				// Short fiction
+				{code:'RE',  label:'\u201cA Rose for Emily\u201d', type:'story'},
+				{code:'RL',  label:'\u201cRed Leaves\u201d', type:'story'},
+				{code:'DS',  label:'\u201cDry September\u201d', type:'story'},
+				{code:'TES', label:'\u201cThat Evening Sun\u201d', type:'story'},
+				{code:'AD',  label:'\u201cAd Astra\u201d', type:'story'},
+				{code:'HR',  label:'\u201cHair\u201d', type:'story'},
+				{code:'SH',  label:'\u201cSpotted Horses\u201d', type:'story'},
+				{code:'TH',  label:'\u201cThe Hound\u201d', type:'story'},
+				{code:'ADP', label:'\u201cAll the Dead Pilots\u201d', type:'story'},
+				{code:'J',   label:'\u201cA Justice\u201d', type:'story'},
+				{code:'DD',  label:'\u201cDeath Drag\u201d', type:'story'},
+				{code:'CB',  label:'\u201cCentaur in Brass\u201d', type:'story'},
+				{code:'LJC', label:'\u201cLizards in Jamshyd\u2019s Courtyard\u201d', type:'story'},
+				{code:'SMO', label:'\u201cSmoke\u201d', type:'story'},
+				{code:'MZG', label:'\u201cMiss Zilphia Gant\u201d', type:'story'},
+				{code:'TWQ', label:'\u201cThere Was a Queen\u201d', type:'story'},
+				{code:'BE',  label:'\u201cBeyond\u201d', type:'story'},
+				{code:'W',   label:'\u201cWash\u201d', type:'story'},
+				{code:'ELY', label:'\u201cElly\u201d', type:'story'},
+				{code:'ABH', label:'\u201cA Bear Hunt\u201d', type:'story'},
+				{code:'MY',  label:'\u201cMule in the Yard\u201d', type:'story'},
+				{code:'AMB', label:'\u201cAmbuscade\u201d', type:'story'},
+				{code:'RET', label:'\u201cRetreat\u201d', type:'story'},
+				{code:'RAI', label:'\u201cRaid\u201d', type:'story'},
+				{code:'SAS', label:'\u201cSkirmish at Sartoris\u201d', type:'story'},
+				{code:'TWB', label:'\u201cThat Will Be Fine\u201d', type:'story'},
+				{code:'UW',  label:'\u201cUncle Willy\u201d', type:'story'},
+				{code:'LIO', label:'\u201cLion\u201d', type:'story'},
+				{code:'FAH', label:'\u201cFool About a Horse\u201d', type:'story'},
+				{code:'UNV', label:'\u201cThe Unvanquished\u201d', type:'story'},
+				{code:'VEN', label:'\u201cVendee\u201d', type:'story'},
+				{code:'MNK', label:'\u201cMonk\u201d', type:'story'},
+				{code:'BB',  label:'\u201cBarn Burning\u201d', type:'story'},
+				{code:'HUW', label:'\u201cHand Upon the Waters\u201d', type:'story'},
+				{code:'POL', label:'\u201cA Point of Law\u201d', type:'story'},
+				{code:'OLD', label:'\u201cThe Old People\u201d', type:'story'},
+				{code:'PAN', label:'\u201cPantaloon in Black\u201d', type:'story'},
+				{code:'GOL', label:'\u201cGold Is Not Always\u201d', type:'story'},
+				{code:'TO',  label:'\u201cTomorrow\u201d', type:'story'},
+				{code:'GOD', label:'\u201cGo Down, Moses\u201d', type:'story'},
+				{code:'TM',  label:'\u201cThe Tall Men\u201d', type:'story'},
+				{code:'TWS', label:'\u201cTwo Soldiers\u201d', type:'story'},
+				{code:'DEL', label:'\u201cDelta Autumn\u201d', type:'story'},
+				{code:'BAR', label:'\u201cThe Bear\u201d', type:'story'},
+				{code:'SL',  label:'\u201cShingles for the Lord\u201d', type:'story'},
+				{code:'MGM', label:'\u201cMy Grandmother Millard\u2026\u201d', type:'story'},
+				{code:'SNP', label:'\u201cShall Not Perish\u201d', type:'story'},
+				{code:'AC',  label:'\u201cAppendix: Compson\u201d', type:'story'},
+				{code:'EIC', label:'\u201cAn Error in Chemistry\u201d', type:'story'},
+				{code:'CRT', label:'\u201cA Courtship\u201d', type:'story'},
+				{code:'KGB', label:'\u201cKnight\u2019s Gambit\u201d', type:'story'},
+				{code:'NC',  label:'\u201cA Name for the City\u201d', type:'story'},
+				{code:'RAM', label:'\u201cRace at Morning\u201d', type:'story'},
+				{code:'BP',  label:'\u201cBy the People\u201d', type:'story'},
+				{code:'WCD', label:'\u201cWith Caution and Dispatch\u201d', type:'story'}
+			];
+			// Group headers
+			var novelGroup = document.createElement('optgroup');
+			novelGroup.label = 'Novels';
+			var storyGroup = document.createElement('optgroup');
+			storyGroup.label = 'Short Fiction';
+			catalog.forEach(function(item) {
+				var opt = document.createElement('option');
+				opt.value = item.code;
+				opt.textContent = item.label;
+				if (item.code === currentCode) {
+					opt.selected = true;
+					opt.className = 'dy-story-current';
+				}
+				(item.type === 'novel' ? novelGroup : storyGroup).appendChild(opt);
+			});
+			sel.appendChild(novelGroup);
+			sel.appendChild(storyGroup);
+			sel.addEventListener('change', function() {
+				var code = sel.value;
+				if (code === currentCode) return;
+				// Navigate to live DY for other stories; stay on mockup for current
+				window.location.href = 'https://faulkner.iath.virginia.edu/?text=' + encodeURIComponent(code);
+			});
+		})();
 		var _origShowChars = typeof window.show_characters === 'function' ? window.show_characters : null;
 		window._dyShowCharsOverride = true; // start in map-text mode
 		window.show_characters = function() {
 			if (!window._dyShowCharsOverride && _origShowChars) _origShowChars.apply(this, arguments);
 		};
-		// Wire Display Options radios
+		// Wire Display Options radios (legacy, kept for compatibility)
 		document.querySelectorAll('input[name="dy-display"]').forEach(function(r) {
 			r.addEventListener('change', function() {
 				if (r.checked) setDisplayMode(r.value);
+			});
+		});
+		// Wire global nav buttons
+		document.querySelectorAll('#dy-global-nav .dy-nav-btn').forEach(function(btn) {
+			btn.addEventListener('click', function() {
+				setDisplayMode(btn.dataset.mode);
 			});
 		});
 		// Apply the default display mode on load
@@ -3372,6 +3758,66 @@
 				c2.appendChild(zp);
 			}
 		})();
+
+		// ── Map canvas resize (S / M / L) ──────────────────────────
+		var _mapSizes = [
+			{ w: 800,  h: 500 },
+			{ w: 1000, h: 625 },
+			{ w: 1200, h: 750 }
+		];
+		var _mapSizeIdx = 0;
+		function resizeMapCanvas(idx) {
+			_mapSizeIdx = idx;
+			var sz = _mapSizes[idx];
+			var newScale = 0.305 * (sz.w / 800);
+
+			// Resize Konva stage
+			stage.width(sz.w);
+			stage.height(sz.h);
+
+			// Scale map layers proportionally
+			backgroundLayer.scaleX(newScale);
+			backgroundLayer.scaleY(newScale);
+			contentLayer.scaleX(newScale);
+			contentLayer.scaleY(newScale);
+
+			// Reposition contentLayer to new stage center
+			contentLayer.x((-1320 * newScale) + (sz.w / 2));
+			contentLayer.y((-825  * newScale) + (sz.h / 2));
+
+			// Sync heatLayer with contentLayer
+			heatLayer.scaleX(newScale);
+			heatLayer.scaleY(newScale);
+			heatLayer.x(contentLayer.x());
+			heatLayer.y(contentLayer.y());
+
+			// Redraw all layers
+			backgroundLayer.draw();
+			contentLayer.draw();
+			heatLayer.draw();
+			drawSpatialHeatmap();
+
+			// Update dependent layout elements using container offset
+			var containerTop = document.getElementById('container').offsetTop;
+			var ctrlPanel = document.getElementById('dy-controls-panel');
+			var dialog    = ctrlPanel && ctrlPanel.querySelector('#layer_dialog');
+			if (ctrlPanel) ctrlPanel.style.height = sz.h + 'px';
+			if (dialog)    dialog.style.height    = sz.h + 'px';
+			var toolbar = document.getElementById('dy-toolbar');
+			if (toolbar) { toolbar.style.top = (containerTop + sz.h + 33) + 'px'; toolbar.style.width = sz.w + 'px'; }
+			var aggPanel = document.getElementById('dy-agg-panel');
+			if (aggPanel) aggPanel.style.top = (containerTop + sz.h + 95) + 'px';
+			var titleBar = document.getElementById('dy-title-bar');
+			if (titleBar) titleBar.style.top = (containerTop + sz.h - 40) + 'px';
+
+			// Sync button active state
+			document.querySelectorAll('.dy-map-size-btn').forEach(function(btn, i) {
+				btn.classList.toggle('active', i === idx);
+			});
+		}
+		document.querySelectorAll('.dy-map-size-btn').forEach(function(btn, i) {
+			btn.addEventListener('click', function() { resizeMapCanvas(i); });
+		});
 
 		// Wire Autozoom (Fit) button — curated view centred on Yoknapatawpha locations
 		document.getElementById('autozoom').addEventListener('click', function() {

@@ -3,8 +3,98 @@
   	{
 		position: relative;
 		width: 1300px;
-		min-height: 900px;
+		min-height: 960px;
 		padding-bottom: 54px;
+	}
+
+	/* ── Global mode navigation bar ─────────────────────────────── */
+	#dy-global-nav {
+		width: 1300px;
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		background: #1e2228;
+		border-radius: 4px 4px 0 0;
+		padding: 0 10px;
+		box-sizing: border-box;
+		gap: 12px;
+		user-select: none;
+	}
+	.dy-nav-story {
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 12px;
+		font-style: italic;
+		color: rgba(255,255,255,0.45);
+		white-space: nowrap;
+		padding: 9px 6px 9px 2px;
+		flex-shrink: 0;
+	}
+	#dy-story-select {
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 12px;
+		font-style: italic;
+		color: rgba(255,255,255,0.75);
+		background: rgba(255,255,255,0.07);
+		border: 1px solid rgba(255,255,255,0.15);
+		border-radius: 3px;
+		padding: 5px 24px 5px 9px;
+		cursor: pointer;
+		outline: none;
+		appearance: none;
+		-webkit-appearance: none;
+		max-width: 260px;
+		/* Custom dropdown arrow */
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.4)'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right 8px center;
+		transition: background 0.15s, border-color 0.15s;
+	}
+	#dy-story-select:hover {
+		background-color: rgba(255,255,255,0.12);
+		border-color: rgba(255,255,255,0.3);
+	}
+	#dy-story-select:focus {
+		border-color: #c09a5a;
+	}
+	#dy-story-select option {
+		background: #2a2f38;
+		color: #ddd;
+		font-style: normal;
+	}
+	#dy-story-select option.dy-story-current {
+		color: #fff;
+		font-weight: bold;
+	}
+	.dy-nav-btns {
+		display: flex;
+		gap: 2px;
+		align-items: stretch;
+	}
+	.dy-nav-btn {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 7px 18px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11.5px;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		color: rgba(255,255,255,0.55);
+		background: transparent;
+		border: none;
+		border-bottom: 3px solid transparent;
+		cursor: pointer;
+		transition: color 0.15s, border-color 0.15s, background 0.15s;
+		white-space: nowrap;
+	}
+	.dy-nav-btn:hover {
+		color: rgba(255,255,255,0.85);
+		background: rgba(255,255,255,0.06);
+	}
+	.dy-nav-btn.active {
+		color: #fff;
+		border-bottom-color: #c09a5a;
+		background: rgba(255,255,255,0.07);
 	}
 
 	/* ── Full-text panel (right col, top) ─────────────────────── */
@@ -13,10 +103,11 @@
 		left: 810px;
 		top: 24px;
 		width: 460px;
-		height: 500px;
+		height: 560px;
 		background: #fff;
 		border: 1px solid #ccc;
 		overflow-y: auto;
+		overflow-x: hidden;
 		font-family: Georgia, 'Times New Roman', serif;
 		font-size: 13px;
 		line-height: 1.5;
@@ -113,6 +204,8 @@
 	/* ── Hide all remaining legacy DY controls ───────────────── */
 	#sections, #event_controls, #chron_controls, #date_labels,
 	#dates_wrapper, #playback_controls, #event_controls_offset { display: none !important; }
+	/* Mode radios replaced by #dy-global-nav */
+	#dy-display-opts { display: none !important; }
 
 	/* ══════════════════════════════════════════════════════════
 	   CUSTOM CONTROL TOOLBAR  (replaces DY's scattered controls)
@@ -177,6 +270,7 @@
 	}
 	.dy-btn:hover { background: #ededed; border-color: #aaa; color: #000; }
 	.dy-btn:active { background: #ddd; box-shadow: inset 0 1px 3px rgba(0,0,0,.2); }
+	.dy-btn.active { background: #d0e8ff; border-color: #6aabde; color: #1a5a8a; }
 	.dy-btn svg { pointer-events: none; display: block; }
 	.dy-btn-label { display: block; font-size: 11px; color: #555; margin-bottom: 3px; }
 	.dy-btn-row { display: flex; flex-direction: row; align-items: center; gap: 4px; }
@@ -300,7 +394,7 @@
 	#dy-agg-panel {
 		position: absolute;
 		left: 0;
-		top: 535px;
+		top: 595px;
 		width: 1270px;
 		background: #fff;
 		border: 1px solid #ccc;
@@ -402,7 +496,7 @@
 	#info-panel {
 		position: absolute;
 		left: 810px;
-		top: 533px;
+		top: 593px;
 		width: 460px;
 		background: #fff;
 		border: 1px solid #ccc;
@@ -412,7 +506,7 @@
 		color: #333;
 		display: none;
 		overflow: hidden;
-		transition: transform 0.28s ease, height 0.28s ease, top 0.28s ease;
+		transition: transform 0.28s ease, height 0.28s ease, top 0.28s ease, width 0.28s ease;
 	}
 	#info-panel .info-tabs {
 		display: flex;
@@ -444,6 +538,21 @@
 	#info-panel .info-char-group ul li { line-height: 1.5; }
 	#info-panel .info-mentioned { opacity: 1; }
 	#info-panel .info-empty { color: #aaa; font-style: italic; }
+	.loc-out-of-yok-badge {
+		display: inline-block;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 8px;
+		font-weight: bold;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: #fff;
+		background: #778;
+		padding: 1px 5px 2px;
+		border-radius: 2px;
+		margin-left: 7px;
+		vertical-align: middle;
+		white-space: nowrap;
+	}
 
 	/* ── Info panel stacked mode (when fulltext-panel is collapsed) ── */
 	#info-panel.ip-stacked .info-tabs { display: none; }
@@ -479,6 +588,7 @@
 		background: #fff;
 		border-right: 1px solid #c8c4bc;
 		box-sizing: border-box;
+		transition: width 0.28s ease;
 	}
 	#dy-controls-panel #layer_dialog {
 		padding: 4px 8px 8px;
@@ -577,6 +687,13 @@
 		margin: 0 0 1.2em;
 		padding: 0.7em 0;
 		border-bottom: 1px solid #d4cfc8;
+	}
+	.ft-cite-note {
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 10.5px;
+		color: #666;
+		font-style: italic;
+		margin: 0 0 0.6em;
 	}
 	.ft-cite-tabs { display: flex; gap: 4px; margin-bottom: 6px; }
 	.ft-cite-tab {
@@ -761,41 +878,6 @@
 		overflow-y: auto;
 	}
 	/* ── Continuous text scroll view ──────────────────────────────── */
-	#ft-continuous-view {
-		flex: 1;
-		display: none;
-		overflow-y: auto;
-		padding: 10px 14px;
-		font-size: 13px;
-	}
-	.ft-block {
-		margin: 0;
-		padding: 0;
-		cursor: pointer;
-		transition: opacity 0.25s;
-	}
-	.ft-block.dimmed { opacity: 0.3; }
-	.ft-block.ft-block-past { opacity: 0.55; }
-	.ft-cont-inline.ft-block-past { opacity: 0.55; }
-	.ft-cont-inline.dimmed { opacity: 0.3; }
-	.ft-block.ft-block-active { opacity: 1; }
-	/* In fulltext mode: no dimming — every block stays fully readable */
-	body.dy-mode-fulltext .ft-block.dimmed,
-	body.dy-mode-fulltext .ft-block.ft-block-past,
-	body.dy-mode-fulltext .ft-cont-inline.dimmed,
-	body.dy-mode-fulltext .ft-cont-inline.ft-block-past { opacity: 1; }
-	.ft-section-num {
-		font-family: Georgia, 'Times New Roman', serif;
-		font-size: 0.8em;
-		letter-spacing: 0.2em;
-		text-align: center;
-		color: #888;
-		margin: 1.2em 0 0.9em;
-		padding: 0.4em 0;
-		border-top: 1px solid #ddd;
-		border-bottom: 1px solid #ddd;
-	}
-	.ft-block-meta { display: none; }
 	/* ── Highlighted text view ───────────────────────────────────── */
 	#ft-highlight-view {
 		flex: 1;
@@ -825,11 +907,6 @@
 		transition: none;
 	}
 	body.dy-mode-fulltext .ft-hl-span.ft-hl-locked:hover { background: rgba(193,154,107,0.25); }
-	/* Continuation blocks: event starts mid-paragraph.
-	   Remove the gap between the tail of the previous block and the head of this one. */
-	.ft-block-cont .ft-block-text p:first-child { margin-top: 0; text-indent: 0; }
-	.ft-block:has(+ .ft-block-cont) .ft-block-text p:last-child { margin-bottom: 0; }
-	.ft-cont-inline { cursor: pointer; }
 	/* ── Text toolbar: search + section nav ───────────────────────── */
 	#ft-text-toolbar {
 		flex-shrink: 0;
@@ -960,6 +1037,63 @@
 		color: #555;
 	}
 	.ft-sec-btn:hover { background: #e8e8e8; }
+	.ft-sec-btn.ft-sec-active {
+		background: #1e2228;
+		color: #fff;
+		border-color: #1e2228;
+	}
+	/* ── Reading mode toggle buttons ────────────────────────────── */
+	#ft-read-mode-btns {
+		display: flex;
+		flex-shrink: 0;
+	}
+	.ft-read-mode-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 2px 8px;
+		border: 1px solid #ccc;
+		border-right-width: 0;
+		background: #f5f5f5;
+		cursor: pointer;
+		font-size: 11px;
+		color: #666;
+		line-height: 1.5;
+		white-space: nowrap;
+	}
+	.ft-read-mode-btn:first-child { border-radius: 3px 0 0 3px; }
+	.ft-read-mode-btn:last-child  { border-radius: 0 3px 3px 0; border-right-width: 1px; }
+	.ft-read-mode-btn.active {
+		background: #1e2228;
+		color: #fff;
+		border-color: #1e2228;
+	}
+	.ft-read-mode-btn:hover:not(.active) { background: #e8e8e8; }
+	/* ── Section / page prev–next navigation ─────────────────────── */
+	.ft-sec-nav-btn {
+		padding: 2px 8px;
+		border: 1px solid #ccc;
+		border-radius: 3px;
+		background: #fff;
+		cursor: pointer;
+		font-size: 10px;
+		color: #555;
+		display: none;
+	}
+	.ft-sec-nav-btn:hover { background: #e8e8e8; }
+	#ft-read-pos-label {
+		font-size: 10px;
+		color: #888;
+		min-width: 64px;
+		text-align: center;
+		display: none;
+	}
+	/* ── Section filter — hide non-active sections ───────────────── */
+	.ft-block.ft-sec-hide { display: none !important; }
+	.ft-hl-section.ft-sec-hide { display: none !important; }
+	/* ── Page mode — clip overflow so scrollTop controls position ── */
+	#ft-layout #ft-continuous-view.ft-page-mode,
+	#ft-layout #ft-highlight-view.ft-page-mode { overflow-y: hidden !important; }
 	.ft-sec-sep {
 		display: inline-block;
 		width: 1px;
@@ -1125,18 +1259,17 @@
 	/* ── Fulltext flex wrapper — sits below the header, centred with side margin ── */
 	#ft-layout {
 		position: fixed;
-		top: 155px;      /* align with top of #content_2 / map area */
+		top: 220px;      /* below #page_header (~184px) + #dy-global-nav (~36px) */
 		left: 15%;
 		right: 15%;
-		bottom: 0;
+		bottom: 5%;
 		display: flex;
 		flex-direction: row;
 		z-index: 1000;
 		background: #fff;
 		overflow: hidden;
 		border: 1px solid #ccc;
-		border-bottom: none;
-		border-radius: 4px 4px 0 0;
+		border-radius: 4px;
 		box-shadow: 0 -2px 8px rgba(0,0,0,.08);
 	}
 	/* Prevent body scrollbars from showing behind the fixed layout */
@@ -1151,7 +1284,99 @@
 		overflow-y: auto;
 		box-shadow: 1px 0 0 #c8c4bc;
 		border-bottom: none;
+		transition: flex-basis 0.2s ease, width 0.2s ease;
 	}
+	/* Collapsed — slide controls panel out */
+	#ft-layout.ft-ctrl-collapsed #dy-controls-panel {
+		flex: 0 0 0 !important;
+		width: 0 !important;
+		min-width: 0 !important;
+		overflow: hidden !important;
+		box-shadow: none;
+	}
+	/* ── Shared panel header / ghost / toggle styles ─────────────── */
+	.ft-panel-header {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		padding: 4px 4px 4px 8px;
+		border-bottom: 1px solid #e0ddd8;
+		background: #f5f3f0;
+		flex-shrink: 0;
+	}
+	.ft-panel-header-label {
+		font-size: 10px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: #999;
+		flex: 1;
+	}
+	.ft-panel-collapse-btn {
+		padding: 1px 6px;
+		border: 1px solid #d0cdc8;
+		border-radius: 3px;
+		background: transparent;
+		cursor: pointer;
+		font-size: 14px;
+		line-height: 1;
+		color: #999;
+		flex-shrink: 0;
+	}
+	.ft-panel-collapse-btn:hover { background: #e8e5e0; color: #333; }
+	/* Ghost stub */
+	.ft-panel-ghost {
+		display: none;
+		flex: 0 0 26px;
+		width: 26px;
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-start;
+		padding-top: 6px;
+		gap: 6px;
+		background: #f5f3f0;
+		overflow: hidden;
+	}
+	.ft-panel-ghost-expand {
+		padding: 1px 5px;
+		border: 1px solid #d0cdc8;
+		border-radius: 3px;
+		background: transparent;
+		cursor: pointer;
+		font-size: 14px;
+		line-height: 1;
+		color: #999;
+		flex-shrink: 0;
+	}
+	.ft-panel-ghost-expand:hover { background: #e8e5e0; color: #333; }
+	.ft-panel-ghost-label {
+		writing-mode: vertical-rl;
+		transform: rotate(180deg);
+		font-size: 9px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.07em;
+		color: #aaa;
+		user-select: none;
+		white-space: nowrap;
+	}
+	/* ctrl panel ghost — sits between controls and fulltext */
+	#ft-ctrl-ghost { box-shadow: 1px 0 0 #c8c4bc; }
+	#ft-layout.ft-ctrl-collapsed #ft-ctrl-ghost { display: flex; }
+	/* annot panel: transition + collapse */
+	#ft-layout #ft-annot-panel {
+		transition: flex-basis 0.2s ease, min-width 0.2s ease;
+	}
+	#ft-layout.ft-annot-collapsed #ft-annot-panel {
+		flex: 0 0 0 !important;
+		min-width: 0 !important;
+		width: 0 !important;
+		overflow: hidden !important;
+		border-left: none;
+	}
+	/* annot ghost — sits after fulltext panel */
+	#ft-annot-ghost { box-shadow: -1px 0 0 #c8c4bc; }
+	#ft-layout.ft-annot-collapsed #ft-annot-ghost { display: flex; }
 	/* Text column — grows to fill, capped at 800px */
 	#ft-layout #fulltext-panel {
 		position: relative !important;
@@ -1187,9 +1412,9 @@
 		min-width: 220px;
 		width: auto !important;
 		height: 100% !important;
-		overflow-y: auto;
-		display: block;   /* default visible; JS sets display:none to hide */
+		display: flex;   /* default visible; JS sets display:none to hide */
 		border-left: 1px solid #ddd;
+		transition: flex-basis 0.2s ease, min-width 0.2s ease;
 	}
 
 	/* fulltext controls section in the left panel */
@@ -1229,6 +1454,123 @@
 		font-style: italic;
 		font-size: 0.88em;
 		margin: 0;
+	}
+
+	/* ── Annotation layout toggle (Horizontal / Vertical) ── */
+	#ft-annot-layout-toggle {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		padding: 4px 4px 4px 8px;
+		border-bottom: 1px solid #e0ddd8;
+		background: #f5f3f0;
+		flex-shrink: 0;
+	}
+	.ft-annot-layout-label {
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.07em;
+		color: #aaa;
+		margin-right: 2px;
+		white-space: nowrap;
+	}
+	.ft-annot-layout-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11px;
+		font-weight: 600;
+		color: #999;
+		background: transparent;
+		border: 1px solid #ddd;
+		border-radius: 3px;
+		padding: 3px 9px;
+		cursor: pointer;
+		transition: background 0.15s, color 0.15s, border-color 0.15s;
+	}
+	.ft-annot-layout-btn:hover { color: #555; border-color: #bbb; }
+	.ft-annot-layout-btn.active {
+		color: #333;
+		background: #fff;
+		border-color: #aaa;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+	}
+	#ft-annot-body {
+		overflow-y: auto;
+		flex: 1 1 auto;
+		padding: 12px;
+		box-sizing: border-box;
+	}
+
+	/* ── Inline annotation popup (vertical layout mode) ──── */
+	.ft-inline-popup {
+		display: block;
+		margin: 8px 4px 10px;
+		padding: 11px 14px 13px;
+		background: #fffef9;
+		border: 1px solid #d8d3c8;
+		border-left: 3px solid #c09a5a;
+		border-radius: 0 4px 4px 0;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11.5px;
+		line-height: 1.55;
+		color: #333;
+		position: relative;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+		max-width: 520px;
+	}
+	.ft-ip-close {
+		position: absolute;
+		top: 7px;
+		right: 9px;
+		font-size: 13px;
+		color: #bbb;
+		cursor: pointer;
+		background: none;
+		border: none;
+		padding: 2px 5px;
+		line-height: 1;
+	}
+	.ft-ip-close:hover { color: #666; }
+	.ft-ip-section { margin-bottom: 10px; }
+	.ft-ip-section:last-child { margin-bottom: 0; }
+	.ft-ip-heading {
+		font-size: 9px;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: #bbb;
+		font-weight: 700;
+		margin-bottom: 5px;
+		padding-bottom: 3px;
+		border-bottom: 1px solid #ede9e1;
+	}
+	.ft-ip-entity {
+		display: flex;
+		align-items: flex-start;
+		gap: 7px;
+		margin-bottom: 8px;
+	}
+	.ft-ip-entity:last-child { margin-bottom: 0; }
+	.ft-ip-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
+	.ft-ip-body { flex: 1; min-width: 0; }
+	.ft-ip-name {
+		font-weight: 600;
+		font-size: 12px;
+		color: #222;
+		margin-bottom: 1px;
+	}
+	.ft-ip-meta {
+		font-size: 10.5px;
+		color: #888;
+		margin-bottom: 2px;
+	}
+	.ft-ip-desc {
+		font-size: 11px;
+		color: #666;
+		line-height: 1.5;
+		margin-top: 3px;
 	}
 
 	/* ── Top control bar ─────────────────────────────────── */
@@ -1343,10 +1685,11 @@
 	#ft-annot-panel {
 		display: none; /* shown only inside #ft-layout in fulltext mode */
 		background: #fcfcfc;
-		padding: 16px 12px;
+		padding: 0;
 		box-sizing: border-box;
 		font-size: 12px;
 		color: #333;
+		flex-direction: column;
 	}
 	#ft-annot-panel .fa-section {
 		margin-bottom: 18px;
@@ -1375,6 +1718,32 @@
 		gap: 7px;
 		margin-bottom: 8px;
 	}
+	#ft-annot-panel .fa-row.fa-expandable {
+		cursor: pointer;
+		border-radius: 3px;
+		padding: 3px 4px;
+		margin-left: -4px;
+		margin-right: -4px;
+		transition: background 0.12s;
+	}
+	#ft-annot-panel .fa-row.fa-expandable:hover { background: #f0ede6; }
+	#ft-annot-panel .fa-row.fa-expandable.expanded { background: #ece8e0; }
+	#ft-annot-panel .fa-name-line {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+	#ft-annot-panel .fa-expand-icon {
+		font-size: 8px;
+		color: #bbb;
+		flex-shrink: 0;
+		display: inline-block;
+		transition: transform 0.15s;
+		margin-top: 1px;
+	}
+	#ft-annot-panel .fa-row.expanded .fa-expand-icon { transform: rotate(90deg); color: #888; }
+	#ft-annot-panel .fa-detail { display: none; margin-top: 5px; }
+	#ft-annot-panel .fa-row.expanded .fa-detail { display: block; }
 	#ft-annot-panel .fa-icon {
 		width: 24px;
 		height: 24px;
@@ -1386,7 +1755,6 @@
 		font-weight: 600;
 		font-size: 12px;
 		color: #222;
-		display: block;
 	}
 	#ft-annot-panel .fa-meta {
 		font-size: 10px;
@@ -1399,6 +1767,105 @@
 		line-height: 1.5;
 		margin-top: 4px;
 	}
+	#ft-annot-panel .fa-first-words {
+		font-style: italic;
+		color: #999;
+		font-size: 10.5px;
+		margin-bottom: 3px;
+	}
+
+	/* ── Horizontal layout: floating detail popup to the left of the panel ── */
+	/* (row gets .expanded highlight only; detail rendered in .fa-h-popup) */
+	#ft-annot-body.fa-layout-h .fa-row.fa-expandable.expanded .fa-detail {
+		display: none; /* suppressed — shown in floating popup instead */
+	}
+	.fa-h-popup {
+		position: fixed;
+		z-index: 2100;
+		background: #fff;
+		border: 1px solid #d0cbc2;
+		border-radius: 4px 0 4px 4px;
+		box-shadow: -3px 3px 18px rgba(0,0,0,0.14);
+		padding: 11px 14px 13px;
+		width: 280px;
+		max-height: 320px;
+		overflow-y: auto;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11.5px;
+		color: #333;
+		line-height: 1.5;
+		pointer-events: auto;
+		/* small right-edge arrow pointing at the source row */
+	}
+	.fa-h-popup::after {
+		content: '';
+		position: absolute;
+		top: 10px;
+		left: -7px;
+		border: 7px solid transparent;
+		border-left: none;
+		border-right-color: #d0cbc2;
+		pointer-events: none;
+	}
+	.fa-h-popup::before {
+		content: '';
+		position: absolute;
+		top: 11px;
+		left: -6px;
+		border: 6px solid transparent;
+		border-left: none;
+		border-right-color: #fff;
+		pointer-events: none;
+		z-index: 1;
+	}
+	.fa-h-popup .fa-meta { font-size: 10.5px; color: #888; margin-top: 2px; }
+	.fa-h-popup .fa-desc { font-size: 11px; color: #555; line-height: 1.5; margin-top: 5px; }
+
+	/* ── Panel resize grips ──────────────────────────────────────── */
+	.dy-resize-grip {
+		position: absolute;
+		z-index: 5;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: transparent;
+		user-select: none;
+		touch-action: none;
+		flex-shrink: 0;
+		transition: background 0.15s;
+		opacity: 0.3;
+	}
+	.dy-resize-grip:hover { background: rgba(0,0,0,0.05); opacity: 1; }
+	.dy-resize-grip.is-dragging { background: rgba(0,0,0,0.08); opacity: 1; cursor: grabbing; }
+	/* Vertical grip strip (for left or right panel edges) */
+	.dy-grip-v {
+		top: 0; bottom: 0; width: 8px;
+		cursor: col-resize;
+		flex-direction: row;
+		gap: 2px;
+	}
+	/* Horizontal grip strip (for top or bottom panel edges) */
+	.dy-grip-h {
+		left: 0; right: 0; height: 7px;
+		cursor: row-resize;
+		flex-direction: column;
+		gap: 2px;
+	}
+	/* The two parallel indicator bars */
+	.dy-grip-bar {
+		display: block;
+		background: #999;
+		border-radius: 1px;
+		pointer-events: none;
+	}
+	.dy-grip-v .dy-grip-bar { width: 1px; height: 16px; }
+	.dy-grip-h .dy-grip-bar { width: 16px; height: 1px; }
+	/* Grip positioning within each panel */
+	#dy-controls-panel .dy-resize-grip { right: 0; }
+	#fulltext-panel    .dy-resize-grip { left: 0; }
+	#info-panel        .dy-resize-grip { left: 0; }
+	#dy-agg-panel      .dy-resize-grip { top: 0; }
+
 	/* ── Fulltext tab label (hidden; panel header serves this role) */
 	#fulltext-tab { display: none !important; }
 

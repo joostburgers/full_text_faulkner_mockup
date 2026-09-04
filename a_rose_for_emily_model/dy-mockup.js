@@ -3803,10 +3803,30 @@
 			var dialog    = ctrlPanel && ctrlPanel.querySelector('#layer_dialog');
 			if (ctrlPanel) ctrlPanel.style.height = sz.h + 'px';
 			if (dialog)    dialog.style.height    = sz.h + 'px';
+			
+			// Update toolbar
 			var toolbar = document.getElementById('dy-toolbar');
-			if (toolbar) { toolbar.style.top = (containerTop + sz.h + 33) + 'px'; toolbar.style.width = sz.w + 'px'; }
+			if (toolbar) { 
+				toolbar.style.top = (containerTop + sz.h + 33) + 'px'; 
+				toolbar.style.width = sz.w + 'px'; 
+			}
+			
+			// Reposition and resize panels relative to new map width
+			var mapRight = sz.w + 10;  // 10px gap between map and fulltext panel
+			var ftPanelWidth = 1300 - mapRight;  // fulltext shrinks as map grows
+			var ftPanel = document.getElementById('fulltext-panel');
+			if (ftPanel) {
+				ftPanel.style.left = mapRight + 'px';
+				ftPanel.style.width = Math.max(ftPanelWidth, 0) + 'px';  // never go negative
+			}
+			
+			// Aggregation panel: always full width (1300px)
 			var aggPanel = document.getElementById('dy-agg-panel');
-			if (aggPanel) aggPanel.style.top = (containerTop + sz.h + 95) + 'px';
+			if (aggPanel) { 
+				aggPanel.style.width = '1300px';
+				aggPanel.style.top = (containerTop + sz.h + 95) + 'px';
+			}
+			
 			var titleBar = document.getElementById('dy-title-bar');
 			if (titleBar) titleBar.style.top = (containerTop + sz.h - 40) + 'px';
 

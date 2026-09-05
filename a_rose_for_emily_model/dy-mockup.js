@@ -3848,6 +3848,56 @@
 			btn.addEventListener('click', function() { resizeMapCanvas(i); });
 		});
 
+		// ── Fulltext panel left-edge resize handler ─────────────────────
+		(function initFtPanelResize() {
+			var ftPanel = document.getElementById('fulltext-panel');
+			if (!ftPanel) return;
+
+			var isResizing = false;
+			var startX = 0;
+			var startWidth = 0;
+			var viewportRightGap = 10;
+			var rightEdge = 1300 - viewportRightGap;  // 1290px
+
+			// Create invisible resize handle on left edge
+			var handle = document.createElement('div');
+			handle.style.cssText = 
+				'position: absolute; left: 0; top: 0; width: 6px; height: 100%; cursor: ew-resize; z-index: 100;';
+			ftPanel.insertBefore(handle, ftPanel.firstChild);
+
+			handle.addEventListener('mousedown', function(e) {
+				isResizing = true;
+				startX = e.clientX;
+				startWidth = parseInt(ftPanel.style.width, 10) || ftPanel.offsetWidth;
+				document.addEventListener('mousemove', onMouseMove);
+				document.addEventListener('mouseup', onMouseUp);
+				e.preventDefault();
+			});
+
+			function onMouseMove(e) {
+				if (!isResizing) return;
+				var delta = e.clientX - startX;  // positive = moving right
+				var newWidth = Math.max(startWidth - delta, 0);  // never negative
+				var newLeft = rightEdge - newWidth;
+
+				ftPanel.style.left = newLeft + 'px';
+				ftPanel.style.width = newWidth + 'px';
+				
+				// Apply minimized mode when width < 360px
+				if (newWidth < 360) {
+					ftPanel.classList.add('fp-v-minimized');
+				} else {
+					ftPanel.classList.remove('fp-v-minimized');
+				}
+			}
+
+			function onMouseUp() {
+				isResizing = false;
+				document.removeEventListener('mousemove', onMouseMove);
+				document.removeEventListener('mouseup', onMouseUp);
+			}
+		})();
+
 		// Wire Autozoom (Fit) button — curated view centred on Yoknapatawpha locations
 		document.getElementById('autozoom').addEventListener('click', function() {
 			contentLayer.scaleX(1.305);

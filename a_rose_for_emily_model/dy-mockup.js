@@ -3827,7 +3827,9 @@
 				aggPanel.style.top = (containerTop + sz.h + 95) + 'px';
 			}
 			
-			// dy-title-bar positioning now handled by CSS (bottom: 40px)
+			// dy-title-bar: position 40px from bottom of canvas
+			var titleBar = document.getElementById('dy-title-bar');
+			if (titleBar) titleBar.style.top = (containerTop + sz.h - 40) + 'px';
 
 			// Sync button active state
 			document.querySelectorAll('.dy-map-size-btn').forEach(function(btn, i) {

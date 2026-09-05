@@ -649,7 +649,7 @@
 	#dy-title-bar {
 		position: absolute;
 		left: 192px;      /* clear the controls panel */
-		bottom: 40px;     /* always 40px from bottom of container */
+		top: 460px;       /* adjusted by JS in resizeMapCanvas() */
 		z-index: 55;
 		background: rgba(255, 255, 255, 0.30);
 		color: rgba(0, 0, 0, 0.70);

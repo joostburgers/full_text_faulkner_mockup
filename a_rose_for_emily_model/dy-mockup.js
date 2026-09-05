@@ -3813,11 +3813,19 @@
 			
 			// Reposition and resize panels relative to new map width
 			var mapRight = sz.w + 10;  // 10px gap between map and fulltext panel
-			var ftPanelWidth = 1300 - mapRight;  // fulltext shrinks as map grows
+			var viewportRightGap = 10;  // 10px gap between panel and viewport right edge
+			var ftPanelWidth = (1300 - viewportRightGap) - mapRight;  // fulltext shrinks as map grows
 			var ftPanel = document.getElementById('fulltext-panel');
 			if (ftPanel) {
 				ftPanel.style.left = mapRight + 'px';
 				ftPanel.style.width = Math.max(ftPanelWidth, 0) + 'px';  // never go negative
+				
+				// Apply minimized mode when width < 360px
+				if (ftPanelWidth < 360) {
+					ftPanel.classList.add('fp-v-minimized');
+				} else {
+					ftPanel.classList.remove('fp-v-minimized');
+				}
 			}
 			
 			// Aggregation panel: always full width (1300px)
@@ -3829,7 +3837,7 @@
 			
 			// dy-title-bar: position 40px from bottom of canvas
 			var titleBar = document.getElementById('dy-title-bar');
-			if (titleBar) titleBar.style.top = (containerTop + sz.h - 40) + 'px';
+			if (titleBar) titleBar.style.top = (containerTop + sz.h - 60) + 'px';
 
 			// Sync button active state
 			document.querySelectorAll('.dy-map-size-btn').forEach(function(btn, i) {

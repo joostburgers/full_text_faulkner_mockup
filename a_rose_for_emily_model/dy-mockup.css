@@ -644,7 +644,7 @@
 	#dy-title-bar {
 		position: absolute;
 		left: 192px;      /* clear the controls panel */
-		top: 460px;       /* anchored so 3-line box stays within 500px canvas */
+		bottom: 40px;     /* always 40px from bottom of container */
 		z-index: 55;
 		background: rgba(255, 255, 255, 0.30);
 		color: rgba(0, 0, 0, 0.70);

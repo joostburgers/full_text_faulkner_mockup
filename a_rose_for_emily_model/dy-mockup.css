@@ -782,7 +782,7 @@
 	/* Layout: content on left (flex: 1), header/tabs on right (flex: 0 0 auto) */
 	#fulltext-panel.fp-v-minimized {
 		display: flex;
-		flex-direction: row;
+		flex-direction: row-reverse;  /* reverse: header/tabs on right, content on left */
 		overflow: hidden;
 	}
 	#fulltext-panel.fp-v-minimized #ft-panel-header {
@@ -790,29 +790,26 @@
 		flex-direction: column;
 		flex: 0 0 auto;
 		width: auto;
-		min-width: 60px;
 		height: 100%;
-		overflow-y: auto;
+		overflow: hidden;
 		border-left: 1px solid #ddd;
 		border-bottom: none;
-		border-right: none;
 	}
 	#fulltext-panel.fp-v-minimized .ft-panel-tab {
 		flex: 0 0 auto;
-		padding: 8px 6px;
-		white-space: normal;
-		word-wrap: break-word;
-		writing-mode: horizontal-tb;
-		transform: none;
+		writing-mode: vertical-rl;
+		transform: rotate(90deg);
+		padding: 5px 10px;
+		white-space: nowrap;
 		border: none;
-		border-bottom: 1px solid #ddd;
+		border-top: 1px solid #ddd;
 		text-align: center;
 		font-size: 10px;
 		line-height: 1.2;
 		color: #555;
 	}
-	#fulltext-panel.fp-v-minimized .ft-panel-tab:last-child {
-		border-bottom: none;
+	#fulltext-panel.fp-v-minimized .ft-panel-tab:first-child {
+		border-top: none;
 	}
 	#fulltext-panel.fp-v-minimized .ft-panel-tab:hover {
 		background: #f0f0f0;
@@ -824,10 +821,27 @@
 	#fulltext-panel.fp-v-minimized #ft-panel-collapse-btn {
 		flex: 0 0 auto;
 		padding: 6px 4px;
-		margin: auto 0 0;
+		margin: auto 0;
 	}
-	/* Content visible on left side of tabs */
-	#fulltext-panel.fp-v-minimized > *:not(#ft-panel-header) {
+	/* Content on left: hide all view containers, show only active */
+	#fulltext-panel.fp-v-minimized #ft-events-view,
+	#fulltext-panel.fp-v-minimized #ft-text-toolbar,
+	#fulltext-panel.fp-v-minimized #ft-highlight-view,
+	#fulltext-panel.fp-v-minimized #ft-about-view,
+	#fulltext-panel.fp-v-minimized #ft-other-resources {
+		display: none !important;
+	}
+	/* Show view that has active state or is currently visible */
+	#fulltext-panel.fp-v-minimized #ft-events-view.active,
+	#fulltext-panel.fp-v-minimized #ft-text-toolbar.active,
+	#fulltext-panel.fp-v-minimized #ft-highlight-view.active,
+	#fulltext-panel.fp-v-minimized #ft-about-view.active,
+	#fulltext-panel.fp-v-minimized #ft-other-resources.active,
+	#fulltext-panel.fp-v-minimized #ft-events-view[style*="display: block"],
+	#fulltext-panel.fp-v-minimized #ft-text-toolbar[style*="display: block"],
+	#fulltext-panel.fp-v-minimized #ft-highlight-view[style*="display: block"],
+	#fulltext-panel.fp-v-minimized #ft-about-view[style*="display: block"],
+	#fulltext-panel.fp-v-minimized #ft-other-resources[style*="display: block"] {
 		display: block !important;
 		flex: 1;
 		min-width: 0;

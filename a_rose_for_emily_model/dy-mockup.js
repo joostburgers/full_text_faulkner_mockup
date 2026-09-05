@@ -3856,8 +3856,7 @@
 			var isResizing = false;
 			var startX = 0;
 			var startWidth = 0;
-			var viewportRightGap = 10;
-			var rightEdge = 1300 - viewportRightGap;  // 1290px
+			var fixedRightEdge = 0;  // Captured on mousedown from actual DOM state
 
 			// Create invisible resize handle on left edge
 			var handle = document.createElement('div');
@@ -3869,6 +3868,8 @@
 				isResizing = true;
 				startX = e.clientX;
 				startWidth = parseInt(ftPanel.style.width, 10) || ftPanel.offsetWidth;
+				var startLeft = parseInt(ftPanel.style.left, 10) || ftPanel.offsetLeft;
+				fixedRightEdge = startLeft + startWidth;  // Anchor right edge to current position
 				document.addEventListener('mousemove', onMouseMove);
 				document.addEventListener('mouseup', onMouseUp);
 				e.preventDefault();
@@ -3878,7 +3879,7 @@
 				if (!isResizing) return;
 				var delta = e.clientX - startX;  // positive = moving right
 				var newWidth = Math.max(startWidth - delta, 0);  // never negative
-				var newLeft = rightEdge - newWidth;
+				var newLeft = fixedRightEdge - newWidth;  // Right edge locked, left edge moves
 
 				ftPanel.style.left = newLeft + 'px';
 				ftPanel.style.width = newWidth + 'px';

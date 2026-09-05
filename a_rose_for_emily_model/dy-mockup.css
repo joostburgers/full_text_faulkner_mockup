@@ -439,6 +439,11 @@
 	.dy-agg-view { display: none; }
 	.dy-agg-view.active { display: block; }
 
+	/* ── Aggregation panel minimized state (header only, no content) ─────── */
+	#dy-agg-panel.dy-agg-minimized #dy-agg-body {
+		display: none;
+	}
+
 	/* ── Characters aggregation view ──────────────────────── */
 	#agg-characters {
 		grid-template-columns: repeat(6, 1fr);
@@ -798,7 +803,7 @@
 	#fulltext-panel.fp-v-minimized .ft-panel-tab {
 		flex: 0 0 auto;
 		writing-mode: vertical-rl;
-		transform: rotate(90deg);
+		
 		padding: 5px 10px;
 		white-space: nowrap;
 		border: none;

@@ -3820,19 +3820,29 @@
 				ftPanel.style.left = mapRight + 'px';
 				ftPanel.style.width = Math.max(ftPanelWidth, 0) + 'px';  // never go negative
 				
-				// Apply minimized mode when width < 360px
-				if (ftPanelWidth < 360) {
+				// Apply minimized mode based on map size
+				// idx 0 (S, 800px): normal
+				// idx 1 (M, 1000px): minimized ft-panel
+				// idx 2 (L, 1200px): minimized ft-panel
+				if (idx >= 1) {
 					ftPanel.classList.add('fp-v-minimized');
 				} else {
 					ftPanel.classList.remove('fp-v-minimized');
 				}
 			}
 			
-			// Aggregation panel: always full width (1300px)
+			// Aggregation panel: applies minimized class when map is L (idx 2)
 			var aggPanel = document.getElementById('dy-agg-panel');
 			if (aggPanel) { 
 				aggPanel.style.width = '1300px';
 				aggPanel.style.top = (containerTop + sz.h + 95) + 'px';
+				
+				// Minimize agg panel body when map is large (idx 2)
+				if (idx === 2) {
+					aggPanel.classList.add('dy-agg-minimized');
+				} else {
+					aggPanel.classList.remove('dy-agg-minimized');
+				}
 			}
 			
 			// dy-title-bar: position 40px from bottom of canvas
@@ -3847,57 +3857,6 @@
 		document.querySelectorAll('.dy-map-size-btn').forEach(function(btn, i) {
 			btn.addEventListener('click', function() { resizeMapCanvas(i); });
 		});
-
-		// ── Fulltext panel left-edge resize handler ─────────────────────
-		(function initFtPanelResize() {
-			var ftPanel = document.getElementById('fulltext-panel');
-			if (!ftPanel) return;
-
-			var isResizing = false;
-			var startX = 0;
-			var startWidth = 0;
-			var fixedRightEdge = 0;  // Captured on mousedown from actual DOM state
-
-			// Create invisible resize handle on left edge
-			var handle = document.createElement('div');
-			handle.style.cssText = 
-				'position: absolute; left: 0; top: 0; width: 6px; height: 100%; cursor: ew-resize; z-index: 100;';
-			ftPanel.insertBefore(handle, ftPanel.firstChild);
-
-			handle.addEventListener('mousedown', function(e) {
-				isResizing = true;
-				startX = e.clientX;
-				startWidth = parseInt(ftPanel.style.width, 10) || ftPanel.offsetWidth;
-				var startLeft = parseInt(ftPanel.style.left, 10) || ftPanel.offsetLeft;
-				fixedRightEdge = startLeft + startWidth;  // Anchor right edge to current position
-				document.addEventListener('mousemove', onMouseMove);
-				document.addEventListener('mouseup', onMouseUp);
-				e.preventDefault();
-			});
-
-			function onMouseMove(e) {
-				if (!isResizing) return;
-				var delta = e.clientX - startX;  // positive = moving right
-				var newWidth = Math.max(startWidth - delta, 0);  // never negative
-				var newLeft = fixedRightEdge - newWidth;  // Right edge locked, left edge moves
-
-				ftPanel.style.left = newLeft + 'px';
-				ftPanel.style.width = newWidth + 'px';
-				
-				// Apply minimized mode when width < 360px
-				if (newWidth < 360) {
-					ftPanel.classList.add('fp-v-minimized');
-				} else {
-					ftPanel.classList.remove('fp-v-minimized');
-				}
-			}
-
-			function onMouseUp() {
-				isResizing = false;
-				document.removeEventListener('mousemove', onMouseMove);
-				document.removeEventListener('mouseup', onMouseUp);
-			}
-		})();
 
 		// Wire Autozoom (Fit) button — curated view centred on Yoknapatawpha locations
 		document.getElementById('autozoom').addEventListener('click', function() {

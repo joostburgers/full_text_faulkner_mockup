@@ -1871,51 +1871,6 @@
 	.fa-h-popup .fa-meta { font-size: 10.5px; color: #888; margin-top: 2px; }
 	.fa-h-popup .fa-desc { font-size: 11px; color: #555; line-height: 1.5; margin-top: 5px; }
 
-	/* ── Panel resize grips ──────────────────────────────────────── */
-	.dy-resize-grip {
-		position: absolute;
-		z-index: 5;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: transparent;
-		user-select: none;
-		touch-action: none;
-		flex-shrink: 0;
-		transition: background 0.15s;
-		opacity: 0.3;
-	}
-	.dy-resize-grip:hover { background: rgba(0,0,0,0.05); opacity: 1; }
-	.dy-resize-grip.is-dragging { background: rgba(0,0,0,0.08); opacity: 1; cursor: grabbing; }
-	/* Vertical grip strip (for left or right panel edges) */
-	.dy-grip-v {
-		top: 0; bottom: 0; width: 8px;
-		cursor: col-resize;
-		flex-direction: row;
-		gap: 2px;
-	}
-	/* Horizontal grip strip (for top or bottom panel edges) */
-	.dy-grip-h {
-		left: 0; right: 0; height: 7px;
-		cursor: row-resize;
-		flex-direction: column;
-		gap: 2px;
-	}
-	/* The two parallel indicator bars */
-	.dy-grip-bar {
-		display: block;
-		background: #999;
-		border-radius: 1px;
-		pointer-events: none;
-	}
-	.dy-grip-v .dy-grip-bar { width: 1px; height: 16px; }
-	.dy-grip-h .dy-grip-bar { width: 16px; height: 1px; }
-	/* Grip positioning within each panel */
-	#dy-controls-panel .dy-resize-grip { right: 0; }
-	#fulltext-panel    .dy-resize-grip { left: 0; }
-	#info-panel        .dy-resize-grip { left: 0; }
-	#dy-agg-panel      .dy-resize-grip { top: 0; }
-
 	/* ── Fulltext tab label (hidden; panel header serves this role) */
 	#fulltext-tab { display: none !important; }
 

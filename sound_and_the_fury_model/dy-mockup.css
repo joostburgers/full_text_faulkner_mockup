@@ -2060,3 +2060,94 @@
 			font-size: 1rem;
 			line-height: 1.5rem;
 		}
+
+	/* ══════════════════════════════════════════════════════════
+	   PRINT / PDF  — Full Text mode
+	   Keeps the reading column and whatever annotations are switched
+	   on; everything else is chrome and is dropped.
+	   ══════════════════════════════════════════════════════════ */
+	#ft-print-header { display: none; }
+
+	@media print {
+		@page { margin: 18mm 16mm; }
+
+		html, body {
+			background: #fff !important;
+			height: auto !important;
+			overflow: visible !important;
+		}
+
+		/* layoutPanels() sets an inline min-height here; it would print as blank pages. */
+		#content_2, #content_3, #main_index_content, #main_index_sub-content, #wrapper {
+			position: static !important;
+			min-height: 0 !important;
+			height: auto !important;
+			width: auto !important;
+			margin: 0 !important;
+			padding: 0 !important;
+			overflow: visible !important;
+		}
+
+		/* Annotation colours are the point of the printout, so keep them. */
+		body, body * {
+			-webkit-print-color-adjust: exact !important;
+			print-color-adjust: exact !important;
+		}
+
+		/* Chrome */
+		#dy-global-nav, #dy-controls-panel, #ft-annot-panel, #ft-ctrl-ghost,
+		#ft-annot-ghost, #ft-panel-header, #ft-text-toolbar, #dy-toolbar,
+		#dy-agg-panel, #info-panel, #container, #dy-title-bar, #dy-zoom-panel,
+		#playback_controls, #header, #footer, #shelf_instructions, .mac-dock,
+		#text_title_list, #text_title_list_button, .ui-dialog, .dy-panel-btn,
+		#ft-reading, #ft-events-view, #ft-about-view, #ft-about-editors-view,
+		#ft-other-resources {
+			display: none !important;
+		}
+
+		/* Reading column fills the page */
+		#ft-layout, #fulltext-panel {
+			position: static !important;
+			display: block !important;
+			width: auto !important;
+			max-width: none !important;
+			height: auto !important;
+			min-height: 0 !important;
+			margin: 0 !important;
+			padding: 0 !important;
+			border: none !important;
+			overflow: visible !important;
+			box-shadow: none !important;
+		}
+		#ft-highlight-view {
+			display: block !important;
+			position: static !important;
+			width: auto !important;
+			height: auto !important;
+			max-height: none !important;
+			overflow: visible !important;
+			padding: 0 !important;
+			border: none !important;
+			font-size: 11pt;
+			line-height: 1.55;
+			column-count: 1 !important;
+		}
+		#ft-highlight-view p { orphans: 2; widows: 2; }
+		.ft-section-num {
+			break-before: page;
+			page-break-before: always;
+			margin-top: 0;
+		}
+		.ft-section-num:first-child { break-before: auto; page-break-before: auto; }
+
+		#ft-print-header {
+			display: block !important;
+			margin-bottom: 14pt;
+			padding-bottom: 8pt;
+			border-bottom: 1px solid #999;
+			font-family: Georgia, 'Times New Roman', serif;
+		}
+		.ft-print-title { font-size: 15pt; font-weight: bold; }
+		.ft-print-meta  { font-size: 9pt; color: #444; margin-top: 2pt; }
+	}
+

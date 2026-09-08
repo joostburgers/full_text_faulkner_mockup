@@ -2407,6 +2407,61 @@
 			var hl = document.getElementById('ft-highlight-view');
 			if (hl) hl.classList.toggle('ft-show-pipes', showEvCheck.checked);
 		});
+
+		var printBtn = document.getElementById('ft-print-btn');
+		if (printBtn) printBtn.addEventListener('click', function() {
+			buildPrintHeader();
+			window.print();
+		});
+	}
+
+	// Summarise which annotation layers are switched on, so the printout records
+	// the reading the user actually assembled.
+	function activeAnnotationLabels() {
+		var out = [];
+		var hl = document.getElementById('ft-highlight-view');
+
+		if (document.getElementById('ft-show-events-check') &&
+		    document.getElementById('ft-show-events-check').checked) {
+			out.push('Event boundaries');
+		}
+		[['ft-markup-narrative', 'Narrative order'],
+		 ['ft-markup-ns',        'Narrative status'],
+		 ['ft-markup-temporality', 'Temporality']].forEach(function(pair) {
+			var el = document.getElementById(pair[0]);
+			if (el && el.checked) out.push(pair[1]);
+		});
+		if (hl) {
+			[['ft-show-flashforward', 'flash-forward'],
+			 ['ft-show-flashback',    'flashback'],
+			 ['ft-show-linear',       'linear']].forEach(function(pair) {
+				if (hl.classList.contains(pair[0])) out.push(pair[1]);
+			});
+		}
+		var kw = document.querySelectorAll('.ft-kw-pill.ft-kw-active, .fa-kw-pill.active');
+		if (kw.length) out.push(kw.length + ' keyword' + (kw.length > 1 ? 's' : ''));
+		return out;
+	}
+
+	function buildPrintHeader() {
+		var hdr = document.getElementById('ft-print-header');
+		if (!hdr) return;
+		var titleEl = document.querySelector('#dy-title-bar .dy-title-story');
+		var edEl    = document.querySelector('#dy-title-bar .dy-title-names');
+		var mode    = document.querySelector('.ft-read-mode-btn.active');
+		var active  = activeAnnotationLabels();
+
+		var bits = [];
+		bits.push('<div class="ft-print-title">' + esc(titleEl ? titleEl.textContent : '') + '</div>');
+		if (edEl && edEl.textContent) {
+			bits.push('<div class="ft-print-meta">Edited by ' + esc(edEl.textContent) + '</div>');
+		}
+		bits.push('<div class="ft-print-meta">Digital Yoknapatawpha \u00b7 ' +
+			esc(mode ? mode.textContent.trim() : 'Full Text') + ' view \u00b7 ' +
+			new Date().toLocaleDateString() + '</div>');
+		bits.push('<div class="ft-print-meta">Annotations: ' +
+			(active.length ? esc(active.join(', ')) : 'none') + '</div>');
+		hdr.innerHTML = bits.join('');
 	}
 
 	// Stored parents for restoring panels when leaving fulltext mode

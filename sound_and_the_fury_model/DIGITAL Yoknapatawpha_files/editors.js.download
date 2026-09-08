@@ -1,0 +1,32 @@
+function getEditors(text) {
+	current_editors = new Array();
+	// 
+	$.ajax({ 
+    type: 'GET', 
+			 // async: false,
+ url: '/sinatra/drupal_editors?code='+text,
+    // url: 'http://hero.village.virginia.edu/sleepy/faulkner/editors/_find?criteria='+encodeURIComponent('{"TextCode":"'+text+'"}')+"&sort="+encodeURIComponent('{"SortName":1}')+'&batch_size=100000',
+    // url: urlencode('http://hero.village.virginia.edu/sleepy/faulkner/editors/_find?criteria={"TextCode":"'+text+'"}&sort={"SortName"=1}'), 
+    // url: 'http://hero.village.virginia.edu/mongo/faulkner/editors/?filter_TextCode='+text, 
+    // url: 'http://hero.village.virginia.edu/~rwb3y/data.json', 
+    dataType:'json',
+    success: function (data) { 
+				$.each(data["results"], function(index, value) {
+					editor = {};
+					
+					if (value['text_code'] != null) {
+						var val = value;
+						$.each(value, function(i,v) {
+							editor[i] = v;
+						})
+						current_editors.push(editor);
+					}
+				})
+				// moved this: getLocations(text); to editors_assoc.js at the end of genEditorsAssoc ;
+				// added following call to getEditorsAssoc
+				getEditorsAssoc(text);
+				// $('.mac-dock img').hide();
+    }
+});
+	
+}

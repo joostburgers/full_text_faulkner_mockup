@@ -1,0 +1,2037 @@
+
+  	#content_2
+  	{
+		position: relative;
+		width: 1300px;
+		min-height: 960px;
+		padding-bottom: 54px;
+	}
+
+	/* ── Konva canvas container (positioned ancestor for overlays) ─ */
+	#container {
+		position: relative;
+	}
+
+	/* ── Global mode navigation bar ─────────────────────────────── */
+	#dy-global-nav {
+		width: 1300px;
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		background: #1e2228;
+		border-radius: 4px 4px 0 0;
+		padding: 0 10px;
+		box-sizing: border-box;
+		gap: 12px;
+		user-select: none;
+	}
+	.dy-nav-story {
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 12px;
+		font-style: italic;
+		color: rgba(255,255,255,0.45);
+		white-space: nowrap;
+		padding: 9px 6px 9px 2px;
+		flex-shrink: 0;
+	}
+	#dy-story-select {
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 12px;
+		font-style: italic;
+		color: rgba(255,255,255,0.75);
+		background: rgba(255,255,255,0.07);
+		border: 1px solid rgba(255,255,255,0.15);
+		border-radius: 3px;
+		padding: 5px 24px 5px 9px;
+		cursor: pointer;
+		outline: none;
+		appearance: none;
+		-webkit-appearance: none;
+		max-width: 260px;
+		/* Custom dropdown arrow */
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.4)'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right 8px center;
+		transition: background 0.15s, border-color 0.15s;
+	}
+	#dy-story-select:hover {
+		background-color: rgba(255,255,255,0.12);
+		border-color: rgba(255,255,255,0.3);
+	}
+	#dy-story-select:focus {
+		border-color: #c09a5a;
+	}
+	#dy-story-select option {
+		background: #2a2f38;
+		color: #ddd;
+		font-style: normal;
+	}
+	#dy-story-select option.dy-story-current {
+		color: #fff;
+		font-weight: bold;
+	}
+	.dy-nav-btns {
+		display: flex;
+		gap: 2px;
+		align-items: stretch;
+	}
+	.dy-nav-btn {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 7px 18px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11.5px;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		color: rgba(255,255,255,0.55);
+		background: transparent;
+		border: none;
+		border-bottom: 3px solid transparent;
+		cursor: pointer;
+		transition: color 0.15s, border-color 0.15s, background 0.15s;
+		white-space: nowrap;
+	}
+	.dy-nav-btn:hover {
+		color: rgba(255,255,255,0.85);
+		background: rgba(255,255,255,0.06);
+	}
+	.dy-nav-btn.active {
+		color: #fff;
+		border-bottom-color: #c09a5a;
+		background: rgba(255,255,255,0.07);
+	}
+
+	/* ── Full-text panel (right col, top) ─────────────────────── */
+	/* Position and size are set by layoutPanels() in dy-mockup.js */
+	#fulltext-panel {
+		position: absolute;
+		background: #fff;
+		border: 1px solid #ccc;
+		box-sizing: border-box;
+		overflow-y: auto;
+		overflow-x: hidden;
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 13px;
+		line-height: 1.5;
+		display: none;
+		transition: height 0.28s ease, width 0.28s ease;
+	}
+	/* ── Event list inside text panel ────────────────────────── */
+	.ft-item {
+		border-bottom: 1px solid #eee;
+	}
+	.ft-item.active > .ft-item-bar {
+		background: #f5ede0;
+	}
+	.ft-item-bar {
+		display: grid;
+		grid-template-columns: 32px 130px 1fr;
+		align-items: baseline;
+		gap: 4px;
+		padding: 6px 10px;
+		cursor: pointer;
+	}
+	.ft-item-bar:hover { background: #faf7f3; }
+	.ft-item-page {
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 10px;
+		color: #aaa;
+		white-space: nowrap;
+	}
+	.ft-item-loc {
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 10px;
+		color: #888;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.ft-item-fw {
+		font-style: italic;
+		color: #444;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.ft-item-body {
+		display: none;
+		padding: 10px 14px 12px;
+		background: #fdfaf6;
+		border-top: 1px solid #ede8e0;
+	}
+	.ft-item.open > .ft-item-body { display: block; }
+	.ft-item-body .ft-sentence {
+		margin: 0 0 0.85em;
+		text-indent: 1.5em;
+		color: #333;
+		font-size: 13px;
+		line-height: 1.7;
+	}
+	.ft-item-body .ft-sentence:first-child { text-indent: 0; }
+	.ft-item-body .ft-summary {
+		font-style: italic;
+		color: #555;
+		font-size: 13px;
+		line-height: 1.6;
+		margin-bottom: 0.8em;
+	}
+	.ft-map-btn {
+		display: inline-block;
+		margin-top: 8px;
+		padding: 4px 10px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11px;
+		letter-spacing: 0.04em;
+		color: #666;
+		background: #f0f0f0;
+		border: 1px solid #ccc;
+		cursor: pointer;
+	}
+	.ft-map-btn:hover { background: #e4e4e4; color: #333; }
+	/* ── Fix controls overrunning right column ───────────────── */
+	#layers { display: none !important; }
+	/* Hide orphaned labels that sit outside the DY dialog system */
+	#reset_all, #section_label { display: none !important; }
+	#controls { margin-left: 0 !important; width: 800px !important; }
+	/* Hide absolutely-positioned playbar elements past 800px */
+	/* (#stop: left:810px; speed controls: left:840px – all clip into the text panel) */
+	#stop, #start { display: none !important; }
+	/* Speed controls: keep visible but repositioned into a new custom toolbar */
+	#e_speed_control, #speed_control, #c_speed_control { display: none !important; }
+	/* Clip the date timeline to map width */
+	#date_labels { width: 800px !important; margin-left: 0 !important; overflow: hidden !important; }
+	#dates_wrapper { width: 800px !important; left: 0 !important; overflow: hidden !important; }
+	#dates { width: 800px !important; }
+
+	/* ── Hide all remaining legacy DY controls ───────────────── */
+	#sections, #event_controls, #chron_controls, #date_labels,
+	#dates_wrapper, #playback_controls, #event_controls_offset { display: none !important; }
+	/* Mode radios replaced by #dy-global-nav */
+	#dy-display-opts { display: none !important; }
+
+	/* ══════════════════════════════════════════════════════════
+	   CUSTOM CONTROL TOOLBAR  (replaces DY's scattered controls)
+	   ══════════════════════════════════════════════════════════ */
+	#dy-toolbar {
+		position: absolute;
+		left: 0;
+		top: 533px;
+		width: 800px;
+		box-sizing: border-box;
+		background: #fff;
+		color: #222;
+		border: 1px solid #ccc;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11px;
+		padding: 0;
+		display: none;          /* shown by wiring script once data is ready */
+		user-select: none;
+		overflow: hidden;
+		transition: height 0.28s ease;
+	}
+	/* Row 1: section tabs */
+	#dy-tb-sections {
+		display: flex;
+		border-bottom: 1px solid #ccc;
+	}
+	.dy-sec-btn {
+		flex: 1;
+		padding: 5px 2px;
+		text-align: center;
+		background: #f5f5f5;
+		border: none;
+		border-right: 1px solid #ddd;
+		color: #555;
+		cursor: pointer;
+		font-size: 11px;
+		letter-spacing: 0.05em;
+	}
+	.dy-sec-btn:last-child { border-right: none; }
+	.dy-sec-btn:hover { background: #e8e8e8; color: #000; }
+	.dy-sec-btn.dy-sec-active { background: #fff; color: #000; font-weight: bold;
+		                          box-shadow: inset 0 -2px 0 #000; }
+
+	/* Row 2: transport + year display */
+	#dy-tb-transport {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 5px 10px;
+		border-bottom: 1px solid #ddd;
+		background: #fafafa;
+	}
+	.dy-btn {
+		display: inline-flex; align-items: center; justify-content: center;
+		width: 28px; height: 24px;
+		padding: 0;
+		background: #f6f6f6; border: 1px solid #c5c5c5;
+		border-radius: 3px; color: #333;
+		cursor: pointer;
+		flex-shrink: 0;
+		vertical-align: middle;
+	}
+	.dy-btn:hover { background: #ededed; border-color: #aaa; color: #000; }
+	.dy-btn:active { background: #ddd; box-shadow: inset 0 1px 3px rgba(0,0,0,.2); }
+	.dy-btn.active { background: #d0e8ff; border-color: #6aabde; color: #1a5a8a; }
+	.dy-btn svg { pointer-events: none; display: block; }
+	.dy-btn-label { display: block; font-size: 11px; color: #555; margin-bottom: 3px; }
+	.dy-btn-row { display: flex; flex-direction: row; align-items: center; gap: 4px; }
+	.control-buttons { text-align: left; }
+	#dy-year-display {
+		min-width: 48px; text-align: center;
+		font-size: 13px; font-weight: bold;
+		color: #000; letter-spacing: 0.04em;
+		border: 1px solid #ccc; padding: 1px 6px;
+		background: #fff;
+	}
+	#dy-mode-toggle {
+		margin-left: auto;
+		display: flex; align-items: center; gap: 5px;
+		font-size: 10px; color: #555;
+	}
+	#dy-mode-toggle label { cursor: pointer; }
+	#dy-mode-toggle input[type=radio] { cursor: pointer; accent-color: #333; }
+	#dy-speed-wrap {
+		display: flex; align-items: center; gap: 4px;
+		font-size: 10px; color: #555;
+	}
+	#dy-speed-range {
+		width: 55px; accent-color: #333;
+	}
+	#dy-reset-btn {
+		background: #fff; border-color: #aaa; color: #333;
+		font-size: 15px;
+	}
+	#dy-reset-btn:hover { background: #eee; }
+	/* Disabled character radios in Overview mode — dimmed when not in Overview mode */
+	#layer_dialog input[name="characters"]:disabled { opacity: 0.35; cursor: not-allowed; }
+	#layer_dialog input[name="characters"]:disabled + * { opacity: 0.5; }
+
+	/* Row 3: event slider */
+	#dy-tb-slider {
+		padding: 4px 10px 4px;
+		background: #fafafa;
+	}
+	#dy-tb-slider::before {
+		content: 'page';
+		display: block;
+		font-size: 9px; color: #aaa;
+		text-transform: uppercase; letter-spacing: 0.06em;
+		margin-bottom: 2px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+	}
+	#dy-event-slider {
+		-webkit-appearance: none; appearance: none;
+		width: 100%; height: 5px;
+		background: #ddd; border-radius: 3px;
+		outline: none; cursor: pointer;
+		accent-color: #333;
+	}
+	#dy-event-slider::-webkit-slider-thumb {
+		-webkit-appearance: none; appearance: none;
+		width: 14px; height: 14px;
+		border-radius: 50%;
+		background: #333; cursor: pointer;
+		border: 2px solid #fff; box-shadow: 0 0 0 1px #999;
+	}
+	/* Page-number tick marks below the slider track */
+	#dy-slider-ticks {
+		position: relative;
+		width: 100%; height: 18px;
+		margin-top: 2px;
+	}
+	.dy-pg-tick {
+		position: absolute;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		transform: translateX(-50%);
+	}
+	.dy-pg-tick-line {
+		width: 1px; height: 5px;
+		background: rgba(80,80,80,0.45);
+	}
+	.dy-pg-tick-label {
+		font-size: 9px; color: #999;
+		white-space: nowrap;
+		margin-top: 1px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+	}
+	/* Row 4: heatmap canvas + labels */
+	#dy-tb-dates {
+		padding: 4px 10px 6px;
+		background: #fff;
+		border-top: 1px solid #eee;
+	}
+	#dy-tb-dates::before {
+		content: 'year';
+		display: block;
+		font-size: 9px; color: #aaa;
+		text-transform: uppercase; letter-spacing: 0.06em;
+		margin-bottom: 2px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+	}
+	#dy-heat-canvas {
+		display: block;
+		width: 100%; height: 25px;
+		cursor: crosshair;
+		border-radius: 3px;
+	}
+	#dy-year-labels {
+		position: relative;
+		width: 100%; height: 20px;
+		margin-top: 2px;
+	}
+	.dy-yr-lbl {
+		position: absolute;
+		transform: translateX(-50%);
+		font-size: 12px; color: #888;
+		top: 0; white-space: nowrap;
+	}
+
+	/* ══════════════════════════════════════════════════════════
+	   AGGREGATION PANEL  (full-width strip below canvas, map mode)
+	   left:0 → right edge of fulltext-panel (810+460=1270px)
+	   ══════════════════════════════════════════════════════════ */
+	#dy-agg-panel {
+		position: absolute;
+		left: 0;
+		top: 595px;
+		width: 1270px;
+		background: #fff;
+		border: 1px solid #ccc;
+		box-sizing: border-box;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11px;
+		overflow: hidden;
+		transition: height 0.28s ease;
+	}
+	#dy-agg-tabs {
+		display: flex;
+		border-bottom: 1px solid #ccc;
+		background: #f5f5f5;
+	}
+	.dy-agg-tab {
+		padding: 5px 16px;
+		border: none;
+		border-right: 1px solid #ddd;
+		background: transparent;
+		color: #666;
+		cursor: pointer;
+		font-size: 10px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+	.dy-agg-tab:last-child { border-right: none; }
+	.dy-agg-tab:hover { background: #e8e8e8; color: #000; }
+	.dy-agg-tab.active { background: #fff; color: #000; font-weight: bold;
+	                     box-shadow: inset 0 -2px 0 #000; }
+	#dy-agg-body {
+		padding: 10px 14px;
+		min-height: 150px;
+		max-height: 350px;
+		overflow-y: auto;
+	}
+	.dy-agg-view { display: none; }
+	.dy-agg-view.active { display: block; }
+
+	/* ── Aggregation panel minimized state (header only, no content) ─────── */
+	#dy-agg-panel.dy-agg-minimized #dy-agg-body {
+		display: none;
+	}
+
+	/* ── Characters aggregation view ──────────────────────── */
+	#agg-characters {
+		grid-template-columns: repeat(6, 1fr);
+		gap: 0;
+	}
+	#agg-characters.active { display: grid; }
+	#agg-locations.active  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
+	#agg-events.active     { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+	#agg-keywords.active   { display: block; }
+	#agg-networks.active   { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; }
+	.agg-kw-cols { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; }
+	.agg-col {
+		padding: 0 16px 0 12px;
+		border-right: 1px solid #eee;
+		min-width: 0;
+	}
+	.agg-col:last-child { border-right: none; padding-right: 0; }
+	.agg-col:first-child { padding-left: 0; }
+	.agg-col-head {
+		font-size: 9px;
+		font-weight: bold;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: #888;
+		border-bottom: 1px solid #e0ddd8;
+		margin: 0 0 6px;
+		padding-bottom: 3px;
+		white-space: nowrap;
+	}
+	.agg-char-item {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		font-size: 0.81rem;
+		line-height: 1.7;
+		color: #333;
+		font-family: Georgia, 'Times New Roman', serif;
+	}
+	.agg-char-icon { flex-shrink: 0; height: 14px; width: auto; vertical-align: middle; }
+	.agg-char-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.agg-char-count {
+		flex-shrink: 0;
+		color: #999;
+		font-size: 0.77rem;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+	}
+	.agg-type-item {
+		display: flex;
+		align-items: baseline;
+		gap: 4px;
+		font-size: 0.81rem;
+		line-height: 1.7;
+		color: #333;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+	}
+	.agg-type-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.agg-type-count { flex-shrink: 0; color: #999; font-size: 0.77rem; }
+
+	/* ── Info panel (right col, below text panel) ─────────────── */
+	/* Position and size are set by layoutPanels() in dy-mockup.js */
+	#info-panel {
+		position: absolute;
+		background: #fff;
+		border: 1px solid #ccc;
+		box-sizing: border-box;
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 0.9rem;
+		line-height: 1.25;
+		color: #333;
+		display: none;
+		overflow: hidden;
+		transition: transform 0.28s ease, height 0.28s ease, top 0.28s ease, width 0.28s ease;
+	}
+	#info-panel .info-tabs {
+		display: flex;
+		border-bottom: 1px solid #ccc;
+		background: #f0f0f0;
+	}
+	#info-panel .info-tab {
+		flex: 1;
+		padding: 6px 4px;
+		border: none;
+		border-right: 1px solid #ccc;
+		background: #f0f0f0;
+		cursor: pointer;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11px;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: #666;
+	}
+	#info-panel .info-tab:last-child { border-right: none; }
+	#info-panel .info-tab.active { background: #fff; color: #333; font-weight: bold; }
+	#info-panel .info-tab:hover:not(.active) { background: #e4e4e4; }
+
+	/* ── Vertically-minimized info panel (narrow right column) ───── */
+	#info-panel.ip-v-minimized {
+		flex-direction: row-reverse;
+		overflow: hidden;
+	}
+	#info-panel.ip-v-minimized .info-tabs {
+		flex: 0 0 auto;
+		flex-direction: column;
+		height: 100%;
+		border-bottom: none;
+		border-left: 1px solid #ccc;
+	}
+	#info-panel.ip-v-minimized .info-tab {
+		flex: 0 0 auto;
+		writing-mode: vertical-rl;
+		padding: 6px 3px;
+		border-right: none;
+		border-top: 1px solid #ccc;
+		font-size: 10px;
+		white-space: nowrap;
+	}
+	#info-panel.ip-v-minimized .info-tab:first-child { border-top: none; }
+	#info-panel.ip-v-minimized .info-collapse-btn { display: none; }
+	#info-panel.ip-v-minimized #ip-body {
+		flex: 1;
+		min-width: 0;
+		overflow-y: auto;
+	}
+	#info-panel.ip-v-minimized .info-tab-content.active { max-height: none; }
+	#info-panel .info-tab-content { display: none; padding: 10px 14px 12px; }
+	#info-panel .info-tab-content.active { display: block; max-height: 130px; overflow-y: auto; }
+	#info-panel .info-tab-content strong { font-weight: bold; }
+	#info-panel .info-tab-content p { margin: 0.4em 0; line-height: 1.5; }
+	#info-panel .info-char-group { margin-bottom: 0.75em; }
+	#info-panel .info-char-group ul { margin: 3px 0 0 1.2em; }
+	#info-panel .info-char-group ul li { line-height: 1.5; }
+	#info-panel .info-mentioned { opacity: 1; }
+	#info-panel .info-empty { color: #aaa; font-style: italic; }
+	.loc-out-of-yok-badge {
+		display: inline-block;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 8px;
+		font-weight: bold;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: #fff;
+		background: #778;
+		padding: 1px 5px 2px;
+		border-radius: 2px;
+		margin-left: 7px;
+		vertical-align: middle;
+		white-space: nowrap;
+	}
+
+	/* ── Info panel stacked mode (when fulltext-panel is collapsed) ── */
+	#info-panel.ip-stacked .info-tabs { display: none; }
+	#info-panel.ip-stacked #ip-body { overflow-y: auto; height: 100%; box-sizing: border-box; }
+	#info-panel.ip-stacked .info-tab-content {
+		display: block !important;
+		max-height: none !important;
+		padding: 8px 14px 10px;
+		border-top: 1px solid #e0ddd8;
+	}
+	#info-panel.ip-stacked .info-tab-content:first-child { border-top: none; }
+	#info-panel.ip-stacked .info-tab-content::before {
+		content: attr(data-label);
+		display: block;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 9px;
+		font-weight: bold;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: #888;
+		margin-bottom: 5px;
+	}
+
+	/* ── Controls sidebar panel (left map overlay) ──────────────── */
+	#dy-controls-panel {
+		position: absolute;
+		left: 0;
+		top: 25px;        /* #container sits 25px below #content_2 top */
+		width: 192px;     /* 630 image px × 0.305 scale */
+		height: 500px;    /* full canvas height (1650 × 0.305) */
+		overflow: hidden;
+		z-index: 50;
+		background: #fff;
+		border-right: 1px solid #c8c4bc;
+		box-sizing: border-box;
+		transition: width 0.28s ease;
+	}
+	#dy-controls-panel #layer_dialog {
+		padding: 4px 8px 8px;
+		min-height: 0 !important;
+		overflow-x: hidden !important;
+		overflow-y: auto !important;
+		height: 500px !important;
+		width: auto !important;
+		font-size: 12px;
+		line-height: 1.55;
+	}
+	#dy-controls-panel #layer_dialog strong {
+		display: block;
+		margin-top: 10px;
+		margin-bottom: 2px;
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: #555;
+	}
+	#dy-controls-panel #layer_dialog strong:first-child { margin-top: 0; }
+	/* suppress the <br> immediately after a block-level section header */
+	#dy-controls-panel #layer_dialog strong + br { display: none; }
+	/* suppress the <br> after the float:right Labels label in Characters section */
+	#dy-controls-panel #layer_dialog label[style*="float"] + br { display: none; }
+	/* Rank checkboxes */
+	.dy-rank-separator { border: none; border-top: 1px solid #d0ccc6; margin: 5px 0 4px; width: 50%; }
+	/* labels-toggle label in map-text mode */
+	#dy-controls-panel .dy-char-labels-row { display: flex; align-items: center; font-size: 11px; gap: 5px; }
+	/* Map+Text mode: hide overview-only controls */
+	#dy-controls-panel.dy-map-text-mode .dy-ctrl-overview-only { display: none !important; }
+	/* Overview + fulltext: hide map+text-only controls */
+	#dy-controls-panel:not(.dy-map-text-mode) .dy-ctrl-maptext-only { display: none !important; }
+	/* ── Suppress the jQuery UI .no-close wrapper flash on load ─────── */
+	body > .ui-dialog.no-close { display: none !important; }
+	#dy-controls-panel .ui-widget-content { border: none; }
+	/* ── Zoom overlay panel (top-right of map, image coords 1600,20) ── */
+	#dy-zoom-panel {
+		position: absolute;
+		left: 488px;   /* 1600 × 0.305 */
+		top: 31px;     /* 25px container offset + 20 × 0.305 */
+		z-index: 60;
+		opacity: 0.5;
+		transition: opacity 0.2s;
+	}
+	#dy-zoom-panel:hover { opacity: 1; }
+	#dy-zoom-panel .dy-btn-label { display: none; }
+	#dy-zoom-panel .dy-btn-row { display: flex; gap: 2px; }
+	/* ── Legacy title box — suppress completely ──────────────────── */
+	#title { display: none !important; }
+
+	/* ── Title bar overlay (bottom strip of map canvas) ─────────── */
+	#dy-title-bar {
+		position: absolute;
+		left: 192px;      /* clear the controls panel */
+		top: 460px;       /* adjusted by JS in resizeMapCanvas() */
+		z-index: 55;
+		background: rgba(255, 255, 255, 0.30);
+		color: rgba(0, 0, 0, 0.70);
+		padding: 6px 10px;
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 11px;
+		line-height: 1.5;
+		display: none;    /* shown by JS once data loads */
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0;
+		box-sizing: border-box;
+		max-width: 608px;
+		width: auto;
+	}
+	.dy-title-row { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+	.dy-title-story  { font-weight: bold; font-size: 1.25em; }
+	.dy-title-label  { font-size: 9px; text-transform: uppercase; opacity: 0.6; white-space: nowrap; }
+	.dy-title-names  { font-size: 1em; }
+	.dy-title-assoc  { font-size: 1em; }
+	#dy-cite-toggle {
+		flex-shrink: 0;
+		background: #f6f6f6;
+		border: 1px solid #c5c5c5;
+		color: #333;
+		font-size: 10px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		padding: 2px 7px;
+		cursor: pointer;
+		border-radius: 3px;
+		white-space: nowrap;
+		letter-spacing: 0.04em;
+	}
+	#dy-cite-toggle { display: none; }
+	#dy-cite-box {
+		display: none;
+	}
+	/* ── Citation block inside About Text panel ───────────────── */
+	#ft-cite-block {
+		margin: 0 0 1.2em;
+		padding: 0.7em 0;
+		border-bottom: 1px solid #d4cfc8;
+	}
+	.ft-cite-note {
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 10.5px;
+		color: #666;
+		font-style: italic;
+		margin: 0 0 0.6em;
+	}
+	.ft-cite-tabs { display: flex; gap: 4px; margin-bottom: 6px; }
+	.ft-cite-tab {
+		background: #e4e2de;
+		border: 1px solid #c5c5c5;
+		color: #555;
+		font-size: 10px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		padding: 2px 8px;
+		cursor: pointer;
+		border-radius: 3px;
+		letter-spacing: 0.04em;
+	}
+	.ft-cite-tab.active { background: #fff; color: #222; border-color: #aaa; font-weight: bold; }
+	.ft-cite-tab:hover:not(.active) { background: #d8d6d2; }
+	.ft-cite-row { display: flex; align-items: flex-start; gap: 6px; }
+	.ft-cite-text {
+		flex: 1;
+		font-size: 11px;
+		line-height: 1.65;
+		color: #333;
+		font-family: Georgia, 'Times New Roman', serif;
+	}
+	.ft-cite-copy {
+		flex-shrink: 0;
+		background: #f6f6f6;
+		border: 1px solid #c5c5c5;
+		color: #555;
+		font-size: 10px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		padding: 2px 6px;
+		cursor: pointer;
+		border-radius: 3px;
+		white-space: nowrap;
+	}
+	.ft-cite-copy:hover { background: #ededed; border-color: #aaa; color: #222; }
+	.ft-cite-copy.copied { color: #3a7a3a; border-color: #3a7a3a; }
+
+	/* ── About view inside right panel ──────────────────────────── */
+	#ft-pub-header {
+		margin: 0 0 1em;
+		padding: 0 0 0.7em;
+		border-bottom: 1px solid #d4cfc8;
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 13px;
+		line-height: 1.5;
+		color: #555;
+	}
+	#ft-pub-header .ft-pub-title {
+		display: block;
+		font-size: 15px;
+		font-weight: bold;
+		color: #222;
+		margin-bottom: 0.25em;
+	}
+	#ft-pub-header .ft-pub-row { display: block; }
+	#ft-pub-header .ft-pub-label { font-style: italic; }
+	#ft-about-view, #ft-about-editors-view {
+		display: none;
+		overflow-y: auto;
+		padding: 14px 16px;
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 13px;
+		line-height: 1.65;
+		color: #333;
+	}
+	#ft-about-view p, #ft-about-view div,
+	#ft-about-editors-view p, #ft-about-editors-view div { column-count: 1; }
+	#ft-about-view p, #ft-about-editors-view p { margin: 0 0 0.9em; }
+	/* In Overview mode hide the Events / Text / Text-HL tab buttons */
+	#fulltext-panel.dy-map-mode .ft-panel-tab[data-tab="events"],
+	#fulltext-panel.dy-map-mode .ft-panel-tab[data-tab="text"],
+	#fulltext-panel.dy-map-mode .ft-panel-tab[data-tab="text-hl"] { display: none; }
+	/* In Map+Text mode hide the Other Resources tab */
+	#fulltext-panel:not(.dy-map-mode) .ft-panel-tab[data-tab="resources"] { display: none; }
+	/* About Text and About Editors belong only in Overview (map) mode */
+	#fulltext-panel:not(.dy-map-mode) .ft-panel-tab[data-tab="about-text"],
+	#fulltext-panel:not(.dy-map-mode) .ft-panel-tab[data-tab="about-editors"] { display: none; }
+
+	/* ── Vertically-minimized fulltext panel (narrow right column) ───── */
+	/* The tab strip becomes a rail pinned to the right edge; content keeps its
+	   normal vertical stacking so the text toolbar stays above the text. */
+	#fulltext-panel.fp-v-minimized {
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		padding-right: 30px;
+		box-sizing: border-box;
+	}
+	#fulltext-panel.fp-v-minimized #ft-panel-header {
+		position: absolute;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		width: 30px;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		background: #f7f7f7;
+		border-left: 1px solid #ddd;
+		border-bottom: none;
+	}
+	#fulltext-panel.fp-v-minimized .ft-panel-tab {
+		flex: 0 0 auto;
+		writing-mode: vertical-rl;
+		padding: 5px 0;
+		white-space: nowrap;
+		border: none;
+		border-top: 1px solid #ddd;
+		text-align: center;
+		font-size: 10px;
+		line-height: 1.2;
+		color: #555;
+	}
+	#fulltext-panel.fp-v-minimized .ft-panel-tab:first-child {
+		border-top: none;
+	}
+	#fulltext-panel.fp-v-minimized .ft-panel-tab:hover {
+		background: #f0f0f0;
+	}
+	#fulltext-panel.fp-v-minimized .ft-panel-tab.active {
+		background: #f5ede0;
+		font-weight: bold;
+	}
+	#fulltext-panel.fp-v-minimized #ft-panel-collapse-btn {
+		flex: 0 0 auto;
+		padding: 6px 0;
+		margin-top: auto;
+	}
+
+	/* ── Other Resources view inside right panel ──────────────────── */
+	#ft-other-resources {
+		display: none;
+		overflow-y: auto;
+		padding: 14px 16px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 12px;
+		line-height: 1.6;
+		color: #333;
+	}
+	.ft-res-section { margin-bottom: 1.2em; }
+	.ft-res-heading {
+		margin: 0 0 0.4em;
+		padding-bottom: 0.25em;
+		border-bottom: 1px solid #d4cfc8;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11px;
+		font-weight: bold;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: #888;
+	}
+	.ft-res-list {
+		list-style: disc;
+		margin: 0;
+		padding-left: 1.4em;
+	}
+	.ft-res-list li { margin: 0.2em 0; }
+	.ft-res-list a { color: #4a6fa5; text-decoration: none; }
+	.ft-res-list a:hover { text-decoration: underline; color: #2a4f85; }
+	.ft-res-empty { color: #aaa; font-style: italic; list-style: none; margin-left: -1.4em; }
+	#ft-other-resources .ft-res-loading { color: #aaa; font-style: italic; }
+
+	/* ── Display Options in layer_dialog ─────────────────────────── */
+	#dy-display-opts {
+		border-bottom: 1px solid #e0e0e0;
+		margin-bottom: 6px;
+		padding-bottom: 6px;
+	}
+	#dy-display-opts label { display: block; cursor: pointer; margin: 2px 0; font-weight: normal; }
+
+	/* ── Fulltext panel: flex so header stays fixed ───────────────── */
+	#fulltext-panel {
+		overflow: hidden;
+		flex-direction: column;
+	}
+	#ft-panel-header {
+		flex-shrink: 0;
+		display: flex;
+		border-bottom: 1px solid #ccc;
+		background: #f7f7f7;
+	}
+	.ft-panel-tab {
+		flex: 1;
+		padding: 5px 4px;
+		border: none;
+		border-right: 1px solid #ddd;
+		background: transparent;
+		cursor: pointer;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11px;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: #777;
+	}
+	.ft-panel-tab:last-child { border-right: none; }
+	.ft-panel-tab.active { background: #fff; color: #333; font-weight: bold; }
+	.ft-panel-tab:hover:not(.active) { background: #ebebeb; }
+	#ft-events-view {
+		flex: 1;
+		overflow-y: auto;
+	}
+	/* ── Continuous text scroll view ──────────────────────────────── */
+	/* ── Highlighted text view ───────────────────────────────────── */
+	#ft-highlight-view {
+		flex: 1;
+		display: none;
+		overflow-y: auto;
+		padding: 10px 14px;
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 13px;
+		line-height: 1.6;
+		color: #333;
+	}
+	#ft-highlight-view p { margin: 0 0 0.6em; font-size: inherit; }
+	#ft-highlight-view p:last-child { margin-bottom: 0.6em; }
+	.ft-hl-span { cursor: pointer; border-radius: 2px; transition: background 0.15s; }
+	.ft-hl-span:hover { background: rgba(180,140,90,0.18); }
+	.ft-hl-span.ft-hl-active { background: rgba(193,154,107,0.32); }
+	.ft-hl-span.ft-hl-past { opacity: 1; }
+	.ft-hl-span.ft-hl-future { opacity: 0.35; }
+	/* In fulltext mode: future spans stay fully visible */
+	body.dy-mode-fulltext .ft-hl-span.ft-hl-future { opacity: 1; }
+	/* In fulltext mode: navigation no longer auto-highlights; only explicit click locks a span */
+	body.dy-mode-fulltext .ft-hl-span.ft-hl-active { background: none; }
+	body.dy-mode-fulltext .ft-hl-span:hover { background: rgba(180,140,90,0.15); transition: background 0.1s; }
+	body.dy-mode-fulltext .ft-hl-span.ft-hl-locked {
+		background: rgba(193,154,107,0.25);
+		box-shadow: 0 1px 0 rgba(150,110,60,0.25);
+		transition: none;
+	}
+	body.dy-mode-fulltext .ft-hl-span.ft-hl-locked:hover { background: rgba(193,154,107,0.25); }
+	/* ── Text toolbar: search + section nav ───────────────────────── */
+	#ft-text-toolbar {
+		flex-shrink: 0;
+		display: none;
+		flex-direction: column;
+		border-bottom: 1px solid #ddd;
+		background: #f7f7f7;
+	}
+	#ft-text-toolbar.active { display: flex; }
+	#ft-search-bar {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 5px 8px;
+		border-bottom: 1px solid #eee;
+	}
+	#ft-search-mode {
+		padding: 2px 4px;
+		border: 1px solid #ccc;
+		border-radius: 3px;
+		font-size: 11px;
+		color: #555;
+		background: #fff;
+		cursor: pointer;
+		flex-shrink: 0;
+	}
+	#ft-search-input {
+		flex: 1;
+		padding: 3px 6px;
+		border: 1px solid #ccc;
+		border-radius: 3px;
+		font-size: 12px;
+		outline: none;
+	}
+	#ft-search-input:focus { border-color: #999; }
+	.ft-kw-match {
+		outline: 2px solid rgba(193, 130, 30, 0.55);
+		border-radius: 2px;
+	}
+	.ft-kw-current {
+		outline: 2px solid rgba(193, 100, 10, 0.9);
+		background: rgba(255, 200, 80, 0.25) !important;
+	}
+	/* ── Keyword annotation panel ────────────────────────────────── */
+	.ft-kw-group { margin-bottom: 6px; }
+	.ft-kw-col-label {
+		font-size: 9px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.07em;
+		color: #999;
+		margin-bottom: 3px;
+	}
+	.ft-kw-minimal,
+	.ft-kw-terms {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+	.ft-kw-term {
+		display: inline-block;
+		padding: 1px 6px;
+		background: #f0ede8;
+		border: 1px solid #d8d0c4;
+		border-radius: 10px;
+		font-size: 10px;
+		color: #555;
+		cursor: pointer;
+		transition: background 0.12s, color 0.12s;
+		line-height: 1.5;
+	}
+	.ft-kw-term:hover {
+		background: rgba(193, 130, 30, 0.18);
+		border-color: rgba(193, 130, 30, 0.5);
+		color: #333;
+	}
+	.ft-kw-term.ft-kw-active {
+		background: rgba(193, 130, 30, 0.35);
+		border-color: rgba(193, 100, 10, 0.75);
+		color: #7a4200;
+		font-weight: 600;
+	}
+	.ft-kw-count {
+		opacity: 0.55;
+		font-weight: 400;
+	}
+	.ft-kw-full {
+		border-radius: 3px;
+		font-size: 10px;
+	}
+	.ft-search-nav-btn {
+		padding: 2px 7px;
+		border: 1px solid #ccc;
+		border-radius: 3px;
+		background: #fff;
+		cursor: pointer;
+		font-size: 12px;
+		color: #555;
+	}
+	.ft-search-nav-btn:hover { background: #e8e8e8; }
+	#ft-search-count {
+		font-size: 11px;
+		color: #999;
+		min-width: 36px;
+		text-align: right;
+	}
+	#ft-section-nav {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		padding: 5px 8px;
+	}
+	.ft-sec-label {
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: #aaa;
+		margin-right: 2px;
+	}
+	.ft-sec-btn {
+		padding: 2px 9px;
+		border: 1px solid #ccc;
+		border-radius: 3px;
+		background: #fff;
+		cursor: pointer;
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 12px;
+		color: #555;
+	}
+	.ft-sec-btn:hover { background: #e8e8e8; }
+	.ft-sec-btn.ft-sec-active {
+		background: #1e2228;
+		color: #fff;
+		border-color: #1e2228;
+	}
+	/* ── Reading mode toggle buttons ────────────────────────────── */
+	#ft-read-mode-btns {
+		display: flex;
+		flex-shrink: 0;
+	}
+	.ft-read-mode-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		padding: 2px 8px;
+		border: 1px solid #ccc;
+		border-right-width: 0;
+		background: #f5f5f5;
+		cursor: pointer;
+		font-size: 11px;
+		color: #666;
+		line-height: 1.5;
+		white-space: nowrap;
+	}
+	.ft-read-mode-btn:first-child { border-radius: 3px 0 0 3px; }
+	.ft-read-mode-btn:last-child  { border-radius: 0 3px 3px 0; border-right-width: 1px; }
+	.ft-read-mode-btn.active {
+		background: #1e2228;
+		color: #fff;
+		border-color: #1e2228;
+	}
+	.ft-read-mode-btn:hover:not(.active) { background: #e8e8e8; }
+	/* ── Section / page prev–next navigation ─────────────────────── */
+	.ft-sec-nav-btn {
+		padding: 2px 8px;
+		border: 1px solid #ccc;
+		border-radius: 3px;
+		background: #fff;
+		cursor: pointer;
+		font-size: 10px;
+		color: #555;
+		display: none;
+	}
+	.ft-sec-nav-btn:hover { background: #e8e8e8; }
+	#ft-read-pos-label {
+		font-size: 10px;
+		color: #888;
+		min-width: 64px;
+		text-align: center;
+		display: none;
+	}
+	/* ── Section filter — hide non-active sections ───────────────── */
+	.ft-block.ft-sec-hide { display: none !important; }
+	.ft-hl-section.ft-sec-hide { display: none !important; }
+	/* ── Page mode — clip overflow so scrollTop controls position ── */
+	#ft-layout #ft-continuous-view.ft-page-mode,
+	#ft-layout #ft-highlight-view.ft-page-mode { overflow-y: hidden !important; }
+	.ft-sec-sep {
+		display: inline-block;
+		width: 1px;
+		height: 14px;
+		background: #ddd;
+		margin: 0 6px;
+		vertical-align: middle;
+	}
+	.ft-fontsize-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		padding: 0;
+		border: 1px solid #ccc;
+		border-radius: 3px;
+		background: #fff;
+		cursor: pointer;
+		color: #555;
+	}
+	.ft-fontsize-btn:hover { background: #e8e8e8; }
+	.ft-toggle-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		padding: 2px 7px;
+		border: 1px solid #ccc;
+		border-radius: 3px;
+		background: #fff;
+		cursor: pointer;
+		font-size: 11px;
+		color: #666;
+		vertical-align: middle;
+	}
+	.ft-toggle-btn:hover { background: #e8e8e8; }
+	.ft-toggle-btn.active { background: #e6f0ff; border-color: #99b; color: #335; }
+	.ft-show-events-label {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 11px;
+		color: #666;
+		cursor: pointer;
+		user-select: none;
+		padding: 2px 4px;
+		border-radius: 3px;
+	}
+	.ft-show-events-label:hover { color: #333; }
+	.ft-show-events-label.ft-show-events-disabled {
+		opacity: 0.35;
+		cursor: default;
+		pointer-events: none;
+	}
+	.ft-pipe-label {
+		font-family: monospace;
+		letter-spacing: 0.02em;
+	}
+	.ft-show-events-label input[type="checkbox"] {
+		margin: 0;
+		cursor: pointer;
+		accent-color: #557;
+	}
+	/* Event boundary pipes */
+	.ft-event-pipe {
+		display: none;
+		color: #999;
+		opacity: 0.9;
+		margin: 0 1px;
+		cursor: default;
+		user-select: none;
+		font-style: normal;
+	}
+	#ft-highlight-view.ft-show-pipes .ft-event-pipe { display: inline; }
+	/* Temporal markers (flashforward / flashback) */
+	.ft-temporal-marker {
+		display: none;
+		vertical-align: middle;
+		margin: 0 2px;
+		cursor: default;
+		user-select: none;
+		line-height: 1;
+	}
+	.ft-temporal-marker.ft-flashforward svg,
+	.ft-temporal-marker.ft-flashback svg,
+	.ft-temporal-marker.ft-linear svg { width: 1.25em; height: 1.25em; } /* summary default */
+	/* Minimal — 75% */
+	#ft-highlight-view[data-style="minimal"] .ft-temporal-marker.ft-flashforward svg,
+	#ft-highlight-view[data-style="minimal"] .ft-temporal-marker.ft-flashback svg,
+	#ft-highlight-view[data-style="minimal"] .ft-temporal-marker.ft-linear svg { width: 0.75em; height: 0.75em; }
+	/* Full — 200% */
+	#ft-highlight-view[data-style="full"] .ft-temporal-marker.ft-flashforward svg,
+	#ft-highlight-view[data-style="full"] .ft-temporal-marker.ft-flashback svg,
+	#ft-highlight-view[data-style="full"] .ft-temporal-marker.ft-linear svg { width: 2em; height: 2em; }
+	/* Ensure pipe span is visible when it contains a visible marker */
+	#ft-highlight-view.ft-show-flashforward .ft-event-pipe:has(.ft-flashforward),
+	#ft-highlight-view.ft-show-flashback    .ft-event-pipe:has(.ft-flashback),
+	#ft-highlight-view.ft-show-linear       .ft-event-pipe:has(.ft-linear)    { display: inline; }
+	#ft-highlight-view.ft-show-flashforward .ft-flashforward { display: inline; }
+	#ft-highlight-view.ft-show-flashback    .ft-flashback    { display: inline; }
+	#ft-highlight-view.ft-show-linear       .ft-linear       { display: inline; }
+	.ft-flashforward { color: #34584d; }
+	.ft-flashback    { color: #9d4040; }
+	.ft-linear       { color: #9a7040; }
+	/* Icons shown inline in the control panel labels */
+	.ft-markup-icon { display: inline; vertical-align: middle; line-height: 1; }
+	.ft-markup-icon.ft-flashforward svg,
+	.ft-markup-icon.ft-flashback svg,
+	.ft-markup-icon.ft-linear svg { width: 1.25em; height: 1.25em; }
+	mark.ft-search-hit {
+		background: #fff176;
+		border-radius: 2px;
+		padding: 0 1px;
+	}
+	mark.ft-search-hit.current {
+		background: #f57c00;
+		color: #fff;
+	}
+	.ft-block-text {
+		font-family: Georgia, 'Times New Roman', serif;
+		line-height: 1.6;
+		color: #333;
+	}
+	.ft-block-text p {
+		margin: 0 0 0.6em;
+		font-size: inherit;
+	}
+	.ft-block-text p:last-child {
+		margin-bottom: 0.6em; /* keep spacing so mid-sentence continuations flow */
+	}
+	/* ── Info panel slide-down collapse ──────────────────────────── */
+	.dy-panel-btn,
+	.info-collapse-btn {
+		margin-left: auto;
+		padding: 2px 8px;
+		border: none;
+		background: none;
+		cursor: pointer;
+		font-size: 13px;
+		color: #aaa;
+		line-height: 1;
+		flex-shrink: 0;
+	}
+	.dy-panel-btn:hover,
+	.info-collapse-btn:hover { color: #333; }
+	/* ── Full Text reading mode ────────────────────────────────────── */
+	/* ft-reading sits to the right of #dy-controls-panel (192px wide) */
+	#ft-reading {
+		display: none;
+		position: absolute;
+		top: 0; left: 192px;
+		width: calc(100% - 192px); height: 100%;
+		background: #fff;
+		z-index: 20;
+		flex-direction: column;
+	}
+	/* show as flex when active */
+	#ft-reading.active { display: flex; }
+	/* hide chrome overlay when in fulltext mode */
+	body.dy-mode-fulltext #dy-title-bar  { display: none !important; }
+	body.dy-mode-fulltext #dy-zoom-panel { display: none !important; }
+
+	/* ── Fulltext flex wrapper — sits below the header, centred with side margin ── */
+	#ft-layout {
+		position: fixed;
+		top: 220px;      /* below #page_header (~184px) + #dy-global-nav (~36px) */
+		left: 15%;
+		right: 15%;
+		bottom: 5%;
+		display: flex;
+		flex-direction: row;
+		z-index: 1000;
+		background: #fff;
+		overflow: hidden;
+		border: 1px solid #ccc;
+		border-radius: 4px;
+		box-shadow: 0 -2px 8px rgba(0,0,0,.08);
+	}
+	/* Prevent body scrollbars from showing behind the fixed layout */
+	body.dy-mode-fulltext { overflow: hidden; }
+	/* Controls column — fixed width, full height, scrollable */
+	#ft-layout #dy-controls-panel {
+		position: relative !important;
+		top: auto !important; left: auto !important;
+		flex: 0 0 192px;
+		width: 192px !important;
+		height: 100% !important;
+		overflow-y: auto;
+		box-shadow: 1px 0 0 #c8c4bc;
+		border-bottom: none;
+		transition: flex-basis 0.2s ease, width 0.2s ease;
+	}
+	/* Collapsed — slide controls panel out */
+	#ft-layout.ft-ctrl-collapsed #dy-controls-panel {
+		flex: 0 0 0 !important;
+		width: 0 !important;
+		min-width: 0 !important;
+		overflow: hidden !important;
+		box-shadow: none;
+	}
+	/* ── Shared panel header / ghost / toggle styles ─────────────── */
+	.ft-panel-header {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		padding: 4px 4px 4px 8px;
+		border-bottom: 1px solid #e0ddd8;
+		background: #f5f3f0;
+		flex-shrink: 0;
+	}
+	.ft-panel-header-label {
+		font-size: 10px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: #999;
+		flex: 1;
+	}
+	.ft-panel-collapse-btn {
+		padding: 1px 6px;
+		border: 1px solid #d0cdc8;
+		border-radius: 3px;
+		background: transparent;
+		cursor: pointer;
+		font-size: 14px;
+		line-height: 1;
+		color: #999;
+		flex-shrink: 0;
+	}
+	.ft-panel-collapse-btn:hover { background: #e8e5e0; color: #333; }
+	/* Ghost stub */
+	.ft-panel-ghost {
+		display: none;
+		flex: 0 0 26px;
+		width: 26px;
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-start;
+		padding-top: 6px;
+		gap: 6px;
+		background: #f5f3f0;
+		overflow: hidden;
+	}
+	.ft-panel-ghost-expand {
+		padding: 1px 5px;
+		border: 1px solid #d0cdc8;
+		border-radius: 3px;
+		background: transparent;
+		cursor: pointer;
+		font-size: 14px;
+		line-height: 1;
+		color: #999;
+		flex-shrink: 0;
+	}
+	.ft-panel-ghost-expand:hover { background: #e8e5e0; color: #333; }
+	.ft-panel-ghost-label {
+		writing-mode: vertical-rl;
+		transform: rotate(180deg);
+		font-size: 9px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.07em;
+		color: #aaa;
+		user-select: none;
+		white-space: nowrap;
+	}
+	/* ctrl panel ghost — sits between controls and fulltext */
+	#ft-ctrl-ghost { box-shadow: 1px 0 0 #c8c4bc; }
+	#ft-layout.ft-ctrl-collapsed #ft-ctrl-ghost { display: flex; }
+	/* annot panel: transition + collapse */
+	#ft-layout #ft-annot-panel {
+		transition: flex-basis 0.2s ease, min-width 0.2s ease;
+	}
+	#ft-layout.ft-annot-collapsed #ft-annot-panel {
+		flex: 0 0 0 !important;
+		min-width: 0 !important;
+		width: 0 !important;
+		overflow: hidden !important;
+		border-left: none;
+	}
+	/* annot ghost — sits after fulltext panel */
+	#ft-annot-ghost { box-shadow: -1px 0 0 #c8c4bc; }
+	#ft-layout.ft-annot-collapsed #ft-annot-ghost { display: flex; }
+	/* Text column — grows to fill, capped at 800px */
+	#ft-layout #fulltext-panel {
+		position: relative !important;
+		left: auto !important; top: auto !important;
+		flex: 9999 1 0;
+		max-width: 800px;
+		width: auto !important;
+		margin-left: 0 !important;
+		height: 100% !important;
+		min-height: unset !important;
+		min-width: 0;
+		overflow: hidden;
+		display: flex !important;
+		flex-direction: column;
+	}
+	/* Inner tab views fill the text column and scroll */
+	#ft-layout #ft-events-view,
+	#ft-layout #ft-continuous-view,
+	#ft-layout #ft-highlight-view,
+	#ft-layout #ft-about-view,
+	#ft-layout #ft-about-editors-view,
+	#ft-layout #ft-other-resources {
+		flex: 1 !important;
+		overflow-y: auto !important;
+		height: 0 !important;      /* forces flex child to respect container bounds */
+		min-height: 0 !important;
+	}
+	/* Annotation column — grows to fill space left after text column hits max-width */
+	#ft-layout #ft-annot-panel {
+		position: relative !important;
+		top: auto !important; left: auto !important; right: auto !important;
+		flex: 1 1 220px;
+		min-width: 220px;
+		width: auto !important;
+		height: 100% !important;
+		display: flex;   /* default visible; JS sets display:none to hide */
+		border-left: 1px solid #ddd;
+		transition: flex-basis 0.2s ease, min-width 0.2s ease;
+	}
+
+	/* fulltext controls section in the left panel */
+	#dy-ft-layer-ctrl strong { display: block; margin-top: 10px; margin-bottom: 2px;
+		font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #555; }
+	#dy-ft-layer-ctrl strong:first-child { margin-top: 4px; }
+	#dy-ft-layer-ctrl label { display: block; cursor: pointer; margin: 1px 0; font-weight: normal; }
+	#ft-markup-narrative-opts { padding-left: 12px; }
+	#ft-markup-ns-opts { padding-left: 12px; margin-top: 2px; }
+	#ft-markup-temporality-opts { padding-left: 12px; margin-top: 2px; }
+	.ft-ns-item {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		padding: 2px 0;
+		font-weight: normal;
+		cursor: default;
+	}
+	.ft-ns-avail { cursor: pointer; }
+	.ft-ns-avail:hover { color: #111; }
+	.ft-ns-unavail { opacity: 0.35; }
+	.ft-ns-swatch {
+		display: inline-block;
+		width: 8px;
+		height: 8px;
+		border-radius: 2px;
+		flex-shrink: 0;
+	}
+	/* Hide Events and Text Scroll tabs in fulltext mode — both are superfluous there */
+	body.dy-mode-fulltext .ft-panel-tab[data-tab="events"],
+	body.dy-mode-fulltext .ft-panel-tab[data-tab="text"] { display: none; }
+
+	/* Help text shown when no annotation is open */
+	.ft-annot-help {
+		padding: 12px 14px;
+		color: #999;
+		font-style: italic;
+		font-size: 0.88em;
+		margin: 0;
+	}
+
+	/* ── Annotation layout toggle (Horizontal / Vertical) ── */
+	#ft-annot-layout-toggle {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		padding: 4px 4px 4px 8px;
+		border-bottom: 1px solid #e0ddd8;
+		background: #f5f3f0;
+		flex-shrink: 0;
+	}
+	.ft-annot-layout-label {
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.07em;
+		color: #aaa;
+		margin-right: 2px;
+		white-space: nowrap;
+	}
+	.ft-annot-layout-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11px;
+		font-weight: 600;
+		color: #999;
+		background: transparent;
+		border: 1px solid #ddd;
+		border-radius: 3px;
+		padding: 3px 9px;
+		cursor: pointer;
+		transition: background 0.15s, color 0.15s, border-color 0.15s;
+	}
+	.ft-annot-layout-btn:hover { color: #555; border-color: #bbb; }
+	.ft-annot-layout-btn.active {
+		color: #333;
+		background: #fff;
+		border-color: #aaa;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+	}
+	#ft-annot-body {
+		overflow-y: auto;
+		flex: 1 1 auto;
+		padding: 12px;
+		box-sizing: border-box;
+	}
+
+	/* ── Inline annotation popup (vertical layout mode) ──── */
+	.ft-inline-popup {
+		display: block;
+		margin: 8px 4px 10px;
+		padding: 11px 14px 13px;
+		background: #fffef9;
+		border: 1px solid #d8d3c8;
+		border-left: 3px solid #c09a5a;
+		border-radius: 0 4px 4px 0;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11.5px;
+		line-height: 1.55;
+		color: #333;
+		position: relative;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+		max-width: 520px;
+	}
+	.ft-ip-close {
+		position: absolute;
+		top: 7px;
+		right: 9px;
+		font-size: 13px;
+		color: #bbb;
+		cursor: pointer;
+		background: none;
+		border: none;
+		padding: 2px 5px;
+		line-height: 1;
+	}
+	.ft-ip-close:hover { color: #666; }
+	.ft-ip-section { margin-bottom: 10px; }
+	.ft-ip-section:last-child { margin-bottom: 0; }
+	.ft-ip-heading {
+		font-size: 9px;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: #bbb;
+		font-weight: 700;
+		margin-bottom: 5px;
+		padding-bottom: 3px;
+		border-bottom: 1px solid #ede9e1;
+	}
+	.ft-ip-entity {
+		display: flex;
+		align-items: flex-start;
+		gap: 7px;
+		margin-bottom: 8px;
+	}
+	.ft-ip-entity:last-child { margin-bottom: 0; }
+	.ft-ip-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
+	.ft-ip-body { flex: 1; min-width: 0; }
+	.ft-ip-name {
+		font-weight: 600;
+		font-size: 12px;
+		color: #222;
+		margin-bottom: 1px;
+	}
+	.ft-ip-meta {
+		font-size: 10.5px;
+		color: #888;
+		margin-bottom: 2px;
+	}
+	.ft-ip-desc {
+		font-size: 11px;
+		color: #666;
+		line-height: 1.5;
+		margin-top: 3px;
+	}
+
+	/* ── Top control bar ─────────────────────────────────── */
+	#ft-reading-controls {
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 5px 12px;
+		border-bottom: 1px solid #ddd;
+		background: #f5f5f5;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11px;
+		color: #555;
+	}
+	#ft-reading-controls .ft-ctrl-sep {
+		width: 1px; height: 16px; background: #ddd; margin: 0 2px;
+	}
+	#ft-reading-controls label { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+
+	/* ── Dropdown menu buttons ───────────────────────────── */
+
+	/* Exit button */
+	#ft-exit-btn {
+		margin-left: auto;
+		padding: 3px 10px;
+		border: 1px solid #ccc;
+		border-radius: 3px;
+		background: #fff;
+		cursor: pointer;
+		font-size: 11px;
+		color: #555;
+	}
+	#ft-exit-btn:hover { background: #fdecea; border-color: #e88; color: #c33; }
+
+	/* ── Body: text col + annotation sidebar ─────────────── */
+	#ft-reading-body {
+		display: flex;
+		flex: 1;
+		min-height: 0;
+		overflow: hidden;
+	}
+	#ft-reading-text {
+		flex: 1;
+		overflow-y: auto;
+		padding: 24px 36px;
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 14px;
+		line-height: 1.8;
+		color: #222;
+	}
+	#ft-reading-text p { font-size: inherit; }
+
+	/* ── Text sub-tabs (scroll / highlight) ─────────────── */
+	#ft-reading-tabnav {
+		display: flex;
+		gap: 0;
+		border-bottom: 1px solid #ddd;
+		background: #fafafa;
+		padding: 0 12px;
+		flex-shrink: 0;
+	}
+	.ft-reading-tab {
+		padding: 5px 14px;
+		font-size: 11px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		color: #888;
+		cursor: pointer;
+		border-bottom: 2px solid transparent;
+		margin-bottom: -1px;
+	}
+	.ft-reading-tab.active { color: #333; border-bottom-color: #666; }
+
+	/* ── Annotation sidebar ──────────────────────────────── */
+	#ft-reading-sidebar {
+		width: 260px;
+		flex-shrink: 0;
+		border-left: 1px solid #e8e8e8;
+		overflow-y: auto;
+		padding: 16px 16px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11px;
+		line-height: 1.5;
+		color: #444;
+		background: #fcfcfc;
+	}
+	#ft-reading-sidebar.empty { color: #ccc; font-style: italic; font-size: 11px; }
+	/* shown/hidden by annotation checkboxes */
+	#ft-reading-sidebar .ft-annot-group { margin-bottom: 14px; }
+	#ft-reading-sidebar .ft-annot-group.hidden { display: none; }
+	.ft-annot-section { margin-bottom: 10px; }
+	.ft-annot-label {
+		font-size: 9px;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: #aaa;
+		margin-bottom: 4px;
+	}
+	.ft-annot-value { color: #333; line-height: 1.4; }
+	.ft-annot-pill {
+		display: inline-block;
+		padding: 1px 7px;
+		border-radius: 10px;
+		font-size: 10px;
+		margin: 2px 2px 0 0;
+		background: #ede8df;
+		color: #555;
+	}
+	.ft-annot-pill.mentioned { background: #f3f3f3; color: #999; }
+
+	/* ── Fulltext annotation sidebar ─────────────────────────── */
+	#ft-annot-panel {
+		display: none; /* shown only inside #ft-layout in fulltext mode */
+		background: #fcfcfc;
+		padding: 0;
+		box-sizing: border-box;
+		font-size: 12px;
+		color: #333;
+		flex-direction: column;
+	}
+	#ft-annot-panel .fa-section {
+		margin-bottom: 18px;
+		border-bottom: 1px solid #eee;
+		padding-bottom: 10px;
+	}
+	#ft-annot-panel .fa-section:last-child { border-bottom: none; }
+	#ft-annot-panel .fa-heading {
+		font-size: 9px;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		color: #aaa;
+		font-weight: 700;
+		margin-bottom: 8px;
+	}
+	#ft-annot-panel .fa-subheading {
+		font-size: 9px;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: #bbb;
+		margin: 8px 0 4px;
+	}
+	#ft-annot-panel .fa-row {
+		display: flex;
+		align-items: flex-start;
+		gap: 7px;
+		margin-bottom: 8px;
+	}
+	#ft-annot-panel .fa-row.fa-expandable {
+		cursor: pointer;
+		border-radius: 3px;
+		padding: 3px 4px;
+		margin-left: -4px;
+		margin-right: -4px;
+		transition: background 0.12s;
+	}
+	#ft-annot-panel .fa-row.fa-expandable:hover { background: #f0ede6; }
+	#ft-annot-panel .fa-row.fa-expandable.expanded { background: #ece8e0; }
+	#ft-annot-panel .fa-name-line {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+	#ft-annot-panel .fa-expand-icon {
+		font-size: 8px;
+		color: #bbb;
+		flex-shrink: 0;
+		display: inline-block;
+		transition: transform 0.15s;
+		margin-top: 1px;
+	}
+	#ft-annot-panel .fa-row.expanded .fa-expand-icon { transform: rotate(90deg); color: #888; }
+	#ft-annot-panel .fa-detail { display: none; margin-top: 5px; }
+	#ft-annot-panel .fa-row.expanded .fa-detail { display: block; }
+	#ft-annot-panel .fa-icon {
+		width: 24px;
+		height: 24px;
+		flex-shrink: 0;
+		object-fit: contain;
+	}
+	#ft-annot-panel .fa-row-body { flex: 1; min-width: 0; }
+	#ft-annot-panel .fa-name {
+		font-weight: 600;
+		font-size: 12px;
+		color: #222;
+	}
+	#ft-annot-panel .fa-meta {
+		font-size: 10px;
+		color: #888;
+		margin-top: 2px;
+	}
+	#ft-annot-panel .fa-desc {
+		font-size: 11px;
+		color: #555;
+		line-height: 1.5;
+		margin-top: 4px;
+	}
+	#ft-annot-panel .fa-first-words {
+		font-style: italic;
+		color: #999;
+		font-size: 10.5px;
+		margin-bottom: 3px;
+	}
+
+	/* ── Horizontal layout: floating detail popup to the left of the panel ── */
+	/* (row gets .expanded highlight only; detail rendered in .fa-h-popup) */
+	#ft-annot-body.fa-layout-h .fa-row.fa-expandable.expanded .fa-detail {
+		display: none; /* suppressed — shown in floating popup instead */
+	}
+	.fa-h-popup {
+		position: fixed;
+		z-index: 2100;
+		background: #fff;
+		border: 1px solid #d0cbc2;
+		border-radius: 4px 0 4px 4px;
+		box-shadow: -3px 3px 18px rgba(0,0,0,0.14);
+		padding: 11px 14px 13px;
+		width: 280px;
+		max-height: 320px;
+		overflow-y: auto;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 11.5px;
+		color: #333;
+		line-height: 1.5;
+		pointer-events: auto;
+		/* small right-edge arrow pointing at the source row */
+	}
+	.fa-h-popup::after {
+		content: '';
+		position: absolute;
+		top: 10px;
+		left: -7px;
+		border: 7px solid transparent;
+		border-left: none;
+		border-right-color: #d0cbc2;
+		pointer-events: none;
+	}
+	.fa-h-popup::before {
+		content: '';
+		position: absolute;
+		top: 11px;
+		left: -6px;
+		border: 6px solid transparent;
+		border-left: none;
+		border-right-color: #fff;
+		pointer-events: none;
+		z-index: 1;
+	}
+	.fa-h-popup .fa-meta { font-size: 10.5px; color: #888; margin-top: 2px; }
+	.fa-h-popup .fa-desc { font-size: 11px; color: #555; line-height: 1.5; margin-top: 5px; }
+
+	/* ── Fulltext tab label (hidden; panel header serves this role) */
+	#fulltext-tab { display: none !important; }
+
+	#main_index_content
+	{
+		position: relative;
+		top: -20px;
+		width: 100%;
+	}
+
+	#main_index_sub-content
+	{
+		position: relative;
+		width: 1300px;
+		margin-left: auto;
+		margin-right: auto;
+		}
+
+		/* note: there must be some reference to #home in the JavaScript. The layout and controls magically fail if this div is named anything else */
+		#home
+		{
+			border: 1px solid #ffffff;
+			border-top-left-radius: 5px;
+			border-top-right-radius: 5px;
+			width: 798px;
+			height: 23px;
+			text-align: center;
+			float: left;
+			background: white;
+			color: black;
+		}
+
+		#mapit_tab 
+		{
+				border: 1px solid black;
+				border-top-left-radius: 5px;
+				border-top-right-radius: 5px;
+				width: 798px;
+				height: 23px;
+				text-align: center;
+				float: left;
+				background: gray;
+				color: white;
+				display: none;
+		}
+
+		/* Legacy DY homepage blurb + text shelf; overlaps the map and toolbar.
+		   !important because the legacy page calls .show() on it inline. */
+		#shelf_instructions
+		{
+			display: none !important;
+		}
+
+		#upClick 
+		{
+			position: absolute;
+			left: -50px;
+			top: 584px;
+		}
+
+		#downClick 
+		{
+			position: absolute;
+			left: 808px;
+			top: 584px;
+		}
+
+		.dialog_content p 
+		{
+			margin-top: 1px;
+			margin-bottom: 1px;
+			font-family: Trebuchet MS, Tahoma, Verdana, Arial, sans-serif;
+			font-size: 11px;
+			line-height: 14px;
+		}
+
+		.dialog_content a,
+		#layer_dialog a,
+		#event_words a
+		{
+			text-decoration: underline;
+		}
+
+		#events_data p 
+		{
+			margin-top: 1px;
+			margin-bottom: 1px;
+		}
+
+		#layer_dialog,
+		#event_words,
+		#character_list,
+		#location_list
+		{
+			font-size: 11px;
+			line-height: 13px;
+		}
+
+		#event_controls_offset 
+		{
+			width: 800px;
+			height: 30px;
+			display:none;
+		}
+
+		h3 
+		{ 
+			font-family: Georgia, "Times New Roman", Times, serif;
+			font-weight: bold;
+			font-size: 1.25rem;
+			line-height: 1.5rem;
+			margin-bottom: 1rem;
+		}
+
+		img#stamp_img { margin-bottom: 48px; }
+
+		div.intro_text
+		{
+			text-align: justify;
+			text-justify: inter-word;
+			margin-bottom: 1.75rem;
+		}
+
+		div.intro_text p
+		{
+			font-family: Georgia, "Times New Roman", Times, serif;
+			font-size: 1rem;
+			line-height: 1.25rem;
+		}
+
+		ul#texts_order-radios li
+		{
+			font-family: Georgia, "Times New Roman", Times, serif;
+			font-size: 1rem;
+			line-height: 1.25rem;
+			padding-bottom: 0.25rem;
+		}
+
+		div#text_title_list,
+		div#text_title_list_button
+		{
+			margin-top: 12px;
+		}
+
+		div#text_title_list_button p
+		{
+			font-family: Georgia, "Times New Roman", Times, serif;
+			font-size: 1rem;
+			line-height: 1.25rem;
+		}
+
+		div#text_title_list p
+		{
+			margin-left: 1.0rem;
+			font-family: Georgia, "Times New Roman", Times, serif;
+			font-size: 1rem;
+			line-height: 1.5rem;
+		}

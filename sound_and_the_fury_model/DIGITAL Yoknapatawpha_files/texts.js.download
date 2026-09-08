@@ -1,0 +1,30 @@
+function getText(text) {
+	current_text = {};
+	// 
+	$.ajax({ 
+    type: 'GET', 
+			 // async: false,
+    // url: 'http://hero.village.virginia.edu/sleepy/faulkner/texts/_find?criteria='+encodeURIComponent('{"Code":"'+text+'"}')+'&batch_size=100000',
+ url: '/sinatra/drupal_texts?code='+text,
+    // url: 'http://hero.village.virginia.edu/mongo/faulkner/texts/?filter_Code='+text, 
+    // url: 'http://hero.village.virginia.edu/~rwb3y/data.json', 
+    dataType:'json',
+    success: function (data) { 
+				$.each(data["results"], function(index, value) {
+					if (value['code'] != null) {
+						var val = value;
+						$.each(value, function(i,v) {
+							current_text[i] = v;
+						})
+						// start_page = value['Page Start'];
+						// end_page = value['Page Stop'];
+						start_page = parseInt(value['page_start']);
+						end_page = parseInt(value['page_stop']);
+					}
+				})
+				getEditors(text);
+				// $('.mac-dock img').hide();
+    }
+});
+	
+}

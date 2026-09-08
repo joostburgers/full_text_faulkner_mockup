@@ -1,0 +1,2610 @@
+﻿<!DOCTYPE html>
+<!-- saved from url=(0043)https://faulkner.iath.virginia.edu/?text=RE -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	  <title>DIGITAL Yoknapatawpha</title>
+	  
+	  
+	  <meta name="keywords" content="Digital Yoknapatawpha, William Faulkner, maps, characters, sartoris">
+	  
+	  <meta property="og:title" content="Digital Yoknapatawpha">
+	  <meta property="og:image" content="https://faulkner.iath.virginia.edu/stamp.png">
+	  <meta property="og:description" content="A Collaboration between an International Team of Faulkner Scholars and Technologists at the University of Virginia. Major Funding provided by the National Endowment in the Humanities">
+	  
+	<link rel="stylesheet" href="./DIGITAL Yoknapatawpha_files/jquery-ui-1.9.2.custom.css">
+	<link rel="stylesheet" href="./DIGITAL Yoknapatawpha_files/faulkner-family_friendly.css">
+
+	<script src="./DIGITAL Yoknapatawpha_files/jquery.min.js.download"></script>
+	<script src="./DIGITAL Yoknapatawpha_files/jquery-ui-1.9.2.custom.min.js.download"></script>
+	<!-- // <script src="kinetic-v4.4.1.min.js"></script> -->
+	<script src="./DIGITAL Yoknapatawpha_files/konva.min.js.download"></script>
+	<script src="./DIGITAL Yoknapatawpha_files/jquery.resizeOnApproach.1.0.min.js.download"></script>
+	<script src="./DIGITAL Yoknapatawpha_files/heatmap.min.js.download"></script>
+	<script src="./DIGITAL Yoknapatawpha_files/events-pops.js.download"></script>
+	<script src="./DIGITAL Yoknapatawpha_files/texts.js.download"></script>
+	<script src="./DIGITAL Yoknapatawpha_files/characters-pops.js.download"></script>
+	<script src="./DIGITAL Yoknapatawpha_files/sections.js.download"></script>
+	<script src="./DIGITAL Yoknapatawpha_files/locations-pops.js.download"></script>
+	<script src="./DIGITAL Yoknapatawpha_files/editors.js.download"></script>
+	<script src="./DIGITAL Yoknapatawpha_files/editors_assoc.js.download"></script>
+	<script src="./DIGITAL Yoknapatawpha_files/controls.js.download"></script>
+	<script src="./DIGITAL Yoknapatawpha_files/jquery.tabletoCSV.js.download"></script>
+	<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+	<!-- ═══ LOCAL MOCKUP: redirect ALL Sinatra API calls to local JSON files ═══ -->
+	<script>
+	var DY_DATA_PREFIX = 'sf_';
+	$.ajaxPrefilter(function(options) {
+		var u = options.url || '';
+		var d = function(name) { return 'data/' + DY_DATA_PREFIX + name + '.json'; };
+		if      (/\/sinatra\/\?/.test(u))                  { options.url = d('events'); }
+		else if (/\/sinatra\/drupal_locations/.test(u))    { options.url = d('locations'); }
+		else if (/\/sinatra\/characters\?text=/.test(u))   { options.url = d('characters'); }
+		else if (/\/sinatra\/characters\?code=/.test(u))   { options.url = d('characters_pg'); }
+		else if (/\/sinatra\/drupal_texts/.test(u))        { options.url = d('texts'); options.cache = false; }
+		else if (/\/sinatra\/drupal_sections/.test(u))     { options.url = d('sections'); }
+		else if (/\/sinatra\/drupal_editors_assoc/.test(u)){ options.url = d('editors_assoc'); }
+		else if (/\/sinatra\/drupal_editors/.test(u))      { options.url = d('editors'); }
+		else if (/\/sinatra\/drupal_other_resources/.test(u)){ options.url = d('other_resources'); }
+		else if (/\/sinatra\/drupal_teaching/.test(u))      { options.url = d('teaching'); }
+		else if (/\/sinatra\//.test(u))                    { options.url = d('empty'); }
+	});
+	</script>
+
+    <script>
+var date_start=1800;
+var date_end=1962;
+var search_start_page = null;
+var search_end_page = null;
+			var stage;
+			var locations = {};
+			var fitd_locations = {};
+			var events = {};
+			var fitd_events = {};
+			var fitd_event_logos = {};
+			var dates = {};
+			var characters = {};
+			var fitd_characters = {};
+			var page_locations = {};
+			var people_events = {};
+			var cabin = new Array();
+			var cemetery = new Array();
+			var church = new Array();
+			var courthouse = new Array();
+			var evt = new Array();
+			var farm = new Array();
+			var house = new Array();
+			var mansion = new Array();
+			var office = new Array();
+			var building = new Array();
+			var statue = new Array();
+			var outside = new Array();
+      var backgroundLayer = new Konva.Layer();
+      var heatLayer = new Konva.Layer();   // spatial heatmap — sits above map, below locations
+      var contentLayer = new Konva.Layer({
+			        x: 800,
+			        y: 500,
+		  scaleX: 0.3,
+		  scaleY: 0.3,
+				draggable: true,
+				dragBoundFunc: function(pos) {
+					// console.log(pos.y+','+this.getScale().x);
+					var tx = pos.x;
+					var ty = pos.y;
+					if (tx > 0) {
+						tx=0;
+					}
+					if (ty > 0) {
+						ty=0;
+					}
+					return {x: tx, y: ty};
+				}
+			});
+			// Sync heatLayer transform whenever contentLayer is panned
+			contentLayer.on('dragmove', function() {
+				heatLayer.x(contentLayer.x());
+				heatLayer.y(contentLayer.y());
+				heatLayer.draw();
+			});
+			var controlLayer = new Konva.Layer();
+			var tooltipLayer = new Konva.Layer();
+			var event_group = new Konva.Group();
+			var location_group = new Konva.Group();
+			var rect;
+			var tooltip_group;
+			var contentLayer_group;
+			var prev=1;
+			var e_prev=1;
+			var min = 1;
+			var max = 433;
+			var speed = -250;
+			var e_speed = -250;
+			var c_speed = -250;
+			var tooltip;
+			var natural, manmade, location_marker, logo;
+			
+			var current_book = 'FD';
+			var fd_content_outside = new Array();
+			var fd_content = new Array();
+			var fd_dates = {};
+
+			var map_content = new Array();
+			
+			var character_origin = {};
+			var character_home = {};
+			var all_locations = {};
+			var start_page = 1;
+			var end_page = 1;
+			var section_start_page = null;
+			var section_end_page = null;
+			var current_content = new Array();
+			var current_characters = {};
+			var search_characters = {}
+			var current_events = {};
+			var current_events_start = {};
+			var current_event_logos = {};
+			var current_active_event_logos = {};
+			var current_locations = {};
+			var current_data = {};
+			var current_dates = {};
+			var current_text = {};
+			var current_editors = new Array();
+			var current_editors_assoc = new Array();
+			var current_sections = new Array();
+			var current_section = '';
+			var locations_people = {};
+			var locations_events = {};
+			var data_loaded = false;
+			var location_descriptions = {};
+			var location_labels = {};
+			var events_images_in_order = new Array();
+			var events_images_in_chron_order = new Array();
+			var chron_order = new Array(); //{};
+			var total_events = 0;
+			var event_data = {};
+			var event_dates = new Array();
+			var started_event_mode = false;
+			var started_chron_mode = false;
+			var active_characters = new Array();
+			var active_locations = {};
+			var search_locations = {};
+			var scrolled=0;
+			
+			var natural = null;
+			var manmade = null;
+			var out_yok = null;
+			var inset_image = null;
+			var heatmap_image = null;
+			var heatmap_image_save = null;
+			var performing_search = false;
+			
+			var books = [{'icon':'#flags', 'book':'FD', 'content':map_content, 'manmade':'Flags-manmade.png', 'natural':'Flags-natural.png', 'heatmap':'FlagsInTheDust-heatmap.png', 'thumbnail':'FlagsCover_icon.jpg', 'title':'Flags in the Dust'},
+		{'icon':'#rose', 'book':'RE', 'content':map_content, 'manmade':'Emily-manmade.png', 'natural':'Emily-natural.png', 'heatmap':'Emily-heatmap.png', 'thumbnail':'RE_novel.jpg', 'title':'A Rose for Emily'},
+		{'icon':'#spottedhorses', 'book':'SH', 'content':map_content, 'manmade':'SpotHorses-manmade.png', 'natural':'SpotHorses-natural.png', 'heatmap':'SpottedHorses-heatmap.png', 'thumbnail':'spottedhorses.jpg', 'title':'Spotted Horses'},
+		{'icon':'#therewasaqueen', 'book':'TWQ', 'content':map_content, 'manmade':'Queen-manmade.png', 'natural':'Queen-natural.png', 'heatmap':'ThereWasAQueen-heatmap.png', 'thumbnail':'ThereWasAQueen.jpg', 'title':'There Was A Queen'},
+		{'icon':'#barnburning', 'book':'BB', 'content':map_content, 'manmade':'BarnBurn-manmade.png', 'natural':'BarnBurn-natural.png', 'heatmap':'BarnBurning-heatmap.png', 'thumbnail':'BB_novel.jpg', 'title':'Barn Burning'},
+		{'icon':'#wash', 'book':'W', 'content':map_content, 'manmade':'Wash-manmade.png', 'natural':'Wash-natural.png', 'heatmap':'Wash-heatmap.png', 'thumbnail':'Wash_icon.jpg', 'title':'Wash'},
+		{'icon':'#dryseptember', 'book':'DS', 'content':map_content, 'manmade':'DrySept-manmade.png', 'natural':'DrySept-natural.png', 'heatmap':'DrySeptember-heatmap.png', 'thumbnail':'DS_novel.jpg', 'title':'Dry September'},
+		{'icon':'#pantaloon', 'book':'PAN', 'content':map_content, 'manmade':'Pantaloon-manmade.png', 'natural':'Pantaloon-natural.png', 'heatmap':'PantaloonInBlack-heatmap.png', 'thumbnail':'Pantaloon_icon.jpg', 'title':'Pantaloon in Black'},
+		{'icon':'#shingles', 'book':'SL', 'content':map_content, 'manmade':'Shingles-manmade.png', 'natural':'Shingles-natural.png', 'heatmap':'ShinglesForTheLord-heatmap.png', 'thumbnail':'Shingles_icon.jpg', 'title':'Shingles for the Lord'},
+		{'icon':'#redleaves', 'book':'RL', 'content':map_content, 'manmade':'', 'natural':'RedLeaves-natural.png', 'heatmap':'RedLeaves-heatmap.png', 'thumbnail':'RedLeaves_icon.jpg', 'title':'Red Leaves'},
+		{'icon':'#ambuscade', 'book':'AMB', 'content':map_content, 'manmade':'AMB-manmade.png', 'natural':'AMB-natural.png', 'heatmap':'Ambuscade-heatmap.png', 'thumbnail':'Ambuscade_icon.jpg', 'title':'Ambuscade'},
+		{'icon':'#eveningsun', 'book':'TES', 'content':map_content, 'manmade':'EvenSun-manmade.png', 'natural':'EvenSun-natural.png', 'heatmap':'EveningSun-heatmap.png', 'thumbnail':'ThatEveningSun_icon.jpg', 'title':'That Evening Sun'},
+		{'icon':'#tomorrow', 'book':'TO', 'content':map_content, 'manmade':'Tomorrow-manmade.png', 'natural':'Tomorrow-natural.png', 'heatmap':'Tomorrow-heatmap.png', 'thumbnail':'Tomorrow_icon.jpg', 'title':'Tomorrow'},
+		{'icon':'#unvanquished', 'book':'UNV', 'content':map_content, 'manmade':'Unvanq-manmade.png', 'natural':'Unvanq-natural.png', 'heatmap':'UnvanqStory-heatmap.png', 'thumbnail':'UnvanquishedSS.jpg', 'title':'The Unvanquished'},
+		{'icon':'#sanctuary', 'book':'SY', 'content':map_content, 'manmade':'Sanctuary-manmade.png', 'natural':'Sanctuary-natural.png', 'extra':'MemphisOxfordLayer.png', 'heatmap':'Sanctuary-heatmap.png', 'thumbnail':'santcover.jpg', 'title':'Sanctuary'},
+		{'icon':'#deathdrag', 'book':'DD', 'content':map_content, 'manmade':'DDrag-manmade.png', 'natural':'DDrag-natural.png', 'heatmap':'DeathDrag-heatmap.png', 'thumbnail':'DeathDrag.jpg', 'title':'Death Drag'},
+		{'icon':'#mule', 'book':'MY', 'content':map_content, 'manmade':'Mule-manmade.png', 'natural':'Mule-natural.png', 'heatmap':'MuleInTheYard-heatmap.png', 'thumbnail':'MuleInYard.jpg', 'title':'Mule In The Yard'},
+		{'icon':'#sound', 'book':'SF', 'content':map_content, 'manmade':'SoundAndFury-manmade.png', 'natural':'SoundAndFury-natural.png', 'extra':'SoundAndFury-cambridge.png', 'heatmap':'SandF-heatmap.png', 'thumbnail':'sandfcovert.jpg', 'title':'The Sound and the Fury'},
+		{'icon':'#light', 'book':'LA', 'content':map_content, 'manmade':'Light-manmade.png', 'natural':'Light-natural.png', 'extra':'LIA-inset.png', 'heatmap':'August-heatmap.png', 'thumbnail':'lightcovert.jpg', 'title':'Light In August'},
+		{'icon':'#soldier', 'book':'TWS', 'content':map_content, 'manmade':'TwoSoldiers-manmade.png', 'natural':'TwoSoldiers-natural.png', 'heatmap':'TwoSoldiers-heatmap.png', 'extra':'TwoSoldiers-memphis.png', 'thumbnail':'TwoSoldiersIcon.jpg', 'title':'Two Soldiers'},
+		{'icon':'#aild', 'book':'LD', 'content':map_content, 'manmade':'AILD-manmade.png', 'natural':'AILD-natural.png', 'heatmap':'AILD-heatmap.png', 'thumbnail':'aildcover.jpg', 'title':'As I Lay Dying'},
+		{'icon':'#sas', 'book':'SAS', 'content':map_content, 'manmade':'SkirmishAtSartoris-manmade.png', 'natural':'SkirmishAtSartoris-natural.png', 'heatmap':'SkirmishAtSartoris-heatmap.png', 'thumbnail':'SkirmishAtSartoris.jpg', 'title':'Skirmish At Sartoris'},
+		{'icon':'#snp', 'book':'SNP', 'content':map_content, 'manmade':'ShallNotPerish-manmade.png', 'natural':'ShallNotPerish-natural.png', 'heatmap':'ShallNotPerish-heatmap.png', 'thumbnail':'ShallNotPerish.jpg', 'title':'Shall Not Perish'},
+		{'icon':'#old', 'book':'OLD', 'content':map_content, 'manmade':'OldPeople-manmade.png', 'natural':'OldPeople-natural.png', 'heatmap':'TheOldPeople-heatmap.png', 'thumbnail':'TheOldPeople.jpg', 'title':'The Old People'},
+		{'icon':'#god', 'book':'GOD', 'content':map_content, 'manmade':'GoDownMoses-manmade.png', 'natural':'GoDownMoses-natural.png', 'heatmap':'GDMStory-heatmap.png', 'thumbnail':'GoDownMoses.jpg', 'title':'Go Down, Moses'},
+		{'icon':'#raid', 'book':'RAI', 'content':map_content, 'manmade':'Raid-manmade.png', 'natural':'Raid-natural.png', 'heatmap':'Raid-heatmap.png', 'thumbnail':'Raid.jpg', 'title':'Raid'},
+		{'icon':'#retreat', 'book':'RET', 'content':map_content, 'manmade':'Retreat-manmade.png', 'natural':'Retreat-natural.png', 'heatmap':'Retreat-heatmap.png', 'thumbnail':'Retreat.jpg', 'title':'Retreat'},
+		{'icon':'#bear', 'book':'BAR', 'content':map_content, 'manmade':'TheBear-manmade.png', 'natural':'TheBear-natural.png', 'heatmap':'TheBear-heatmap.png', 'thumbnail':'TheBear.jpg', 'title':'The Bear'},
+		{'icon':'#delta_autumn', 'book':'DEL', 'content':map_content, 'manmade':'DeltaAutumn-manmade.png', 'natural':'DeltaAutumn-natural.png', 'heatmap':'DeltaAutumn-heatmap.png', 'thumbnail':'DeltaAutumn.jpg', 'title':'Delta Autumn'},
+		{'icon':'#vendee', 'book':'VEN', 'content':map_content, 'manmade':'Vendee-manmade.png', 'natural':'Vendee-natural.png', 'heatmap':'Vendee-heatmap.png', 'thumbnail':'Vendee.jpg', 'title':'Vendee'},
+		{'icon':'#centaur', 'book':'CB', 'content':map_content, 'manmade':'Centaur-manmade.png', 'natural':'Centaur-natural.png', 'heatmap':'CentaurInBrass-heatmap.png', 'thumbnail':'CentaurInBrass.jpg', 'title':'Centaur In Brass'},
+		{'icon':'#intruder', 'book':'ID', 'content':map_content, 'manmade':'Intruder-manmade.png', 'natural':'Intruder-natural.png', 'heatmap':'IntruderInTheDust-heatmap.png', 'thumbnail':'IntruderIcon.jpg', 'title':'Intruder In The Dust'},
+		{'icon':'#dead_pilots', 'book':'ADP', 'content':map_content, 'manmade':'DeadPilots-manmade.png', 'natural':'DeadPilots-natural.png', 'extra':'DeadPilots-extra.png', 'heatmap':'DeadPilots-heatmap.png', 'thumbnail':'AllTheDeadPilots.jpg', 'title':'All The Dead Pilots'},
+		{'icon':'#reivers', 'book':'R', 'content':map_content, 'manmade':'Reivers-manmade.png', 'natural':'Reivers-natural.png', 'extra':'Reivers-inset.png', 'heatmap':'TheReivers-heatmap.png', 'thumbnail':'ReiversCover.jpg', 'title':'Reivers'},
+		{'icon':'#ajustice', 'book':'J', 'content':map_content, 'manmade':'AJustice-manmade.png', 'natural':'AJustice-natural.png', 'heatmap':'AJustice-heatmap.png', 'thumbnail':'AJustice.jpg', 'title':'A Justice'},
+		{'icon':'#courtship', 'book':'CRT', 'content':map_content, 'manmade':'Courtship-manmade.png', 'natural':'Courtship-natural.png', 'heatmap':'ACourtship-heatmap.png', 'thumbnail':'ACourtship.jpg', 'title':'A Courtship'},
+		{'icon':'#unvanqnovel', 'book':'UV', 'content':map_content, 'manmade':'UnvanqNovel-manmade.png', 'natural':'UnvanqNovel-natural.png', 'heatmap':'TheUnvanquished-heatmap.png', 'thumbnail':'UnvanqCover.jpg', 'title':'The Unvanquished'},
+			{'icon':'#hamlet', 'book':'H', 'content':map_content, 'manmade':'Hamlet-manmade.png', 'natural':'Hamlet-natural.png', 'extra':'Hamlet-inset.png', 'heatmap':'TheHamlet-heatmap.png', 'thumbnail':'HamletCover.jpg', 'title':'Hamlet'},
+			{'icon':'#hound', 'book':'TH', 'content':map_content, 'manmade':'Hound-manmade.png', 'natural':'Hound-natural.png', 'heatmap':'TheHound-heatmap.png', 'thumbnail':'TheHound.jpg', 'title':'The Hound'},
+			{'icon':'#lizards', 'book':'LJC', 'content':map_content, 'manmade':'Lizards-manmade.png', 'natural':'Lizards-natural.png', 'heatmap':'JamshydsCourtyard-heatmap.png', 'thumbnail':'Lizards.jpg', 'title':'Lizards in Jamshyd&rsquo;s Courtyard'},
+			{'icon':'#fool', 'book':'FAH', 'content':map_content, 'manmade':'FoolAboutHorse-manmade.png', 'natural':'FoolAboutHorse-natural.png', 'heatmap':'FoolAboutAHorse-heatmap.png', 'thumbnail':'FoolAboutHorse.jpg', 'title':'Fool About a Horse'},
+			{'icon':'#point', 'book':'POL', 'content':map_content, 'manmade':'PointOfLaw-manmade.png', 'natural':'PointOfLaw-natural.png', 'heatmap':'PointOfLaw-heatmap.png', 'thumbnail':'APointOfLaw.jpg', 'title':'A Point Of Law'},
+			{'icon':'#tallmen', 'book':'TM', 'content':map_content, 'manmade':'TallMen-manmade.png', 'natural':'TallMen-natural.png', 'heatmap':'TheTallMen-heatmap.png', 'thumbnail':'TheTallMen.jpg', 'title':'The Tall Men'},
+			{'icon':'#goldnotalways', 'book':'GOL', 'content':map_content, 'manmade':'GoldNotAlways-manmade.png', 'natural':'GoldNotAlways-natural.png', 'heatmap':'GoldIsNotAlways-heatmap.png', 'thumbnail':'GoldIsNotAlways.jpg', 'title':'Gold Is Not Always'},
+			{'icon':'#moses_novel', 'book':'GDM', 'content':map_content, 'manmade':'MosesNovel-manmade.png', 'natural':'MosesNovel-natural.png', 'heatmap':'GoDownMoses-heatmap.png', 'thumbnail':'GoDownMosesNovelCover.jpg', 'title':'Go Down, Moses'},
+			{'icon':'#monk', 'book':'MNK', 'content':map_content, 'manmade':'Monk-manmade.png', 'natural':'Monk-natural.png', 'heatmap':'Monk-heatmap.png', 'thumbnail':'Monk.jpg', 'title':'Monk'},
+			{'icon':'#lion', 'book':'LIO', 'content':map_content, 'manmade':'Lion-manmade.png', 'natural':'Lion-natural.png', 'heatmap':'Lion-heatmap.png', 'thumbnail':'Lion.jpg', 'title':'Lion'},
+			{'icon':'#smoke', 'book':'SMO', 'content':map_content, 'manmade':'Smoke-manmade.png', 'natural':'Smoke-natural.png', 'heatmap':'Smoke-heatmap.png', 'thumbnail':'Smoke.jpg', 'title':'Smoke'},
+			{'icon':'#race', 'book':'RAM', 'content':map_content, 'manmade':'RaceAtMorning-manmade.png', 'natural':'RaceAtMorning-natural.png', 'heatmap':'RaceAtMorning-heatmap.png', 'extra':'RaceAtMorning-extra.png', 'thumbnail':'RaceAtMorning.jpg', 'title':'Race At Morning'},
+//				{'icon':'', 'book':'HEAT', 'content':map_content, 'manmade':'Lion-manmade.png', 'natural':'Lion-natural.png', 'heatmap':'Lion-heatmap.png', 'thumbnail':'Lion.jpg', 'title':'Lion'},
+			{'icon':'#elly', 'book':'ELY', 'content':map_content, 'manmade':'Elly-manmade.png', 'natural':'Elly-natural.png', 'heatmap':'Elly-heatmap.png', 'thumbnail':'Elly.jpg', 'title':'Elly'},
+			{'icon':'#hair', 'book':'HR', 'content':map_content, 'manmade':'Hair-manmade.png', 'natural':'Hair-natural.png', 'heatmap':'Hair-heatmap.png', 'thumbnail':'Hair.jpg', 'title':'Hair'},
+			{'icon':'#willy', 'book':'UW', 'content':map_content, 'manmade':'UncleWilly-manmade.png', 'natural':'UncleWilly-natural.png', 'heatmap':'UncleWilly-heatmap.png', 'thumbnail':'UncleWilly.jpg', 'title':'Uncle Willy', 'extra':'UncleWilly-extra.png'},
+			{'icon':'#grandmother', 'book':'MGM', 'content':map_content, 'manmade':'MyGrandmotherMillard-manmade.png', 'natural':'MyGrandmotherMillard-natural.png', 'heatmap':'Grandmother-heatmap.png', 'thumbnail':'MyGrandmotherMillard.jpg', 'title':'My Grandmother Millard'},
+			{'icon':'#abearhunt', 'book':'ABH', 'content':map_content, 'manmade':'ABearHunt-manmade.png', 'natural':'ABearHunt-natural.png', 'heatmap':'ABearHunt-heatmap.png', 'thumbnail':'ABearHunt.jpg', 'title':'A Bear Hunt'},
+			{'icon':'#bythepeople', 'book':'BP', 'content':map_content, 'manmade':'ByThePeople-manmade.png', 'natural':'ByThePeople-natural.png', 'heatmap':'ByThePeople-heatmap.png', 'thumbnail':'ByThePeople.jpg', 'title':'By The People'},
+			{'icon':'#absalomabsalom', 'book':'AA', 'content':map_content, 'manmade':'Absalom-manmade.png', 'natural':'Absalom-natural.png', 'heatmap':'Absalom-heatmap.png', 'thumbnail':'aacover.jpg', 'title':'Absalom, Absalom!'},
+			{'icon':'#town', 'book':'T', 'content':map_content, 'manmade':'Town-manmade.png', 'natural':'Town-natural.png', 'heatmap':'66_T.png', 'thumbnail':'Town.jpg', 'title':'The Town', 'extra':'Town-inset.png'},
+			{'icon':'#fine', 'book':'TWB', 'content':map_content, 'manmade':'ThatWillBeFine-manmade.png', 'natural':'ThatWillBeFine-natural.png', 'heatmap':'ThatWillBeFine-heatmap.png', 'thumbnail':'ThatWillBeFine.jpg', 'title':'That Will Be Fine'},
+			{'icon':'#error', 'book':'EIC', 'content':map_content, 'manmade':'ErrorInChemistry-manmade.png', 'natural':'ErrorInChemistry-natural.png', 'heatmap':'ErrorInChemistry-heatmap.png', 'thumbnail':'AnErrorInChemistry.jpg', 'title':'An Error In Chemistry'},
+			{'icon':'#beyond', 'book':'BE', 'content':map_content, 'manmade':'Beyond-manmade.png', 'natural':'Beyond-natural.png', 'heatmap':'Beyond-heatmap.png', 'thumbnail':'Beyond.jpg', 'title':'Beyond'},
+			{'icon':'#hand', 'book':'HUW', 'content':map_content, 'manmade':'HandUponWater-manmade.png', 'natural':'HandUponWater-natural.png', 'heatmap':'HandOnWaters-heatmap.png', 'thumbnail':'HandUponTheWaters.jpg', 'title':'Hand Upon The Waters'},
+			{'icon':'#mansion', 'book':'M', 'content':map_content, 'manmade':'Mansion-manmade.png', 'natural':'Mansion-natural.png', 'heatmap':'67_M.png', 'thumbnail':'Mansion.jpg', 'title':'The Mansion', 'extra':'Mansion-extra.png'},
+			{'icon':'#AppendixCompson', 'book':'AC', 'content':map_content, 'manmade':'AppendixCompson-manmade.png', 'natural':'AppendixCompson-natural.png', 'heatmap':'58_AC.png', 'thumbnail':'AppendixCompson.jpg', 'title':'Appendix: Compson'},
+			{'icon':'#adastra', 'book':'AD', 'content':map_content, 'manmade':'AdAstra-manmade.png', 'natural':'AdAstra-natural.png', 'heatmap':'AdAstra-heatmap.png', 'thumbnail':'AdAstra.jpg', 'title':'Ad Astra', 'extra':'AdAstra-extra.png'},
+			{'icon':'#zilphia', 'book':'MZG', 'content':map_content, 'manmade':'MissZilphia-manmade.png', 'natural':'MissZilphia-natural.png', 'heatmap':'20_MZG.png', 'thumbnail':'MissZilphiaGant.jpg', 'title':'Miss Zilphia Gant'},
+			{'icon':'#name_city', 'book':'NC', 'content':map_content, 'manmade':'NameForCity-manmade.png', 'natural':'NameForCity-natural.png', 'heatmap':'', 'thumbnail':'NameForCity.jpg', 'title':'A Name for the City'},
+			{'icon':'#gambit', 'book':'KGB', 'content':map_content, 'manmade':'Gambit-manmade.png', 'natural':'Gambit-natural.png', 'heatmap':'', 'thumbnail':'Gambit-cover-icon.jpg', 'title':'Knight&rsquo;s Gambit'},
+			{'icon':'#requiem', 'book':'RQ', 'content':map_content, 'manmade':'Requiem-manmade.png', 'natural':'Requiem-natural.png', 'heatmap':'', 'thumbnail':'Requiem-cover-icon.jpg', 'title':'Requiem for a Nun'},
+			
+	];
+
+	var texts_by_publish_date = ['flags', 'sound', 'rose', 'aild', 'redleaves', 'dryseptember', 'sanctuary', 'eveningsun', 'adastra', 'hair', 'spottedhorses', 'hound', 'dead_pilots', 'ajustice', 'deathdrag', 'centaur', 'lizards', 'smoke', 'zilphia', 'light', 'therewasaqueen', 'beyond', 'wash', 'elly', 'abearhunt', 'mule', 'ambuscade', 'retreat', 'raid', 'sas', 'fine', 'willy', 'lion', 'fool', 'absalomabsalom', 'unvanquished', 'vendee', 'monk', 'unvanqnovel', 'barnburning','hand', 'hamlet', 'point', 'old', 'pantaloon', 'goldnotalways', 'tomorrow', 'god', 'tallmen', 'soldier', 'delta_autumn', 'bear', 'moses_novel', 'shingles', 'grandmother', 'snp', 'AppendixCompson', 'error', 'intruder', 'courtship', 'gambit', 'name_city', 'requiem', 'race', 'bythepeople', 'town', 'mansion', 'reivers'];
+	var texts_by_limited = ['flags', 'sas', 'fool', 'unvanquished', 'vendee', 'unvanqnovel', 'barnburning', 'point', 'hamlet', 'old', 'pantaloon', 'goldnotalways', 'shingles', 'snp', 'intruder', 'courtship', 'reivers'];
+	var texts_alphabetical = ['absalomabsalom', 'adastra', 'dead_pilots', 'ambuscade', 'AppendixCompson', 'aild', 'barnburning', 'bear', 'abearhunt', 'beyond', 'bythepeople', 'centaur', 'courtship', 'deathdrag', 'delta_autumn', 'dryseptember', 'elly', 'error', 'flags', 'fool', 'god', 'moses_novel', 'goldnotalways', 'hair', 'hamlet', 'hand', 'hound', 'intruder', 'ajustice', 'gambit', 'light', 'lion', 'lizards', 'mansion', 'zilphia', 'monk', 'mule', 'grandmother', 'name_city', 'old', 'pantaloon', 'point', 'race', 'raid', 'redleaves', 'reivers', 'requiem', 'retreat', 'rose', 'sanctuary', 'snp', 'shingles', 'sas', 'smoke', 'sound', 'spottedhorses', 'tallmen', 'eveningsun', 'fine', 'therewasaqueen', 'tomorrow', 'town', 'soldier', 'willy', 'unvanquished', 'unvanqnovel', 'vendee', 'wash'];
+	var texts_by_novels = ['flags', 'sound', 'aild', 'sanctuary', 'light', 'absalomabsalom', 'unvanqnovel', 'hamlet', 'moses_novel', 'AppendixCompson', 'intruder', 'requiem', 'town', 'mansion', 'reivers'];
+ 	var texts_by_collected_stories = ['barnburning', 'shingles', 'tallmen', 'abearhunt', 'soldier', 'snp', 'rose', 'hair', 'centaur', 'dryseptember', 'deathdrag', 'elly', 'willy', 'mule', 'fine', 'eveningsun', 'redleaves', 'ajustice', 'courtship', 'adastra', 'dead_pilots', 'wash', 'grandmother', 'therewasaqueen', 'beyond'];
+	var texts_by_uncollected_stories = ['ambuscade', 'retreat', 'raid', 'sas', 'unvanquished', 'vendee', 'fool', 'lizards', 'hound', 'spottedhorses', 'lion', 'old', 'point', 'goldnotalways', 'pantaloon', 'god', 'delta_autumn', 'bear', 'race', 'zilphia', 'name_city', 'bythepeople'];
+	var texts_by_knights = ['smoke', 'monk', 'hand', 'tomorrow', 'error', 'gambit'];
+	
+			function array_unique(arr) {
+			    var result = [];
+			    for (var i = 0; i < arr.length; i++) {
+			        if (result.indexOf(arr[i]) == -1) {
+			            result.push(arr[i]);
+			        }
+			    }
+			    return result;
+			}
+			
+			function get_events(loc,id, text) {
+				// alert(id);
+				$.ajax({ 
+	           type: 'GET', 
+	           url: '/sinatra/events_from_id?id='+encodeURIComponent(id)+'&text='+text, 
+	           // dataType:'json',
+	           success: function (data) { 
+								$(loc).html(data);
+						}
+					});
+				
+			}
+			
+			function sortHashTableByKey(hash, key_order, remove_key)
+			{
+			    var tmp = [],
+			        end = [],
+			        f_order = null;
+			    remove_key = remove_key || false;
+			    for (var key in hash)
+			    {
+			        if (hash.hasOwnProperty(key))
+			        {
+			            tmp.push(hash[key][key_order]);
+			        }
+			    }
+			    if (hash && hash[0] && typeof(hash[0][key_order]) === 'number')
+			    {
+			        f_order = function (a, b) { return a - b; };
+			    }
+			    tmp.sort(f_order);
+			    function getHash(hash, value)
+			    {
+			        for (k in hash)
+			        {
+			            if (hash[k] && hash[k][key_order] === value)
+			            {
+			                return { key : k, hash : hash[k] };
+			            }
+			        }
+			    }
+			    for (var i = 0, l = tmp.length; i < l; i++)
+			    {
+			        tmp[i] = getHash(hash, tmp[i]);
+			        if (remove_key)
+			        {
+			            delete tmp[i].hash[key_order];
+			        }
+			        if (!hash.length)
+			        {
+			            end[tmp[i].key] = tmp[i].hash;
+			        }
+			        else
+			        {
+			            end.push(tmp[i].hash);
+			        }
+			    }
+			    return end;
+			}
+			function SortArrayByKeys(inputarray) {
+			  var arraykeys=[];
+			  for(var k in inputarray) {arraykeys.push(k);}
+			  arraykeys.sort();
+
+			  var outputarray={};
+			  for(var i=0; i<arraykeys.length; i++) {
+			      outputarray[arraykeys[i]]=inputarray[arraykeys[i]];
+			  }
+			  return outputarray;
+			}
+			function GetURLParameter(sParam)
+			{
+			    var sPageURL = window.location.search.substring(1);
+			    var sURLVariables = sPageURL.split('&');
+			    for (var i = 0; i < sURLVariables.length; i++) 
+			    {
+			        var sParameterName = sURLVariables[i].split('=');
+			        if (sParameterName[0] == sParam) 
+			        {
+			            return sParameterName[1];
+			        }
+			    }
+			};
+			
+			function setTitle() {
+				var str = ''; //'<div id="info" style="float: right;margin:2px"> <img src="information-sm.png"></div>';
+				var names = "";
+				if ((current_text["Title"] != null) && (current_text["Title"].indexOf("\"") >= 0)) {
+					str += "<strong>"+current_text["title"]+"</strong><img src=\"information-sm.png\"><br/><span class=\"edited\">EDITED BY</span><br/>";
+				} else {
+					str += "<strong><i>"+current_text["title"]+"</i></strong><br/><span class=\"edited\">EDITED BY</span><br/>";
+				}
+				str += '<div id="info"><img src="information-sm.png"></div>';
+				if(current_editors.length > 3) {
+					// $("#title").css('width','250px');
+				}
+				$.each(current_editors, function(index, value) {
+					names += names != "" ? ', ' : '';
+					names += value['display_name']+"";
+				})
+				// wnm adding code to append associate editors' names after a semicolon in names string
+				if(current_editors_assoc.length > 0) {
+					names += " ; " ;
+					$.each(current_editors_assoc, function(index, value) {
+ 						if(index > 0) {names += names != "" ? ', ' : ''; } 
+ 						names += value['display_name']+"";
+						}
+					)
+ 				}
+				
+				$('#title').html(str+'<div class="names">'+names+"</div>");
+				
+				// ── Populate the new map title bar ───────────────────────────
+				var _namesEl = document.querySelector('#dy-title-bar .dy-title-names');
+				if (_namesEl) {
+					var _editorNames = [];
+					$.each(current_editors, function(i, v) {
+						if (v['display_name']) _editorNames.push(v['display_name']);
+					});
+					_namesEl.textContent = _editorNames.join(', ');
+				}
+
+				var _assocEl = document.querySelector('#dy-title-bar .dy-title-assoc');
+				if (_assocEl) {
+					var _assocNames = [];
+					if (current_editors_assoc && current_editors_assoc.length) {
+						$.each(current_editors_assoc, function(i, v) {
+							if (v['display_name']) _assocNames.push(v['display_name']);
+						});
+					}
+					_assocEl.textContent = _assocNames.join(', ') || '';
+					_assocEl.closest('.dy-title-row').style.display = _assocNames.length ? '' : 'none';
+				}
+
+				var _citeBox = document.getElementById('dy-cite-box'); // legacy — no longer used
+
+				var _aboutView = document.getElementById('ft-about-view');
+				if (_aboutView) {
+					var _t = current_text;
+					var _today = new Date();
+					var _accessed = _today.toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+					var _ctitle = _t['title'] || '';
+					var _curl = 'https://faulkner.iath.virginia.edu';
+					var _edDisplay = [], _edSort = [];
+					$.each(current_editors, function(i, e) {
+						if (e['display_name']) _edDisplay.push(e['display_name']);
+						if (e['sort_name'])    _edSort.push(e['sort_name']);
+					});
+					// MLA
+					var _mlaEd = _edSort.length ? (_edSort[0] + (_edDisplay.length > 1 ? ', and ' + _edDisplay.slice(1).join(', and ') : '') + ', editors. ') : '';
+					var _mlaCite = _mlaEd + '\u201c' + _ctitle + '.\u201d <em>Digital Yoknapatawpha</em>, University of Virginia, faulkner.iath.virginia.edu. Accessed ' + _accessed + '.';
+					var _mlaPlain = _mlaEd + '\u201c' + _ctitle + '.\u201d Digital Yoknapatawpha, University of Virginia, faulkner.iath.virginia.edu. Accessed ' + _accessed + '.';
+					// APA
+					var _apaEds = [];
+					$.each(current_editors, function(i, e) {
+						var _sp = (e['sort_name'] || '').split(', ');
+						var _init = (_sp[1] || '').split(' ').map(function(w){ return w.charAt(0) + '.'; }).join(' ');
+						_apaEds.push(_sp[0] + (_init ? ', ' + _init : ''));
+					});
+					var _apaEdStr = _apaEds.length ? (_apaEds.join(' & ') + ' (' + (_apaEds.length > 1 ? 'Eds.' : 'Ed.') + '). ') : '';
+					var _apaCite = _apaEdStr + '(n.d.). ' + _ctitle + '. <em>Digital Yoknapatawpha</em>, University of Virginia. ' + _curl;
+					var _apaPlain = _apaEdStr + '(n.d.). ' + _ctitle + '. Digital Yoknapatawpha, University of Virginia. ' + _curl;
+					// Chicago
+					var _chiEd = _edSort.length ? (_edSort[0] + (_edDisplay.length > 1 ? ', and ' + _edDisplay.slice(1).join(', and ') : '') + ', eds. ') : '';
+					var _chiCite = _chiEd + '\u201c' + _ctitle + '.\u201d <em>Digital Yoknapatawpha</em>. University of Virginia. Accessed ' + _accessed + '. ' + _curl + '.';
+					var _chiPlain = _chiEd + '\u201c' + _ctitle + '.\u201d Digital Yoknapatawpha. University of Virginia. Accessed ' + _accessed + '. ' + _curl + '.';
+
+					function _citeSection(style, htmlStr, plainStr) {
+						return '<div class="ft-cite-row" data-style="' + style + '"' + (style !== 'mla' ? ' style="display:none"' : '') + '>'
+							+ '<span class="ft-cite-text">' + htmlStr + '</span>'
+							+ '<button class="ft-cite-copy" data-plain="' + plainStr.replace(/"/g, '&quot;') + '">Copy</button>'
+							+ '</div>';
+					}
+
+					// Build pub header
+					var _pubHdr = '<div id="ft-pub-header">';
+					_pubHdr += '<span class="ft-pub-title">' + (_t['title'] || '') + '</span>';
+					if (_t['first_publisher'] || _t['first_publisher_date']) {
+						_pubHdr += '<span class="ft-pub-row"><span class="ft-pub-label">First published: </span>';
+						var _parts = [];
+						if (_t['first_publisher'])           _parts.push(_t['first_publisher']);
+						if (_t['first_publisher_location'])  _parts.push(_t['first_publisher_location']);
+						if (_t['first_publisher_date'])      _parts.push(_t['first_publisher_date']);
+						_pubHdr += _parts.join(', ') + '</span>';
+					}
+					if (_t['edit_copy_publisher']) {
+						_pubHdr += '<span class="ft-pub-row"><span class="ft-pub-label">This edition: </span>';
+						var _eParts = [];
+						if (_t['edit_copy_publisher'])  _eParts.push(_t['edit_copy_publisher']);
+						if (_t['edit_copy_location'])   _eParts.push(_t['edit_copy_location']);
+						if (_t['edit_copy_date'])       _eParts.push(_t['edit_copy_date']);
+						_pubHdr += _eParts.join(', ') + '</span>';
+					}
+					if (_t['page_start'] && _t['page_stop']) {
+						_pubHdr += '<span class="ft-pub-row"><span class="ft-pub-label">Pages: </span>' + _t['page_start'] + '&#x2013;' + _t['page_stop'] + '</span>';
+					}
+					_pubHdr += '<span class="ft-pub-row"><span class="ft-pub-label">Manuscript images: </span><a href="https://faulkner.drupal.shanti.virginia.edu/node/7862?canvas" target="_blank" rel="noopener">View manuscript images at Digital Yoknapatawpha</a></span>';
+					_pubHdr += '</div>';
+
+					// Build citation block
+					var _citeHtml = '<div id="ft-cite-block">';
+					_citeHtml += '<p class="ft-cite-note">These citations refer to the <em>Digital Yoknapatawpha</em> database entry and editorial annotations for this story &mdash; not to Faulkner\u2019s original text.</p>';
+					_citeHtml += '<div class="ft-cite-tabs">';
+					_citeHtml += '<button class="ft-cite-tab active" data-style="mla">MLA</button>';
+					_citeHtml += '<button class="ft-cite-tab" data-style="apa">APA</button>';
+					_citeHtml += '<button class="ft-cite-tab" data-style="chicago">Chicago</button>';
+					_citeHtml += '</div>';
+					_citeHtml += _citeSection('mla', _mlaCite, _mlaPlain);
+					_citeHtml += _citeSection('apa', _apaCite, _apaPlain);
+					_citeHtml += _citeSection('chicago', _chiCite, _chiPlain);
+					_citeHtml += '</div>';
+
+					_aboutView.innerHTML = _pubHdr + _citeHtml + (current_text['about'] || '');
+
+					// Wire cite tabs
+					_aboutView.addEventListener('click', function(e) {
+						var tab = e.target.closest('.ft-cite-tab');
+						if (tab) {
+							var style = tab.getAttribute('data-style');
+							_aboutView.querySelectorAll('.ft-cite-tab').forEach(function(b){ b.classList.remove('active'); });
+							tab.classList.add('active');
+							_aboutView.querySelectorAll('.ft-cite-row').forEach(function(d){ d.style.display = 'none'; });
+							var row = _aboutView.querySelector('.ft-cite-row[data-style="' + style + '"]');
+							if (row) row.style.display = 'flex';
+							return;
+						}
+						var copyBtn = e.target.closest('.ft-cite-copy');
+						if (copyBtn) {
+							var plain = copyBtn.getAttribute('data-plain');
+							navigator.clipboard && navigator.clipboard.writeText(plain).then(function() {
+								copyBtn.textContent = 'Copied!';
+								copyBtn.classList.add('copied');
+								setTimeout(function(){ copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 1800);
+							});
+						}
+					});
+				}
+
+				var _editorsView = document.getElementById('ft-about-editors-view');
+				if (_editorsView) {
+					var _editorHtml = '';
+					$.each(current_editors, function(i, v) {
+						_editorHtml += v['about'];
+						if (current_editors_assoc && current_editors_assoc.length) {
+							// editors_assoc appended below
+						}
+					});
+					if (current_editors_assoc && current_editors_assoc.length) {
+						$.each(current_editors_assoc, function(i, v) { _editorHtml += v['about'] || ''; });
+					}
+					_editorsView.innerHTML = _editorHtml || '<p><em>No editor information available.</em></p>';
+				}
+
+				var _titleBar = document.getElementById('dy-title-bar');
+				if (_titleBar) _titleBar.style.display = 'flex';
+
+				// ── Activate the About Text tab now that content is ready ────
+				if (window.dyActivatePanelTab) window.dyActivatePanelTab('about-text');
+
+			}
+			
+			function getOtherResources(text) {
+				var resPanel = document.getElementById('ft-other-resources');
+				if (resPanel) resPanel.innerHTML = '<span class="ft-res-loading">Loading&#x2026;</span>';
+
+				$.ajax({
+					type: 'GET',
+					url: '/sinatra/drupal_other_resources?code=' + text,
+					dataType: 'json',
+					success: function(archiveData) {
+						$.ajax({
+							type: 'GET',
+							url: '/sinatra/drupal_teaching?code=' + text,
+							dataType: 'json',
+							success: function(teachData) {
+								if (!resPanel) return;
+								var html = '';
+
+								// ── Teaching ──────────────────────────────
+								var teachItems = '';
+								$.each(teachData['results'], function(i, v) {
+									if (v['code'] != null) {
+										teachItems += '<li><a href="' + v['url'] + '" target="_blank">' + v['title'] + '</a></li>';
+									}
+								});
+								html += '<div class="ft-res-section">';
+								html += '<h4 class="ft-res-heading">Teaching</h4>';
+								html += '<ul class="ft-res-list">' + (teachItems || '<li class="ft-res-empty">No lessons available</li>') + '</ul>';
+								html += '</div>';
+
+								// ── Archive ───────────────────────────────
+								var archiveItems = '';
+								$.each(archiveData['results'], function(i, v) {
+									if (v['code'] != null) {
+										archiveItems += '<li><a href="https://faulkner.drupal.shanti.virginia.edu/node/' + v['nid'] + '?canvas" target="_blank">' + v['display_title'] + '</a></li>';
+									}
+								});
+								if (text === 'AA') {
+									archiveItems += '<li><a href="/family/aa_events.php" target="_blank">Chronology</a></li>';
+									archiveItems += '<li><a href="/family/aa_sources.php" target="_blank">Narrative Sources</a></li>';
+								}
+								html += '<div class="ft-res-section">';
+								html += '<h4 class="ft-res-heading">Archive</h4>';
+								html += '<ul class="ft-res-list">' + (archiveItems || '<li class="ft-res-empty">No archive resources</li>') + '</ul>';
+								html += '</div>';
+
+								// ── Visualizations ────────────────────────
+								var vizItems = '<li><a href="https://faulkner.iath.virginia.edu/characters-force.html?text=' + text + '" target="_blank">Location-Character Graph</a></li>';
+								html += '<div class="ft-res-section">';
+								html += '<h4 class="ft-res-heading">Visualizations</h4>';
+								html += '<ul class="ft-res-list">' + vizItems + '</ul>';
+								html += '</div>';
+
+								resPanel.innerHTML = html;
+							}
+						});
+					}
+				});
+			}
+			function select_all_icons() {
+				// console.log('books = '+books.length);
+				// console.log('pub = '+texts_alphabetical.length);
+				var b = {}
+				$.each(books, function(k,v) {
+					b[books[k]['icon']] = k;
+				})
+				$('.mac-dock').empty();
+				$('#text_title_list').empty();
+				$('#text_title_list').hide();
+				$.each(texts_alphabetical, function(k,v) {
+					b[books[k]['icon']] = k;
+					$('.mac-dock').append('<a href="/?text='+books[b['#'+v]]['book']+'"><img alt="'+books[b['#'+v]]['title']+'" src="book_covers/'+books[b['#'+v]]['thumbnail']+'" id="'+books[b['#'+v]]['icon']+'" title="'+books[b['#'+v]]['title']+'"></a> ');
+
+					var pretty_title = '&ldquo;' + books[b['#'+v]]['title'] + '&rdquo;';
+					if ( ($.inArray(books[b['#'+v]]['icon'].slice(1), texts_by_novels)) > -1 ) { pretty_title = '<em>' + books[b['#'+v]]['title'] + '</em>'; }
+					$('#text_title_list').append('<p><a href="/?text='+books[b['#'+v]]['book']+'">'+pretty_title+'</a></p> ');
+
+					$(books[b['#'+v]]['icon']).click(function() {
+					})
+				})
+				$('.mac-dock img').click(function() {
+					var i = $(this).attr('id');
+					//show_book(books[b[i]]['book'], books[b[i]]['content'], books[b[i]]['manmade'], books[b[i]]['natural'], books[b[i]]['heatmap'], books[b[i]]['extra']);
+				})
+				$('.mac-dock img').show();
+				$('.mac-dock').css('width',(texts_alphabetical.length*44)+'px');
+				$('.mac-dock img').resizeOnApproach();
+				
+			}
+
+			function select_fewer_icons(icons) {
+				if (icons == null) {
+					icons = texts_alphabetical;
+				}
+				var b = {}
+				$.each(books, function(k,v) {
+					b[books[k]['icon']] = k;
+				})
+				$('.mac-dock').empty();
+				$('#text_title_list').empty();
+				$('#text_title_list').hide();
+				$.each(icons, function(k,v) {
+					// b[books[k]['icon']] = k;
+					$('.mac-dock').append('<img alt="'+books[b['#'+v]]['title']+'" src="book_covers/'+books[b['#'+v]]['thumbnail']+'" id="'+books[b['#'+v]]['icon']+'" title="'+books[b['#'+v]]['title']+'"> ');
+
+					var pretty_title = '&ldquo;' + books[b['#'+v]]['title'] + '&rdquo;';
+					if ( ($.inArray(books[b['#'+v]]['icon'].slice(1), texts_by_novels)) > -1 ) { pretty_title = '<em>' + books[b['#'+v]]['title'] + '</em>'; }
+					$('#text_title_list').append('<p><a href="/?text='+books[b['#'+v]]['book']+'">'+pretty_title+'</a></p> ');
+
+				})
+				$('.mac-dock img').click(function() {
+					var i = $(this).attr('id');
+					show_book(books[b[i]]['book'], books[b[i]]['content'], books[b[i]]['manmade'], books[b[i]]['natural'], books[b[i]]['heatmap'], books[b[i]]['extra']);
+				})
+				var w = icons.length*44;
+				if (w < 780) {
+					w = 780;
+				}
+				$('.mac-dock').css('width',w+'px');
+				$('.mac-dock img').resizeOnApproach();
+				
+			}
+			var heatmap_layer=null;
+			// start up jquery
+			$(function() {				
+				
+			    //$("#downClick").on("click" ,function(){
+					//var wid = books.length*42;
+					//if(scrolled < (wid-800))   
+			                   //scrolled=scrolled+100;
+        
+			   				//$("#dock-container").animate({
+			   				        //scrollLeft:  scrolled
+			   				   //});
+							   //console.log(scrolled);
+			   			//});
+
+    
+			       //$("#upClick").on("click" ,function(){
+					   //if(scrolled > 0)
+			   				//scrolled=scrolled-100;
+				
+			   				//$("#dock-container").animate({
+			   				        //scrollLeft:  scrolled
+			   				   //});
+							   //console.log(scrolled);
+
+			   			//});
+				
+				var years = 75; //1850-1925
+				// $('#date_years').append();
+				// display coordinates if parameter is passed
+				var coords = GetURLParameter('coords');
+				var book_param=GetURLParameter('text');
+
+				if (coords == "y") {
+					$('#coords').show();
+				}
+				
+				if(book_param == null) {
+					select_all_icons();
+					// $('.mac-dock').css('width',(books.length*42)+'px');
+					$('.mac-dock').show();
+					$("#shelf_instructions").show();
+					//$("#upClick").show();
+					//$("#downClick").show();
+					$('.mac-dock img').resizeOnApproach();
+
+					$("#header_menu").hide();
+					$("#header_menu_underline").hide();
+
+					$("#content_3").show();
+				}
+
+				if(book_param != null) {
+					$("#header_menu").show();
+					$("#header_menu_underline").show();
+
+					$("#content_3").hide();
+					//this also needs to be in locations.js and locations-pops.js
+				}
+
+				for(x=0; x <= max; x+=1) {
+					events[x] = [];
+					// fitd_events[x] = [];
+					// fd_dates[x] = [];
+					// page_locations[x] = [];
+					// rose_events[x] = [];
+					// rose_dates[x] = [];
+					// sh_events[x] = [];
+					// sh_dates[x] = [];
+				}
+
+				$('.mac-dock img').click(function() {
+					
+				})
+								
+				$.each(books, function(index, value) {
+					$(value['icon']).click(function() {
+						show_book(value['book'], value['content'], value['manmade'], value['natural'], value['heatmap'], value['extra']);
+					})
+					
+				})
+				
+				$('#show_character_list').click(function() {
+			    if (this.checked) {
+						$('#character_list').dialog('open');
+					} else {
+						$('#character_list').dialog('close');
+					}
+				})
+				
+				$('#show_location_list').click(function() {
+			    if (this.checked) {
+					
+						$('#location_list').dialog('open');
+					} else {
+						$('#location_list').dialog('close');
+					}
+				})
+				$('#locations').click(function() {
+				    if (this.checked) {
+				        // the checkbox was checked 
+							$.each(current_locations, function(index, value) {
+								value.show();
+							})
+							contentLayer.draw();
+							$('#event-locations').removeAttr('checked');
+				    } else {
+				        // the checkbox was unchecked
+								$.each(current_locations, function(index, value) {
+									value.hide();
+								})
+								contentLayer.draw();
+				    }
+				});
+
+				$('#no-locations').click(function() {
+								$.each(current_locations, function(index, value) {
+									value.hide();
+								})
+								contentLayer.draw();
+				});
+
+				$(document).on('click', '#location-search', function() {
+				    if (this.checked) {
+				        // the checkbox was checked 
+							$.each(current_locations, function(index, value) {
+								value.hide();
+							})
+							$.each(search_locations, function(index, value) {
+								if (value != null) {
+									value.show();
+								}
+							})
+							contentLayer.draw();
+							// $('#location-search').removeAttr('checked');
+				    } else {
+				        // the checkbox was unchecked
+								$.each(current_locations, function(index, value) {
+									value.hide();
+								})
+								contentLayer.draw();
+				    }
+				});
+
+				$('#event-locations').click(function() {
+				    if (this.checked) {
+				        // the checkbox was checked 
+						$.each(current_locations, function(index, value) {
+							value.hide();
+						})
+						$.each(current_events, function(index, value) {
+							$.each(value, function(i, v) {
+								$.each(v.replace(/, /g,'--').split(','), function(ii, vv) {
+									if(current_locations[vv.replace('--',', ')] != null) {
+										current_locations[vv.replace('--',', ')].show();
+									} else {
+									}
+								})
+							})
+						})
+						contentLayer.draw();
+						$('#locations').removeAttr('checked');
+				    } else {
+				        // the checkbox was unchecked
+								$.each(current_locations, function(index, value) {
+									value.hide();
+								})
+								contentLayer.draw();
+				    }
+				});
+
+				$('#events').click(function() {
+				    if (this.checked) {
+				        // the checkbox was checked 
+							$.each(current_event_logos, function(index, value) {
+								value.moveToBottom();
+								value.setOpacity(0.5);
+								value.show();
+							})
+							if(inset_image != null) {
+								inset_image.moveToBottom();
+							}
+							if(out_yok != null) {
+								out_yok.moveToBottom();
+							}
+							contentLayer.draw();
+							$.each(event_dates, function(i, v) {
+								
+								highlight_date(v);
+							}) 
+							fade_dates();
+				    } else {
+				        // the checkbox was unchecked
+								$.each(current_event_logos, function(index, value) {
+									value.hide();
+								})
+								if(inset_image != null) {
+									inset_image.moveToBottom();
+								}
+								if(out_yok != null) {
+									out_yok.moveToBottom();
+								}
+								contentLayer.draw();
+								$.each(event_dates, function(i, v) {
+									$(v).hide();
+								}) 
+				    }
+				});
+
+				$('#natural').click(function() {
+				    if (this.checked) {
+				        // the checkbox was checked 
+						natural.show();
+						
+							contentLayer.draw();
+				    } else {
+						natural.hide();
+				        // the checkbox was unchecked
+								contentLayer.draw();
+				    }
+				});
+				$('#manmade').click(function() {
+				    if (this.checked) {
+				        // the checkbox was checked 
+						manmade.show();
+								contentLayer.draw();
+				    } else {
+				        // the checkbox was unchecked
+						manmade.hide();
+								contentLayer.draw();
+				    }
+				});
+				$('#characters').click(function() {
+				    if (this.checked) {
+				        // the checkbox was checked 
+								$.each(current_characters, function(index, value) {
+									value.show();
+								});
+								contentLayer.draw();
+				    } else {
+				        // the checkbox was unchecked
+								$.each(current_characters, function(index, value) {
+									value.hide();
+								});
+								contentLayer.draw();
+				    }
+				});
+				
+				$('#heatmap_toggle').click(function() {
+				    if (this.checked) {
+				        // the checkbox was checked 
+						heatmap_image.show();
+						
+						contentLayer.draw();
+						$.each(current_locations, function(index, value) {
+							value.hide();
+						})
+						contentLayer.draw();
+						$('#locations').removeAttr('checked');
+				    } else {
+						heatmap_image.hide();
+				        // the checkbox was unchecked
+						contentLayer.draw();
+						$.each(active_locations, function(index, value) {
+							if (value && typeof value.show === 'function') value.show();
+						})
+						contentLayer.draw();
+						$('#locations').attr('checked','true');
+								
+				    }
+				    if ($('#locations').attr('checked')) {
+				        // the checkbox was checked 
+				    } else {
+				        // the checkbox was unchecked
+				    }
+					
+				});
+
+				// $( "#slider" ).slider({ min: min, 
+				// 		max: max,
+				// 		slide: function( event, ui ) {
+				// 			// if (ui.value < start_page) {
+				// 			// 	$('#slider').slider('value', start_page);
+				// 			// } 
+				// 			// if (ui.value > end_page) {
+				// 			// 	$('#slider').slider('value', end_page);
+				// 			// } 
+				// 			animate_location(prev, ui.value, current_events, current_locations);
+				// 
+				// 			animate_date(ui.value, current_dates);
+				// 				contentLayer.draw();
+				// 				// $(".range_item").hide();
+				// 			          $("#label").text('Page '+ui.value);
+				// 			          // $("#label").css("margin-left", (ui.value-min)/(max-min)*100+"%");
+				// 			          // $("#label").css("left", "-25px");
+				// 				prev = ui.value;
+				// 			      } });
+
+						$( "#speed" ).slider({ min: -500, 
+								max: -10,
+								value: -250,
+								slide: function( event, ui ) {
+									speed = ui.value;
+			      } });
+						$( "#e_speed" ).slider({ min: -500, 
+								max: -10,
+								value: -250,
+								slide: function( event, ui ) {
+									e_speed = ui.value;
+			      } });
+						$( "#c_speed" ).slider({ min: -500, 
+								max: -10,
+								value: -250,
+								slide: function( event, ui ) {
+									c_speed = ui.value;
+			      } });
+				
+				    $( "#plus" )
+		            .button({ icons: { primary: "ui-icon-plus" }, text: false })
+		            .click(function( event ) {
+							    if(contentLayer.getScale().x < 2.1) {
+										// console.log(contentLayer.getX()+","+contentLayer.getY()+","+contentLayer.getScale());
+							        // contentLayer.setScale(contentLayer.getScale().x+0.1);
+							        contentLayer.scaleX(contentLayer.getScale().x+0.1);
+							        contentLayer.scaleY(contentLayer.getScale().y+0.1);
+											// console.log(contentLayer.getScale());
+											var tx = contentLayer.getX()-130;
+											var ty = contentLayer.getY()-80;
+											if (tx > 0) {
+												tx = 0;
+											}
+											if (ty > 0) {
+												ty = 0;
+											}
+											contentLayer.position({x:tx, y:ty});
+											// contentLayer.setPosition(contentLayer.getX()/contentLayer.getScale().x  ,contentLayer.getY()/contentLayer.getScale().y );
+							        contentLayer.draw(); drawSpatialHeatmap();
+							    }
+		            });
+		        $( "#minus" )
+		            .button({ icons: { primary: "ui-icon-minus" }, text: false })
+		            .click(function( event ) {
+									// console.log(contentLayer.getScale().x);
+							    if(contentLayer.getScale().x > 0.306) {
+							        // contentLayer.setScale(contentLayer.getScale().x-0.1);
+							        contentLayer.scaleX(contentLayer.getScale().x-0.1);
+							        contentLayer.scaleY(contentLayer.getScale().y-0.1);
+											var tx = contentLayer.getX()+130;
+											var ty = contentLayer.getY()+80;
+											if (tx > 0) {
+												tx = 0;
+											}
+											if (ty > 0) {
+												ty = 0;
+											}
+											contentLayer.position({x:tx, y:ty});
+											// contentLayer.setPosition(contentLayer.getX()+130  ,contentLayer.getY()+80 );
+							        contentLayer.draw(); drawSpatialHeatmap();
+							    }
+		            });
+		        $( "#reset" )
+		            .button()
+		            .click(function( event ) {
+						// Reset zoom/pan only — do not reload the page
+						contentLayer.scale({ x: 0.305, y: 0.305 });
+						contentLayer.position({ x: 0, y: 0 });
+						contentLayer.draw();
+						drawSpatialHeatmap();
+		            });
+
+        stage = new Konva.Stage({
+          container: "container",
+          width: 800,
+          height: 500
+        });
+				contentLayer.setDraggable("draggable");
+        var imageLogo = new Image();
+        var imageObj = new Image();
+        var image_out_yok = new Image();
+				var m_down = false;
+				var start = 0;
+				var stop = 0;
+				
+				imageLogo.onload = function() {
+          logo = new Konva.Image({
+            x: stage.getWidth() / 2 ,
+            y: stage.getHeight() / 2 -220, // - 231,
+            image: imageLogo,
+            width: 600,
+            height: 462
+          });
+          // add the shape to the contentLayer
+					// logo.setScale(3);
+					logo.scaleX(3);
+					logo.scaleY(3);
+          contentLayer.add(logo);
+					logo.setZIndex(10);
+					// contentLayer.draw();
+					// map.moveToBottom();
+					if(book_param != null) {
+						logo.hide();
+					}
+
+        };
+        imageLogo.src = "title.png";
+        
+        imageObj.onload = function() {
+          map = new Konva.Image({
+            x: 0, //stage.getWidth() / 2 - 1300,
+            y: 0, //stage.getHeight() / 2 - 800,
+            image: imageObj,
+            width: 2640,
+            height: 1650
+          });
+          // add the shape to the contentLayer
+					// contentLayer.setX(-820+(stage.getWidth() / 2));
+					// contentLayer.setY(-425+(stage.getHeight() / 2));
+					contentLayer.setX((-1320*0.305)+(stage.getWidth() / 2));
+					contentLayer.setY((-825*0.305)+(stage.getHeight() / 2));
+          // contentLayer.add(map);
+          backgroundLayer.add(map);
+					map.setZIndex(-10);
+					map.moveToBottom();
+					// contentLayer.setScale(0.305);
+					contentLayer.scaleX(0.305);
+					contentLayer.scaleY(0.305);
+					// backgroundLayer.setScale(0.305);
+					backgroundLayer.scaleX(0.305);
+					backgroundLayer.scaleY(0.305);
+					tooltip = new Konva.Text({
+             text: "junk",
+             fontFamily: "Calibri",
+             fontSize: 14,
+						fontStyle: 'bold',
+             padding: 5,
+             textFill: "white",
+             fill: "black",
+             alpha: 0.5
+         });
+				rect = new Konva.Rect({
+				        x: 0,
+				        y: 0,
+				        stroke: '#555',
+				        strokeWidth: 1,
+				        fill: '#ddd',
+				        width: 380,
+				        height: tooltip.getHeight(),
+				        shadowColor: 'black',
+				        shadowBlur: 10,
+				        shadowOffset: [10, 10],
+				        shadowOpacity: 0.35,
+				        cornerRadius: 10
+				      });
+
+			   tooltip_group = new Konva.Group({
+			        x: 220,
+			        y: 40
+			      });
+
+					tooltip_group.add(rect);
+					tooltip_group.add(tooltip);
+					tooltip_group.hide();
+          //tooltipLayer.listen(false);
+          tooltipLayer.add(tooltip_group);
+
+			   contentLayer_group = new Konva.Group({
+			        x: 800,
+			        y: 500,
+							draggable: true,
+							dragBoundFunc: function(pos) {
+								// console.log(pos);
+							}
+			      });
+					// contentLayer_group.add(contentLayer);
+				 
+          // add the contentLayer to the stage
+					// contentLayer.hide();
+          stage.add(backgroundLayer);
+          stage.add(heatLayer);
+          stage.add(contentLayer);
+					stage.add(controlLayer);
+					stage.add(tooltipLayer);
+					
+        };
+        imageObj.src = "papertex2b-solid.png";
+
+
+					        image_out_yok.onload = function() {
+					          out_yok = new Konva.Image({
+					            x: 0, //stage.getWidth() / 2 - 1300,
+					            y: 0, //stage.getHeight() / 2 - 800,
+					            image: image_out_yok,
+					            width: 2640,
+					            height: 1650,
+											opacity: 0.75
+					          });
+					          // add the shape to the contentLayer
+										fd_content_outside.push(out_yok);
+										if(book_param == null) {
+											out_yok.hide();
+										}
+					
+					          contentLayer.add(out_yok);
+					out_yok.setZIndex(2);
+					contentLayer.draw();
+					// map.moveToBottom();
+					        };
+					        image_out_yok.src = "out_of_yok.png";
+
+
+				if(book_param != null) {
+					$.each(books, function(index,value) {
+						if (value['book'] == book_param) {
+							show_book(book_param, value['content'], value['manmade'], value['natural'], value['heatmap'], value['extra'])
+						}
+					})
+					// show_book(book_param);
+				}
+
+	    });
+
+
+			function parseDate(str) {
+			    var mdy = str.split('-');
+				var o = Date.UTC(date_start,1,1)/86400000.0;  // 86400000.0 milliseconds in day
+					// console.log(o);
+					if (parseInt(mdy[0]) < date_start) {
+						// mdy = ['1799','6','1']
+						mdy = [date_start-1,'6','1']
+					}
+			    var d = (Date.UTC(mdy[0], mdy[1], mdy[2].split(" ")[0]))/86400000.0;
+				return [d-o, d-o];
+			}
+			function parseRangeDate(str) {
+			    var pair = str.split(' to ')
+					var mdy = pair[0].split('-');
+					if (parseInt(mdy[0]) < date_start) {
+						// mdy = ['1799','6','1']
+						mdy = [date_start-1,'6','1']
+					}
+					var o = Date.UTC(date_start-1,12,31)/86400000.0;
+			    var start = (Date.UTC(mdy[0], mdy[1], mdy[2].split(" ")[0]))/86400000.0;
+					// console.log(o + " = "+start);
+					mdy = pair[1].split('-');
+					if (parseInt(mdy[0]) < date_start) {
+						// mdy = ['1799','6','1']
+						mdy = [date_start-1,'6','1']
+					}
+			    var stop = (Date.UTC(mdy[0], mdy[1], mdy[2].split(" ")[0]))/86400000.0;
+				return [start-o, stop-o];
+			}
+	
+		var hide_locations = function() {
+			$.each(locations, function(index, value) {
+				value.hide();
+			});
+			contentLayer.draw();
+		};
+		var show_locations = function() {
+			$.each(locations, function(index, value) {
+				value.show();
+			});
+			contentLayer.draw();
+		};
+		
+		function animate_characters(prev, current, data) {
+			var offset = 50;
+			for (var loc in page_locations[prev]) {
+				for (var evt in page_locations[prev][loc]) {
+					try {
+						
+						$.each(page_locations[prev][loc]["characters"], function (index, value) {
+							if(data[value] != null) {
+								data[value]["image"].hide();
+								// console.log('show');
+							}
+						});
+					} catch(e) {
+					}
+					$.each(page_locations[prev][loc]["characters"], function (index, value) {
+						if(data[value] != null) {
+							data[value]["image"].setScale(1);
+					}
+					})
+				}
+			}
+
+			var char_mode = "all";
+			if ($('#characters-major').attr('checked')) {
+				char_mode = "major"
+			} else if ($('#characters-major-regular').attr('checked')) {
+				char_mode = "major-regular"
+			} else if ($('#characters-none').attr('checked')) {
+				char_mode = "none"
+			}
+			// Iterate over everything occuring on this page, checking for characters in the specified data set. 
+			// Highlight the origin of the character on the map.
+			for (var loc in page_locations[current]) {
+				for (var evt in page_locations[current][loc]) {
+					var startX=0;
+					var startY=0;
+					var hash = {}
+					try {
+
+						$.each(page_locations[current][loc]["characters"], function (index, value) {
+							// current book has character
+							if (value == "Unnamed Scottish Engineer") {
+							}
+							if(data[value] != null) {
+								var current_class = data[value]["rank"];
+								// console.log(current_class);
+								var display = false;
+								if(char_mode == "all") {
+									display = true
+								} else
+								if ((char_mode == "major") && (current_class == "Major")) {
+									display = true;
+								} else
+								if ((char_mode == "major-regular") && ((current_class == "Major") || (current_class == "Secondary")) ) {
+									display = true;
+								}
+								if (display) {
+									if (hash[data[value]["location"]] == null) {
+										hash[data[value]["location"]] = new Array;
+									} else {
+										hash[data[value]["location"]].push(1)
+									}
+									if (data[value]["location"] == loc) {
+										data[value]["image"].setX(all_locations[loc].getX()-offset-(offset*hash[data[value]["location"]].length));
+										data[value]["image"].setY(all_locations[loc].getY());
+									} else {
+										data[value]["image"].setX(all_locations[data[value]["location"]].getX()-offset-(offset*hash[data[value]["location"]].length));
+										data[value]["image"].setY(all_locations[data[value]["location"]].getY());
+									}
+									// console.log(fitd_locations[loc].getX());
+									// offset += 50;
+									data[value]["image"].setScale(3);
+									data[value]["image"].moveToTop(); //setZIndex(20);
+									data[value]["image"].show();
+									// console.log('show');
+								}
+							}
+						});
+					} catch(e) {
+					}
+					// $.each(page_locations[current][loc]["characters"], function (index, value) {
+					// 	if(data[value] != null) {
+					// 		data[value]["image"].setScale(3);
+					// }
+					// })
+				}
+			}
+			
+		}
+
+		function reset_character_selection() {
+			$.each(current_characters, function(index, value) {
+				value["image"].hide();
+			});
+			contentLayer.draw();
+			$.each($('#character_list_content input'), function(i,v) {
+				$(v).prop("checked",false);
+			});
+		}
+		
+		function show_specific_characters() {
+			$.each(current_characters, function(index, value) {
+				value["image"].hide();
+			});
+			
+			var show_names = new Array();
+			$.each($('#character_list_content input'), function(i,v) {
+				if (v.checked) {
+					show_names.push(v.nextSibling.innerHTML);
+				}
+			});
+			var data = current_characters;
+			var offset = 50;
+
+					var startX=0;
+					var startY=0;
+					var hash = {}
+					try {
+						$.each(character_origin, function (index, value) {
+							if(data[index] != null) {
+								var current_class = data[index]["rank"];
+								// console.log(current_class);
+								if (show_names.indexOf(index) >= 0) {
+									if (hash[data[index]["location"]] == null) {
+										hash[data[index]["location"]] = new Array;
+									} else {
+										hash[data[index]["location"]].push(1)
+									}
+										if (current_locations[data[index]["location"]] != null) {
+											data[index]["image"].setX(current_locations[data[index]["location"]].getX()-offset-(offset*hash[data[index]["location"]].length));
+										data[index]["image"].setY(current_locations[data[index]["location"]].getY());
+										// console.log(data[index]["image"].getX()+","+data[index]["image"].getY());
+									} else {
+									}
+
+									data[index]["image"].setScale(1.5);
+									data[index]["image"].moveToTop(); //setZIndex(20);
+									data[index]["image"].show();
+									// console.log('show');
+								} else {
+									data[index]["image"].hide();
+								}
+							}
+						});
+					} catch(e) {
+					}
+				contentLayer.draw();
+		}
+
+		function reset_location_selection() {
+			$('#locations').removeAttr('checked');
+			$('#event-locations').removeAttr('checked');
+			
+			$.each(current_locations, function(index, value) {
+				value.hide();
+			});
+			contentLayer.draw();
+			$.each($('#location_list_content input'), function(i,v) {
+				$(v).prop("checked",false);
+			});
+		}
+
+		function show_specific_locations() {
+			$('#locations').removeAttr('checked');
+			$('#event-locations').removeAttr('checked');
+			
+			$.each(current_locations, function(index, value) {
+				value.hide();
+			});
+			$.each($('#location_list_content input'), function(i,v) {
+				if (v.checked) {
+					current_locations[$(this).val().replace('&quot;','"')].show();
+				}
+			});
+			
+				contentLayer.draw();
+		}
+		
+		function sortObject(obj) {
+		    var arr = [];
+		    var prop;
+		    for (prop in obj) {
+		        if (obj.hasOwnProperty(prop)) {
+		            arr.push({
+		                'key': prop,
+		                'value': obj[prop]
+		            });
+		        }
+		    }
+
+		    var property_type = typeof arr[0].value == 'string';
+		    // property_type: true~string, false~number
+
+		    arr.sort(function(a, b) {
+		        return property_type ? a.value.toLowerCase().localeCompare(b.value.toLowerCase()) : a.value - b.value;
+		    });
+		    return arr; // returns array
+		}
+				
+		function show_characters() {
+			var data = current_characters;
+			
+			if ($('#characters-search').attr('checked')) {
+				$.each(data, function(i,v) {
+					data[i]["image"].hide();
+				})
+				data = search_characters;
+			}
+			var offset = 50;
+
+			var char_mode = "all";
+			if ($('#characters-major').attr('checked')) {
+				char_mode = "major"
+			} else if ($('#characters-major-regular').attr('checked')) {
+				char_mode = "major-regular"
+			} else if ($('#characters-none').attr('checked')) {
+				char_mode = "none"
+			}
+					var startX=0;
+					var startY=0;
+					var hash = {}
+					try {
+						// var chars = sortHashTableByKey(character_origin,'rank')
+						var chars = sortObject(character_origin);
+						
+						$.each(chars, function (i, v) {
+							index = v.key;
+							if(data[index] != null) {
+								var current_class = data[index]["rank"];
+								// console.log(current_class);
+								var display = false;
+								if(char_mode == "all") {
+									display = true
+								} else
+								if ((char_mode == "major") && (current_class == "Major")) {
+									display = true;
+								} else
+								if ((char_mode == "major-regular") && ((current_class == "Major") || (current_class == "Secondary")) ) {
+									display = true;
+								}
+								if ((display) && (data[index]['current'] != null)) {
+									if (hash[data[index]["location"]] == null) {
+										hash[data[index]["location"]] = new Array;
+									} else {
+										hash[data[index]["location"]].push(1)
+									}
+									// if (data[index]["location"] == loc) {
+									// 		data[index]["image"].setX(all_locations[value].getX()-offset-(offset*hash[data[index]["location"]].length));
+									// 		data[index]["image"].setY(all_locations[value].getY());
+									// 	} else {
+										if (current_locations[data[index]["location"]] != null) {
+											data[index]["image"].setX(current_locations[data[index]["location"]].getX()-offset-(offset*hash[data[index]["location"]].length));
+										data[index]["image"].setY(current_locations[data[index]["location"]].getY());
+										// console.log(data[index]["image"].getX()+","+data[index]["image"].getY());
+									} else {
+									}
+									
+									// }
+									// console.log(fitd_locations[loc].getX());
+									// offset += 50;
+									data[index]["image"].setScale(1.5);
+									data[index]["image"].moveToTop(); //setZIndex(20);
+									data[index]["image"].show();
+									// console.log('show');
+								} else {
+									data[index]["image"].hide();
+								}
+							}
+						});
+					} catch(e) {
+					}
+					// $.each(page_locations[current][loc]["characters"], function (index, value) {
+					// 	if(data[value] != null) {
+					// 		data[value]["image"].setScale(3);
+					// }
+					// })
+			
+		}
+
+		function show_characters_home() {
+			var data = current_characters;
+			var offset = 50;
+
+					var startX=0;
+					var startY=0;
+					var hash = {}
+					try {
+						$.each(character_home, function (index, value) {
+							if(data[index] != null) {
+								var current_class = data[index]["rank"];
+								// console.log(current_class);
+								var display = false;
+								if(value != "") {
+									display = true
+								}
+								if (display) {
+									if (hash[value] == null) {
+										hash[value] = new Array;
+									} else {
+										hash[value].push(1)
+									}
+									if (current_locations[value] != null) {
+										data[index]["image"].setX(current_locations[value].getX()-offset-(offset*hash[value].length));
+										data[index]["image"].setY(current_locations[value].getY());
+										// console.log(data[index]["image"].getX()+","+data[index]["image"].getY());
+									} else {
+									}
+									
+									// }
+									// console.log(fitd_locations[loc].getX());
+									// offset += 50;
+									data[index]["image"].setScale(1.5);
+									data[index]["image"].moveToTop(); //setZIndex(20);
+									data[index]["image"].show();
+									// console.log('show');
+								} else {
+									data[index]["image"].hide();
+								}
+							}
+						});
+					} catch(e) {
+					}
+			
+		}
+		
+		function animate_location(prev, current, events, locations) {
+			if (events[prev] != null) {
+				$.each(events[prev], function(index, value) {
+					// console.log(value);
+					if (current_event_logos[value] != null) {
+						current_event_logos[value].show();
+						current_active_event_logos[value].setOpacity(0.35);
+						current_active_event_logos[value].hide();
+						// current_event_logos[value].setScale(1.25);
+ 					}
+					// if (locations[value] != null) {
+					// 	locations[value].setScale(1);
+					// }
+				});
+			}
+			if (events[current] != null) {
+				$.each(events[current], function(index, value) {
+					// console.log(value);
+					if (current_event_logos[value] != null) {
+						// current_event_logos[value].moveToBottom();
+						current_event_logos[value].show();
+						current_active_event_logos[value].setOpacity(0.35);
+						current_active_event_logos[value].hide();
+						// current_event_logos[value].setZIndex(10);
+						// current_event_logos[value].setOpacity(0.35);
+						// current_event_logos[value].setScale(1.25);
+						// current_event_logos[value].show();
+					}
+					// if (locations[value] != null) {
+					// 	locations[value].setScale(3);
+					// }
+				});
+				if (current_event_logos[events[current][0]] != null) {
+					// current_event_logos[events[current][0]].setScale(1);
+					current_active_event_logos[events[current][0]].setOpacity(1);
+					// current_active_event_logos[events[current][0]].moveToBottom();
+					current_active_event_logos[events[current][0]].show();
+				}
+			}			
+		}
+		
+		function fade_dates() {
+			var fade = GetURLParameter('fade');
+			// if (fade == "y") {
+				$(".range_item").css('opacity','0.50');
+			// }
+			$(".range_item").css('z-index','99');
+			$(".range_item").css('background-color','#b227da');
+			$(".range_item").css('cursor','auto');
+		}
+		
+		function highlight_date(value) {
+			$(value).css('cursor','pointer');
+				$(value).css('opacity','1');
+				$(value).css('background-color','red');
+				$(value).css('z-index','100');
+				$(value).show();
+		}
+		
+		function animate_date(value, dates) {
+			// $(".range_item").hide();
+			fade_dates();
+			if (dates[value] != null) {
+				$.each(dates[value], function(index, value) {
+						highlight_date(value);
+					});
+			}			
+		}
+
+		function animate_event_date() {
+			// $(".range_item").hide();
+			fade_dates();
+			highlight_date(event_dates[$('#e_slider').slider('value')]);
+			// $(event_dates[$('#e_slider').slider('value')]).css('opacity','1');
+			// $(event_dates[$('#e_slider').slider('value')]).css('background-color','red');
+			// $(event_dates[$('#e_slider').slider('value')]).show();
+		}
+		
+		function animate_section(pos) {
+			var section;
+			$.each(current_sections, function(index, value) {
+				if ((pos >= value['start']) && (pos <= value['stop'])) {
+					section = index;
+					if (section != current_section) {
+						$(".section_item").css('background', '#E8E8E8');
+						if(GetURLParameter('section') == null) {
+							$("#"+section).css('background', '#C0C0C0');
+						} else {
+							$("#"+section).css('background', 'red');
+						}
+						current_section = section;
+					}
+				}
+			})
+		}
+		
+		function load_images(book, content_container, manmade_image, natural_image, heatmap, extra) {
+			data_loaded = false;
+			var imageObject = new Image();
+			        imageObject.onload = function() {
+			           natural = new Konva.Image({
+			            x: 0, //stage.getWidth() / 2 - 1300,
+			            y: 0, //stage.getHeight() / 2 - 800,
+			            image: imageObject,
+			            width: 2640,
+			            height: 1650
+			          });
+			          // add the shape to the contentLayer
+				content_container.push(natural);
+				// if(book_param != 'BB') {
+				// 	bb_natural.hide();
+				// }
+			          contentLayer.add(natural);
+				natural.setZIndex(2);
+				contentLayer.draw();
+				// map.moveToBottom();
+			        };
+			        imageObject.src = natural_image;
+			
+							var imageObject2 = new Image();
+			        imageObject2.onload = function() {
+			           manmade = new Konva.Image({
+			            x: 0, //stage.getWidth() / 2 - 1300,
+			            y: 0, //stage.getHeight() / 2 - 800,
+			            image: imageObject2,
+			            width: 2640,
+			            height: 1650
+			          });
+			          // add the shape to the contentLayer
+				content_container.push(manmade);
+				// if(book_param != 'BB') {
+				// 	bb_manmade.hide();
+				// }
+			          contentLayer.add(manmade);
+				manmade.setZIndex(2);
+				contentLayer.draw();
+				// map.moveToBottom();
+			    manmade.on('mousemove', function() {
+			                                   var mousePos = stage.getPointerPosition();
+			                                   var x = mousePos.x;
+			                                   var y = mousePos.y;
+			                                                           var xo = x/contentLayer.getScale().x-(contentLayer.getX()/contentLayer.getScale().x)-25;
+			                                                           var yo = y/contentLayer.getScale().x-(contentLayer.getY()/contentLayer.getScale().x)+50;
+			                                                           $('#coords').html(Math.floor(xo)+', '+Math.floor(yo));
+			                                   // console.log( 'x: ' + x + ', y: ' + y+', xo: '+xo+', yo: '+yo+", o:"+contentLayer.getX()+', s: '+contentLayer.getScale().x);
+			                                 });
+				
+			        };
+			        imageObject2.src = manmade_image;
+					
+					var imageObject4 = new Image();
+					if(extra != null) {
+						var imageObject3 = new Image();
+						        imageObject3.onload = function() {
+						           var extra_img = new Konva.Image({
+						            x: 0, //stage.getWidth() / 2 - 1300,
+						            y: 0, //stage.getHeight() / 2 - 800,
+						            image: imageObject3,
+						            width: 2640,
+						            height: 1650
+						          });
+								  inset_image = extra_img;
+						          // add the shape to the contentLayer
+							content_container.push(extra_img);
+							// if(book_param != 'BB') {
+							// 	bb_natural.hide();
+							// }
+						          contentLayer.add(extra_img);
+							extra_img.setZIndex(30);
+							contentLayer.draw();
+							// map.moveToBottom();
+					        imageObject4.onload = function() {
+					           var heat_img = new Konva.Image({
+					            x: 0, //stage.getWidth() / 2 - 1300,
+					            y: 0, //stage.getHeight() / 2 - 800,
+					            image: imageObject4,
+					            width: 2640,
+					            height: 1650
+					          });
+							  heatmap_image = heat_img;
+							  heat_img.hide();
+					          // add the shape to the contentLayer
+						content_container.push(heat_img);
+						// if(book_param != 'BB') {
+						// 	bb_natural.hide();
+						// }
+					          contentLayer.add(heat_img);
+						heat_img.setZIndex(45);
+						// contentLayer.draw();
+						// map.moveToBottom();
+					        };
+					        imageObject4.src = heatmap;
+							
+						        };
+						        imageObject3.src = extra;
+						
+							} else {
+						        imageObject4.onload = function() {
+						           var heat_img = new Konva.Image({
+						            x: 0, //stage.getWidth() / 2 - 1300,
+						            y: 0, //stage.getHeight() / 2 - 800,
+						            image: imageObject4,
+						            width: 2640,
+						            height: 1650
+						          });
+								  heatmap_image = heat_img;
+								  heat_img.hide();
+						          // add the shape to the contentLayer
+							content_container.push(heat_img);
+							// if(book_param != 'BB') {
+							// 	bb_natural.hide();
+							// }
+						          contentLayer.add(heat_img);
+							heat_img.setZIndex(45);
+							// contentLayer.draw();
+							// map.moveToBottom();
+						        };
+						        imageObject4.src = heatmap;
+								
+							}
+
+			getText(book);
+			$('#bb_title').show();
+      $.each(content_container, function(index, value) {
+				value.show();
+			});
+			
+		}
+		var show_book = function(book, content_container, manmade_image, natural_image, heatmap, extra) {
+			
+			$('#loading').show();
+			try {
+				logo.hide();
+			} catch(e) {
+				
+			}
+			$('#zoom').show();
+			//       $.each(current_content, function(index, value) {
+			// 	value.hide();
+			// });
+			current_book = book;
+			
+			if (book == 'HEAT') {
+				date_start = 1929;
+				$('#date_labels').html('<span>1930</span><span></span><span></span><span>1940</span><span></span><span></span><span>1950</span><span></span><span></span><span>1960</span>');
+				// $('#date_labels span').css('width','44px');
+				$('#date_labels span').css('width','81px');
+				$('#date_labels').css('margin-left','-17px');
+				$('#date_labels').css('margin-top','-40px');
+				$('#dates').css('width','808px');
+				$('#dates').css('border','none');
+				$('#dates').css('border-top','2px solid black');
+				$('#dates').css('margin-top','25px');
+				// $('#dates').css('background-image', 'url(heat-ticks.png)');
+				b = Date.UTC(1929,1,1)/86400000.0;
+				e = Date.UTC(1962,1,1)/86400000.0;
+				diff = e-b;
+				
+				$("<div class=\"first_event tick\" style=\"left:"+800/diff*((365))+"px;width:1px\"></div>").appendTo('#dates');
+				$("<div class=\"first_event tick\" style=\"left:"+800/diff*(365+(10*365))+"px;width:1px\"></div>").appendTo('#dates');
+				$("<div class=\"first_event tick\" style=\"left:"+800/diff*(365+(20*365))+"px;width:1px\"></div>").appendTo('#dates');
+				$("<div class=\"first_event tick\" style=\"left:"+800/diff*(365+(30*365))+"px;width:1px\"></div>").appendTo('#dates');
+				$('.first_event').css('margin-top','0px');
+				
+				$("<div class=\"small_tick tick\" style=\"left:"+800/diff*(365+(5*365))+"px;width:1px\"></div>").appendTo('#dates');
+				$("<div class=\"small_tick tick\" style=\"left:"+800/diff*(365+(15*365))+"px;width:1px\"></div>").appendTo('#dates');
+				$("<div class=\"small_tick tick\" style=\"left:"+800/diff*(365+(25*365))+"px;width:1px\"></div>").appendTo('#dates');
+
+				// $('.first_event').css('display','none !important');
+			}
+	      $.each(books, function(index, value) {
+			  if (value['content'].length > 0)
+			  	value['content'].hide();
+		  });
+			
+			start_page = 1000;
+			
+			load_images(book, content_container, manmade_image, natural_image, heatmap, extra);
+			if (GetURLParameter('heat') != null) {
+				var mo = GetURLParameter('mo') || 0.8;
+				var mino = GetURLParameter('mino') || 0;
+				var r = GetURLParameter('r') || 40;
+				var bl = GetURLParameter('bl') || 0.9;
+				var g0v = GetURLParameter('g0v') || 0.01;
+				var g0c = GetURLParameter('g0c') || "FFFFFF";
+				var g1v = GetURLParameter('g1v') || 0.2;
+				var g1c = GetURLParameter('g1c') || "0000FF";
+				var g2v = GetURLParameter('g2v') || 0.55;
+				var g2c = GetURLParameter('g2c') || "00FF00";
+				var g3v = GetURLParameter('g3v') || 0.85;
+				var g3c = GetURLParameter('g3c') || "FFFF00";
+				var g4v = GetURLParameter('g4v') || 1.0;
+				var g4c = GetURLParameter('g4c') || "FF0000";
+				var baselayer = GetURLParameter('base') || false;
+				var baselayer_save = GetURLParameter('base-save') || false;
+				var base_x = GetURLParameter('base-x') || '20';
+				var base_y = GetURLParameter('base-y') || '20';
+				base_x = parseInt(base_x);
+				base_y = parseInt(base_y);
+				var gd = {};
+				gd[g0v] = '#'+g0c;
+				gd[g1v] = '#'+g1c;
+				gd[g2v] = '#'+g2c;
+				gd[g3v] = '#'+g3c;
+				gd[g4v] = '#'+g4c;
+				
+				// $('#heatmap-canvas').show();
+		        heatmap_layer = h337.create({
+		          container: document.getElementById('container'),
+					gradient: gd,
+					// gradient: {.2: '#'+g2c, .55: '#'+g2c, .85: '#'+g3c, 1: '#'+g4c},
+		          // a waterdrop gradient ;-)
+		          // gradient: { .1: 'rgba(0,0,0,0)', 0.25: "rgba(0,0,90, .6)", .5: "blue", .75: "cyan", .95: 'rgba(255,255,255,.4)'},
+		          maxOpacity: mo,
+					minOpacity: mino,
+		          radius: r,
+					blur: bl
+		        });
+				
+				heatmap_layer.addData({x:0, y:0, value:1})
+				if(baselayer) {
+					for(var x=0;x <= 800; x+=base_x) {
+						for(var y=0;y <= 500; y+=base_y) {
+							heatmap_layer.addData({x:x, y:y, value:1})
+						}
+					}
+				}
+
+		        heatmap_layer_save = h337.create({
+		          container: document.getElementById('heatmap-canvas'),
+					gradient: gd,
+					// gradient: {.2: '#'+g2c, .55: '#'+g2c, .85: '#'+g3c, 1: '#'+g4c},
+		          // a waterdrop gradient ;-)
+		          // gradient: { .1: 'rgba(0,0,0,0)', 0.25: "rgba(0,0,90, .6)", .5: "blue", .75: "cyan", .95: 'rgba(255,255,255,.4)'},
+		          maxOpacity: mo,
+					minOpacity: mino,
+		          radius: r*3.5,
+					blur: bl
+		        });
+				
+				heatmap_layer_save.addData({x:0, y:0, value:0})
+				if(baselayer_save) {
+					for(var x=0;x < 2460; x+=(base_x*4)) {
+						for(var y=0;y < 1650; y+=(base_y*4)) {
+							heatmap_layer_save.addData({x:x, y:y, value:1})
+						}
+					}
+				}
+				$('#heat-info').append('<button type="button" onclick="saveImage()">save image</button>')
+				$('#heat-info').append("<button type=\"button\" onclick=\"$('#heat-info-table').tableToCSV()\">export csv</button>");
+			}
+
+      $.each(fd_content_outside, function(index, value) {
+				value.show();
+			});
+
+			// s = $("#slider").slider("value", start_page);
+			// $('#label').html('Page '+start_page);
+			// 
+			// contentLayer.draw();
+			// $('.mac-dock img').hide();
+			// $("#layers").show();
+			// $("#playback_controls").show();
+			// $("#controls").show();
+			// $("#dates").show();
+			// $("#date_labels").show();
+
+			$("#header_menu").show();
+			$("#header_menu_underline").show();
+		}
+		
+		var home = function() {
+			window.location = window.location.href.substring(0,window.location.href.indexOf("?"));
+		}
+
+		
+    </script>
+
+    <link rel="stylesheet" href="./DIGITAL Yoknapatawpha_files/family.css">
+    <link rel="stylesheet" href="./dy-mockup.css">
+
+  <!-- Microsoft Clarity -->
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "wmh6ctudg9");
+  </script>
+
+  </head>
+  <body>
+  	
+<div id="page_header">
+    <div id="header_logo"><a class="logo" href="https://faulkner.iath.virginia.edu/"><span class="digital">DIGITAL</span> Yoknapatawpha</a></div>
+    <div id="main-menu">
+<ul id="main-menu-links">
+    <li><a href="https://faulkner.iath.virginia.edu/family/index-about.php">About</a>
+        <ul>
+            <li class="first-item"><a href="https://faulkner.iath.virginia.edu/family/credits.php">Credits</a></li>
+            <li><a href="https://faulkner.drupal.shanti.virginia.edu/content/dedication" target="_blank">Dedication</a></li>
+            <li><a href="https://faulkner.drupal.shanti.virginia.edu/content/digital-yoknapatawpha-bibliography" target="_blank">Bibliography</a></li>
+            <li><a href="https://faulkner.iath.virginia.edu/family/dysocialmedia.php">DY on Social Media</a></li>
+            <li><a href="https://faulkner.drupal.shanti.virginia.edu/content/digital-yoknapatawpha-articles-presentations" target="_blank">Re-Presenting DY</a></li>
+            <li><a href="https://faulkner.iath.virginia.edu/family/videos-2016demos.php">2016 Demos</a></li>
+        </ul>
+     </li>
+    <li class="bullet-link"><a href="https://faulkner.iath.virginia.edu/family/index-search.php">Search</a>
+    	<ul>
+            <li class="first-item"><a href="https://faulkner.iath.virginia.edu/family/events/">Events</a></li>
+            <li><span class="nav-blank">Characters</span>
+            	<ul>
+                    <li class="first-item"><a href="https://faulkner.iath.virginia.edu/family/characters/">By Text</a></li>
+                    <li><a href="https://faulkner.iath.virginia.edu/family/cumulative_characters/">Cumulative</a>
+                        <!-- ul><li class="first-item"><a href="/">Test</a></li></ul -->
+                    </li>
+                </ul>
+            </li>
+            <li><span class="nav-blank">Locations</span>
+                <ul>
+                    <li class="first-item"><a href="https://faulkner.iath.virginia.edu/family/locations/">By Text</a></li>
+                    <li><a href="https://faulkner.iath.virginia.edu/family/cumulative_locations/">Cumulative</a></li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+    <li class="bullet-link"><a href="https://faulkner.iath.virginia.edu/family/index-visualizations.php">Visualizations</a>
+        <ul>
+            <li class="first-item"><span class="nav-blank">Location-Character</span>
+            	<ul>
+            		<li class="first-item"><a href="https://faulkner.iath.virginia.edu/characters-force.html">Force Directed</a></li>
+            		<li><a href="https://faulkner.iath.virginia.edu/characters-bipart.html">Bipartite</a></li>
+            	</ul>
+            </li>
+            <li><a href="https://faulkner.iath.virginia.edu/char-char-force.html">Character-Character</a></li>
+            <li><a href="https://faulkner.iath.virginia.edu/characters-graph.html">Character-Event</a></li>
+            <li><span class="nav-blank">Heatmaps</span>
+                <ul>
+                    <li class="first-item"><a href="https://faulkner.iath.virginia.edu/family/heatmaps/spatial_heatmaps.php">Spatial</a></li>
+                    <li><a href="https://faulkner.iath.virginia.edu/family/heatmaps/temporal_heatmaps.php">Temporal</a></li>
+                </ul>
+            </li>
+            <li><span class="nav-blank">Photographs</span>
+                <ul>
+                    <li class="first-item"><a href="https://faulkner.iath.virginia.edu/family/photograph_locations.php">by Location</a></li>
+                    <li><a href="https://faulkner.iath.virginia.edu/family/photograph_repositories.php">by Repository</a></li>
+                </ul>
+            </li>
+            <li><a href="https://faulkner.iath.virginia.edu/narrativeanalysis.html" target="_blank">Narrative Analysis</a></li>
+        </ul>
+     </li>
+     <li class="bullet-link"><a href="https://faulkner.iath.virginia.edu/family/index-commentaries.php">Commentaries</a>
+        <ul>
+            <li class="first-item"><a href="https://faulkner.iath.virginia.edu/media/resources/DISPLAYS/FaulknerMapsHP.html" target="_blank">Faulkner &amp; Maps</a></li>
+            <li><a href="https://faulkner.iath.virginia.edu/YokCemeteries.html">Cemeteries</a></li>
+            <li><a href="https://faulkner.iath.virginia.edu/family/">Genealogies</a></li>
+            <li><a href="https://faulkner.iath.virginia.edu/racial_demography/">Race &amp; Place</a></li>
+            <li><span class="nav-blank"><em>Absalom, Absalom!</em></span>
+                <ul>
+                    <li class="first-item"><a href="https://faulkner.iath.virginia.edu/family/aa_sources.php">Narrative Sources</a></li>
+                    <li><a href="https://faulkner.iath.virginia.edu/absalom_language/">Racial Language</a></li>
+                    <li><a href="https://faulkner.iath.virginia.edu/absalom_characters_events_language/">Characters, Events, Language</a></li>
+                </ul>
+            </li>
+        </ul>
+     </li>
+     <li class="bullet-link"><a href="https://faulkner.iath.virginia.edu/learning_modules/teaching_and_learning.html">Teaching &amp; Learning</a>
+        <ul>
+            <li class="first-item"><a href="https://faulkner.iath.virginia.edu/learning_modules/">Explore Lessons</a></li>
+            <li><a href="https://faulkner.iath.virginia.edu/family/index-teaching_and_learning.php">All Resources</a>
+                <ul>
+                    <li><a href="https://faulkner.iath.virginia.edu/family/resources-by_text.php">Resources by Text</a>
+                        <ul>
+                            <li class="first-item"><a href="https://faulkner.iath.virginia.edu/family/resources-re.php">"A Rose for Emily"</a></li>
+                            <li><a href="https://faulkner.iath.virginia.edu/family/resources-sf.php"><em>The Sound and the Fury</em></a></li>
+                            <li><a href="https://faulkner.iath.virginia.edu/family/resources-ld.php"><em>As I Lay Dying</em></a></li>
+                            <li><a href="https://faulkner.iath.virginia.edu/family/resources-ds.php">"Dry September"</a></li>
+                            <li><a href="https://faulkner.iath.virginia.edu/family/resources-aa.php"><em>Absalom, Absalom!</em></a></li>
+                        </ul>
+                    </li>
+                    <li><a href="https://faulkner.iath.virginia.edu/family/videos-teaching_and_learning.php">Videos</a></li>
+                    <li><a href="https://faulkner.drupal.shanti.virginia.edu/content/pedagogyarticles" target="_blank">Articles</a></li>
+                    <li><a href="https://faulkner.drupal.shanti.virginia.edu/content/tlworksheethomepage" target="_blank">Worksheets</a></li>
+                    <li><a href="https://faulkner.drupal.shanti.virginia.edu/content/swhomepage" target="_blank">Student Work</a></li>
+                </ul></li>
+        </ul>
+     </li>
+     <li class="bullet-link"><a href="https://faulkner.iath.virginia.edu/family/index-indexes.php">Indexes</a>
+        <ul>
+            <li class="first-item"><a href="https://faulkner.iath.virginia.edu/family/cumulative_characters.php">Cumulative Characters</a></li>
+            <li><a href="https://faulkner.iath.virginia.edu/family/cumulative_locations.php">Cumulative Locations</a></li>
+            <li><a href="https://faulkner.iath.virginia.edu/family/recurring_events.php">Recurring Events</a></li>
+            <li><a href="https://faulkner.drupal.shanti.virginia.edu/content/indexofmssetc" target="_blank">Manuscripts</a></li>
+            <li><a href="https://faulkner.drupal.shanti.virginia.edu/content/indexofmagazineillustrations" target="_blank">Illustrations</a></li>
+            <li><a href="https://faulkner.drupal.shanti.virginia.edu/content/indexofaudioclips" target="_blank">Audio Clips</a></li>
+            <li><a href="https://faulkner.iath.virginia.edu/family/contributors.php">Scholarly Collaborators</a></li>
+            <li><a href="https://faulkner.iath.virginia.edu/family/videos-index.php">DY Videos</a></li>
+        </ul>
+     </li>
+</ul>
+</div>
+
+    <div id="header_menu">
+
+<div id="header_menu_background" style="display: none;"></div>
+
+<div class="header_menu_button_and_content">
+	<div class="header_menu_button" id="hmb_1" onclick="open_menu_item('hmc_1')"><span class="a_span">About</span></div>
+	<div class="header_menu_content" id="hmc_1" style="display: none;">
+		<p><img src="./DIGITAL Yoknapatawpha_files/DYHEADER.jpg" alt="DY Header" title="DY Header"></p><table><tbody><tr><td><p>[<em>The most efficient way to learn how to read and use our maps of Faulkner's fictions is to view the 11-minute "</em>Demo<em>" available on each map page.  The point of this essay is to explain the interpretive policies and editorial practices that we used to create the maps.</em>]</p></td></tr></tbody></table><h2 style="text-align: center;">About These Text Maps</h2><table><tbody><tr><td><p> &nbsp; &nbsp; The <em>Digital Yoknapatawpha</em> project begins with the conviction that the world Faulkner created in the last century still has a lot to teach us about the powers of the human imagination and the struggles of American culture.  On the other hand, our goal is to re-present that world as much as possible in its own terms rather than ours - a distinction that requires explaining right at the outset.  Faulkner's ideas about race, to take a particularly problematic example, while widely shared in his time, are essentially alien to the preconceptions of our own era.  If the non-white inhabitants of Yoknapatawpha were real, we would probably refer to them as African American and Indigenous people.  But they are characters, not people, and so our default labels for them are Negroes and Indians, terms that keep our Character database closer to Faulkner's texts.  Similarly, the icons we use to display characters might look stereotypical, and even offensive -</p><div style="width: 100%; text-align: center;"><img src="./DIGITAL Yoknapatawpha_files/LegendMAA.png" alt="Asian Male Icon" title="Asian Male Icon"> &nbsp;  &nbsp;  &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFRR.png" alt="Indian Female Icon" title="Indian Female Icon"> &nbsp;  &nbsp;  &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendMBB.png" alt="Negro Male Icon" title="Negro Male Icon"> &nbsp;  &nbsp;  &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFWW.png" alt="White Female Icon" title="White Female Icon"></div><p>But when you see them on the maps, remember that they do not represent a person, but a character born from Faulkner's imagination.  He - or at least the culture he depicts in the fictions - did sort humanity into these four colors: when Brother Fortinbride preaches a eulogy for Rosa Millard, he pictures her in heaven, "where there are men women and children, black white yellow or red, waiting for her to tend" (<em>The Unvanquished</em>, 158).  (And yes, Yoknapatawpha has one Asian American inhabitant, the unnamed "Chinese laundryman" mentioned in <em>The Town</em>, 321).  Of course, "black" and "white" were the arbitrary and absolute categories that mattered most in Faulkner's world.  While Jim Crow laws didn't keep people from having sex across the color line, the children of these interracial couplings were labeled with a set of terms - mulatto, quadroon, octoroon - that preserved the line itself.  Even an octoroon (someone with 7 white and 1 black great-grandparents) was legally "black" in Faulkner's South.  In his art Faulkner often challenges this racist practice - think Bon in <em>Absalom, Absalom!</em> for example - but even as he does so he perpetuates its categories; Bon's wife in <em>Absalom!</em> is inevitably referred to, in the novel and even by most Faulkner scholars, as his "octoroon mistress."  The icons we constructed to represent the mixed race characters in the fictions -</p><div style="width: 100%; text-align: center;"><img src="./DIGITAL Yoknapatawpha_files/LegendFBW.png" alt="NegroWhite FemaleIcon" title="NegroWhite Female Icon"> &nbsp;  &nbsp;  &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendMRW.png" alt="IndianWhite Male Icon" title="IndianWhite Male Icon"> &nbsp;  &nbsp;  &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFBR.png" alt="NegroIndian Female Icon" title="NegroIndian Female Icon"> &nbsp;  &nbsp;  &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendRWB.png" alt="Multiracial Male Icon" title="Multiracial Male Icon"></div><p> - at least make the mixed race characters easy to spot on the maps and at the same time call attention to the <em>un</em>reality or socially constructed nature of fitting the rich range of his characters into this kind of grid.</p><p>"Race" is one of the 64 fields in our Location, Character and Event databases.  Users of DY will ultimately decide the value of separating Faulkner's fictions into these parts in order to re-assemble and display them in our interactive maps and other visualization programs.  Right now my task is to discuss the other fields that don't necessarily explain themselves.</p><h3 style="text-align: center;">Locations</h3><p> &nbsp; &nbsp; We have tried to display on our maps all the places that the fictions either use as settings or refer to. By our count, that's about 990 total locations in and out of Yoknapatawpha, many of which are used in multiple texts. The Location icons sort these places into 11 categories - </p><div style="width: 100%; text-align: center;"><img src="./DIGITAL Yoknapatawpha_files/LegendCabin.png" alt="Cabin" title="Cabin"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendCemetery.png" alt="Cemetery" title="Cemetery"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendChurch.png" alt="Church" title="Church"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendEvent.png" alt="Event" title="Event"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFarm.png" alt="Farm" title="Farm"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendHouse.png" alt="House" title="House"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendMansion.png" alt="Mansion" title="Mansion"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendOffice_Store.png" alt="Office/Store" title="Office/Store"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendOtherStructure.png" alt="Other Structure" title="Other Structure"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendPublicBuilding.png" alt="Public Building" title="Public Building"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendStatue.png" alt="Statue" title="Statue"></div><p> - a small enough set in our judgment to keep the map display from being too visually complex to be legible.  However, using the Locations SEARCH engine you can also filter Locations via 146 more granular <strong>Types</strong>, by means of which, for example, the set represented with the "Public Building" icon is subdivided into "School" or "Jail" and so on.</p><p>For a broader discussion of our maps of Yoknapatawpha, and their relationship to the two maps of the county that Faulkner himself created, see both the "Faulkner &amp; Maps" exhibit in DY's Commentaries section and the "Mapping the Story" explanations that you'll find in many of our Notes on the Texts. The first point to establish here is that each of the project's 68 maps, along with all the data that is associated with it, is specific to a particular text; this means that those 990 locations appear in 2419 text-based Location entries, which can and often do vary.  Take the <strong>Status</strong> field for the "Sartoris Plantation," a Location which Faulkner uses in 15 fictions. Although <em>Flags in the Dust </em>mentions that John Sartoris "rebuilt" the plantation's 'big house' after the Yankees burned it down during the Civil War (8), the rebuilt Sartoris mansion is there from the beginning to the end of <em>Flags</em> - so in the data for that text its Status is "Continuous."  It is "Destroyed" in "Retreat," the short story that ends with the Union soldiers setting it on fire.  It is "Destroyed and Rebuilt" in <em>The Unvanquished</em>, which includes the scene of its burning but also the new house that rises again from those ashes.  (The maps allow you to get from a Location - the "Sartoris Plantation" in <em>Flags</em>, say - to a Cumulative Location entry, where you can see the other 14 times Faulkner re-uses and often revises this setting in the different texts.)</p><p>Since "Yoknapatawpha" is a place that has no physical existence, deciding the location of each Location is always an interpretive act.  The <strong>Authority</strong> field identifies the basis on which our decision was made in each case.  The "Sartoris Plantation" actually appears on both of Faulkner's maps, right where the text of <em>Flags</em> says it is, "four miles away" from Jefferson (76) - so in this case our Authority for its position is "Faulkner map."  But in some cases a Location moves from the place Faulkner assigns it on his maps.  Take for example the "Armstids' Farm."  On Faulkner's 1936 map it lies northeast of Frenchman's Bend on the road that Lena Grove is walking on when <em>Light in August</em> begins, and "Faulkner map" is our Authority for its position on the map of that novel.  But when the farm appears in the earlier <em>As I Lay Dying</em>, it is clearly south of the Bend, adjacent to the river that the Bundrens cross on their journey to town; there the Authority is "Context (text, as interpreted)."  In at least several hundred cases we have no clear evidence, either within a text or on a map, on which to decide where to put a Location; in those cases we acknowledge that we are making an educated guess by identifying our Authority as "Speculation."  If you want to see exactly how often this happens, use the Locations SEARCH engine and filter for Authority=Speculation. And it's important to say that even when a map or a text provides good or at least some evidence, mapping the places used as settings or simply referred to in the texts is an inexact process.  There is no GPS system that works in Yoknapatawpha.</p><h3 style="text-align: center;">Characters</h3><p> &nbsp; &nbsp; From the beginning one of the project's goals was to take advantage of the storage and organizational capacities of electronic technology to identify every single character or group, named or unnamed, present or only mentioned, that appears in the fictions.  Of course we can't claim to have done that, but so far our Character database contains over 3700 separate characters or groups, and almost 5000 Character entries.  That difference of 1300, of course, is because many of those 3700 characters recur in multiple texts, and as with Locations, each time someone appears in <em>a</em> text, we create a entry based on that appearance; these are then aggregated in the Cumulative Character Index. Though we gratefully acknowledge how helpful the previous scholarship about Faulkner's characters has been (see the project's Bibliography), 3700 is a much larger number than any previous index or guide contains.&nbsp; Those focus almost entirely on <em>named</em> characters, and so misrepresent Faulkner's world in significant ways.&nbsp; Most of them include, for example, the peripheral Baron von Rickthofen - the German aviator who taught the pilot who shot down Johnny Sartoris in <em>Flags in the Dust</em> - but not the Unnamed Ford Driver who caused the accident in which Old Bayard dies nor the Unnamed Blind Negro Musician who begs outside Rogers' restaurant, though if Von Rickthofen evokes the aristocratic past that haunts the novel, these other characters are resonant symbols of modernity, of the class and racial disorder that defines the novel's present.&nbsp; Given the realities of print publication, including page limits, it's understandable that those earlier character indices left so much out, but our nearly 2500 Unnamed characters help us re-present the racial and socio-economic demographics of Yoknapatawpha more accurately, and in particular make its Negro population much more visible.</p><p>The 27 data fields we use to analyze each Character contain a number of interpretive assumptions that need to be made explicit.  I've already discussed the <strong>Race</strong> field, but still need to acknowledge that it is our practice to assume that when a character's race is not made explicit by a narrator or clearly implied by the narrative context, that character is "White."  Our policy here follows what we take to be Faulkner's own practice throughout the fictions.  The situation with <strong>Ethnicity</strong> - another of those 27 - is the same: Faulkner's fiction calls attention to someone's ethnicity ('Jewish,' say, or 'Chinese') only when it's not the 'Scotch', 'Scotch-Irish' or 'Anglo-Saxon' norm for the white population of his county; unless the text makes an ethnicity explicit, we leave the field blank.  We decided, however, that like Name, Gender, Rank, Class, Vitality and several other fields, in Faulkner's imagination every character has a race, and so in DY "Race" is a required field, though the field's menu also includes "Indeterminable," a category which we deploy in a few cases besides Joe Christmas.</p><p><strong>Rank</strong> allows us to register how important a Character's role is in a particular text.  "Major," "Secondary" and "Minor" are probably self-explanatory - though again it's important to note that each Character entry is text-specific, so Colonel John Sartoris for example is Major in <em>The Unvanquished</em>, Secondary in "Ambuscade," and Minor in "<em>The Sound and the Fury</em>.  It's equally important to acknowledge that these determinations are interpretive acts that can be second-guessed, and can be defended only on the basis of their interpretive utility.&nbsp; Rank includes a fourth option:  in "Barn Burning" Colonel Sartoris is "Peripheral" - that is, a character who is referred to but never appears in a text.  Unlike some of the published guides to Faulkner's characters, we don't include as "Characters" people like Cincinnatus or characters from other texts like Emma Bovary; in DY people who are mentioned but could never appear in Faulkner's world are included as Keywords, which we'll talk about <em>below</em>, under <strong>Events</strong>.</p><p>DY's <strong>Vitality</strong> field includes a pair of categories that are definitely not self-explanatory.  We decided to include "Dead-ghost" and "Alive-ghost" among the other options (Alive, Dead, Dies, Born, Born-and-Dies) as a way to capture one of the most distinctive characteristics of the world Faulkner created: the role played by what or who is 'not-there.'  This of course includes "the past [that] is never dead," but also characters who are gone yet continue to haunt the present.  Here again John Sartoris - and, interestingly, his namesake Johnny Sartoris - are cases in point.  Caddy Compson also belongs in this cohort: the first two of these are dead before <em>Flags in the Dust</em> begins, and Caddy, though still alive, has disappeared from her brothers' lives before any of their sections begin in <em>The Sound and the Fury</em>, but all three of them are obsessively 'there' in the minds of other characters, absent and present at the same time.  There aren't many of these characters, and I can understand that the categories themselves might seem arbitrary or whimsical, but this is another example of our attempt to keep our data as close to the fictions as possible.</p><p>In our scheme <strong>Class</strong> in Faulkner's world is inextricably linked to Race.  White Characters can belong to any of 5 categories: Upper, Middle, Lower, Yeoman and Poor White.  In our judgment Faulkner's concept of the Upper class is essentially restricted to the members of the Yoknapatawpha families that owned property and slaves before the Civil War. The way we defined this for ourselves was: is a Character someone Virginia Sartoris Du Pre would invite to sit at her dinner table? They can be poor or even politically powerless, like Miss Emily Grierson, but their class status is not dependent on present-day wealth or power. Characters born outside this cohort can be rich or hold important offices but are Middle class at best, and (again in our judgment) in Faulkner's world the idea of the 'middle class' is considerably smaller than in most Americans' minds.  The majority of the white characters we identify as Lower class.  Like Faulkner's idea of a gentry, the concept of Yeomanry is also imported from England; Faulkner himself does not use the term, but the critic Cleanth Brooks is right to use it to characterize families like the MacCallums or even, in at least two short stories, the moneyless Griers: families who embody the best virtues of the South's traditional culture, including a willingness to fight for their values - an association with military service that actually links them to the original 14th century British definition of 'yeomanry.'  Although class status in Faulkner's world often seems fixed by birth, some of his major characters clearly move across class lines, so our fields include a way to acknowledge when a character changes class within a text.  But this possibility, of movement between classes, explains why we created separate Class categories for Indians and Negroes.  If Faulkner's white South is quasi-aristocratic, the native American society he depicts is literally an aristocracy and so in our minds requires a different set of choices: Chief, Tribal Leader (a member of the chief's family), and Tribal Member.  And given the Jim Crow social order depicted by Faulkner it strikes us as simply inappropriate to imply the possibility of socio-economic movement for black characters.  Again, it isn't whether we think African Americans - in the South or anywhere - can't change classes, but whether Faulkner's fictions ever depict or even conceive such a possibility.   In the data are one Upper and one Lower class black characters: both appear in "That Evening Sun" in the fairy tale that the black woman Nancy creates out of her imaginatively frantic desire to escape the real circumstances of her life (and here I can mention another Character field, the awkwardly named <strong>Ontological Status</strong> field, which includes "Character created by another Character" along with "Historical" and "Literary").  Four black characters are identified as Middle class.  Otherwise we label all the Negro characters as either Enslaved or Free Black; for Negro characters the only times in which we check the "Character changes class in this text" box is when a fiction depicts someone Enslaved at the beginning and Free by the end as a result of emancipation or self-emancipation.</p><p>Let me end this section with a much less controversial decision on our part.  It seemed worthwhile to include <strong>Occupation</strong> among our Character fields.  The U.S. Bureau of Labor Statistics offered a ready-made set of categories in its index, so we relied on the nine occupational areas into which that agency sorts out the ways people make money - but it was immediately apparent to us that, at least as far as Faulkner's world was concerned, they had left out a crucial one: Crime.  So we added that, and then, as a gesture toward the complexity of that world, also added Other.  Less controversial, however, does not mean purely objective.  Take the occupation of "blacksmith" - should this go under 'Sales and Service,' or 'Production,' or - as we ultimately decided - 'Transportation'?  And while we believe that as long as we are consistent throughout the database about such editorial choices, you will find them useful, given the fact that 30 scholars entered Character data over almost a decade, we know consistency - like objectivity or thoroughness - remains a goal that is still imperfectly achieved.</p><h3 style="text-align: center;">Events</h3><p> &nbsp; &nbsp;   In the third database that provides information to the map displays are the 8400 Events into which we divide 'what happens' in the fictions. DY's instruction manual for creating these entries defines an "Event" as an episode that takes place at 1 Location during 1 unbroken length of time using 1 narrative technique - that is, we create a new Event each time the setting or time frame or narrative technique changes.  For example, the different <strong>Narrative Status</strong> options are: "Narrated" (by a first- or third-person narrator), "Told" (by a character in the text), "Remembered" (by a character), "Hypothesized" (by a character or characters), and "Narrated+Consciousness" (when a passage combines narration with the stream-of-consciousness technique that Faulkner learned from James Joyce).  Since narrative discontinuity, temporal disruption and perspectival multiplicity are hallmarks of Faulkner's experimental style, the lines between "Events" are not bright or impermeable.&nbsp; Think, for example, of the parts of the story of Thomas Sutpen in <em>Absalom!</em> that are 'told by Quentin to Shreve, as Quentin was told by his father Mr. Compson what he was told by <em>his</em> father, General Compson'!&nbsp; As always, however, our goal is interpretive utility: to re-present the stories in ways that can be displayed graphically, allowing users to see, for instance, how frequently a particular text moves backwards as well as forwards in time.</p><p>Every Event is therefore assigned a date, though often this data point - even more often than the points in space that Locations occupy - requires an act of editorial interpretation.  Faulkner's texts typically allow us to be reasonably certain about the temporal relationship between events (this, then that), but chronological markers are often broad or vague ("Spring," say, or "a year later," and so on).  Scholars have argued for decades about which decade the main events of <em>The Hamlet</em> take place in, and if it's definite that <em>As I Lay Dying</em> takes place in "July," there's no way to know for sure exactly what year Faulkner had in mind.  In many cases we simply provide a date range (yyyy-01-01 - yyyy-12-31, for example, is how we indicate "we think this happened sometime in yyyy").  In other cases we did not feel we could not be even that specific; on the chronological timeline you will occasionally see an Event plotted in this fashion -</p><div style="width: 100%; text-align: center;"><img src="./DIGITAL Yoknapatawpha_files/AboutLegendHatching.jpg" alt="Indeterminate Date Range" title="Indeterminate Date  Range"></div><p>- which is how we indicate an especially "Indeterminate Date Range."  This instance is from "A Rose for Emily": the Event when "old lady Wyatt," Emily's aunt, went "completely crazy at last" (123). And in the more problematic cases our Note on the Text includes a section on "Dating the Story" in which we go into some detail about our reasons for deciding, for example, that most of <em>The Hamlet</em> takes place in the late 1890s.  But almost all our dates are offered with the proviso that like so much else in Faulkner's world, the chronology of Yoknapatawpha is ambiguous, and we don't claim our decisions are the only possible ones.</p><p>The textual bases for DY are the paperback editions of the 'Corrected Texts' prepared by Noel Polk that Vintage International has brought out for 21st century readers - that "(123)" in the previous paragraph for example references "A Rose for Emily" in the 1995 Vintage edition of <em>Collected Stories of William Faulkner </em> - but each Event is also identified by its <strong>First 8-10 words</strong> and by a <strong>Summary</strong> of what happens in it.  Understandably, when we began sharing our plans for DY with the larger community of Faulkner scholars there was considerable concern that it might provide students in particular with an alternative to <em>reading</em> Faulkner.  Our Event Summaries, however, are designed to give readers of Faulkner enough information to recognize an episode, but like DY as a whole, our intention is to enhance their reading experience, not to replace it.</p><p>The entry for each Event also includes one or more <strong>Keywords</strong>.  These allow you to use the project's Search Events function to search the Yoknapatawpha fictions for recurring themes, motifs, techniques and so on, using a set of tags supplied by the editors of each text.  Keywords are explained in more detail at the Search Events page, but here are some examples of what you can search for and, theoretically at least, find every instance of in the canon; I'll list them according to the 3-part structure we evolved for our Keywords but you can search each of them as a single term: Environments&gt;Time of Day&gt;Twilight; Actions&gt;Economic&gt;Shopping; Cultural Issues&gt;History&gt;Indian Removal; Themes &amp; Motifs&gt;Recurring Tropes&gt;Belatedness; Relationships&gt;Familial&gt;Parents-children; Aesthetics&gt;Genre Conventions&gt;Gothic. Keywords are still (as of June 2021) a work in progress, but we are more than halfway toward our goal to have every Event in every Yoknapatawpha fiction analyzed and keyworded by at least two editors.</p><h3 style="text-align: center;">Instead of a Conclusion</h3><p> &nbsp; &nbsp; The DY team discussed and often debated these concepts in person, in online meetings and in an untold number of emails, throughout the first years of the project.  At one point or another we all became frustrated as the complexities and nuances of the world Faulkner created bumped up against the limits of what we felt we could achieve in virtual reality.  In the end, because one thing we could agree on completely was that consistency was essential, everyone was willing with varying degrees of misgiving and consent to follow the same instructions for pulling that world through our data entry forms into the Location, Character and Event databases.  Faulkner created his world almost entirely by himself, but DY is a thoroughly collaborative effort.  It's only fair to the rest of the collaborators, however, to say that the ultimate responsibility for the decisions we made about how to re-present Yoknapatawpha, for what we did and didn't do, belongs to me.&nbsp; One of the consolations you have when you work on Faulkner is the high regard in which he himself always held 'failure.' — Stephen Railton</p><p> &nbsp; &nbsp; Citing this source:<br>Stephen Railton, "About the Text Maps." <em>Digital Yoknapatawpha</em>, University of Virginia, <a href="https://faulkner.drupal.shanti.virginia.edu/content/aboutrecurringevents">https://faulkner.drupal.shanti.virginia.edu/content/aboutrecurringevents</a> (Date added to project: 2021)</p></td></tr></tbody></table>	</div>
+</div>
+<div class="header_menu_button_and_content">
+	<div class="header_menu_button" id="hmb_2" onclick="open_menu_item('hmc_2')"><span class="a_span">Demo</span></div>
+	<div class="header_menu_content" id="hmc_2" style="display: none;">
+		<video id="hmc_2_video" controls="">
+			<source src="http://faulkner.iath.virginia.edu/demo/TextMapDemo.mp4">
+			<track kind="captions" srclang="en" src="http://faulkner.iath.virginia.edu/demo/TextMapDemo.vtt">
+		</video>
+	</div>
+</div>
+<div class="header_menu_button_and_content">
+	<div class="header_menu_button" id="hmb_3" onclick="open_menu_item('hmc_3')"><span class="a_span">Legend</span></div>
+	<div class="header_menu_content" id="hmc_3" style="display: none;">
+		<h2 style="text-align: center;">Legend</h2><table><tbody><tr><td colspan="2"><strong> &nbsp; &nbsp; &nbsp; &nbsp; Map Features</strong></td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendPath.jpg" alt="Path" title="Path"></td><td>A path through the forest surrounding the settlement that became Jefferson.<br>This image also shows how we fade features that lie outside the scope of the text being mapped.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendRoad.jpg" alt="Road" title="Road"></td><td>Roads.&nbsp; Except for the roads in the town of Jefferson after 1920 or so, all the roads in Yoknapatawpha are unpaved - though gradually improved with gravel and better grading over time.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendRailroad.jpg" alt="Railroad" title="Railroad"></td><td>Railroad.&nbsp; The one that Colonel Sartoris built after the Civil War.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendBridge.jpg" alt="Bridge" title="Bridge"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFord.jpg" alt="Ford" title="Ford"></td><td><em>Left</em>: Bridge.  Not all the streams in Yoknapatawha are bridged; the image <em>at right</em> shows fords across two roads.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendNaturalFeatures.jpg" alt="Natural Features" title="Natural Features"></td><td>Our maps display natural features in three colors.<br>Here you can see trees (green), a hill (brown) and a stream (blue).</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendWater.jpg" alt="Water Features" title="Water Features"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendSwamp.jpg" alt="Swamp" title="Swamp"></td><td><em>Left</em>: water features include Yoknapatawpha's two rivers, its creeks (or "branches"), springs and "sloughs" (one slough is shown here, alongside the county's northern river).  <em>Right</em>: a swamp.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendCultivatedFields.jpg" alt="Cultivated Fields" title="Cultivated Fields"></td><td>Cultivated fields.&nbsp; The original forests were cut down to create them; we include them in the category of "man-made locations."</td></tr><tr><td colspan="2"><strong> &nbsp; &nbsp; &nbsp; &nbsp; Locations</strong></td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendCabin.png" alt="Cabin" title="Cabin"></td><td>Cabin.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendCemetery.png" alt="Cemetery" title="Cemetery"></td><td>Cemetery.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendChurch.png" alt="Church" title="Church"></td><td>Church.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendEvent.png" alt="icon"></td><td>Event.  We use this icon to identify locations that can't be represented by the other icons.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendFarm.png" alt="icon"></td><td>Farm.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendHouse.png" alt="icon"></td><td>House.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendMansion.png" alt="icon"></td><td>Mansion.  Sometimes this also represents an entire plantation as well as the "big house" there.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendOffice_Store.png" alt="icon"></td><td>Office or store.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendOtherStructure.png" alt="icon"></td><td>Other structure.  This category includes Jefferson's water tower, or a lumber mill, a cotton house, a kitchen, a hunting camp and so on.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendPublicBuilding.png" alt="icon"></td><td>Public building.  This includes the courthouse at the center of the county and town, a school, a post office, the jail and so on.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendStatue.png" alt="icon"></td><td>Statue or monument.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/YokInset.png" alt="Yoknapatawpha Inset" title="Yoknapatawpha Inset"></td><td>A Yoknapatawpha Location that appears on an inset map.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/OutOfYok.png" alt="Out of Yoknapatawpha" title="Out of Yoknapatawpha"></td><td>Any out of Yoknapatawpha Location, whether on an inset map or the REGION, NATION or WORLD maps.</td></tr><tr><td colspan="2"><strong> &nbsp; &nbsp; &nbsp; &nbsp; Characters</strong></td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendMAA.png" alt="Asian Male Icon" title="Asian Male Icon"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFAA.png" alt="Asian Female Icon" title="Asian Female Icon"></td><td>The male and female icons for individual characters identified as Asian.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendMRR.png" alt="Indian Male Icon" title="Indian Male Icon"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFRR.png" alt="Negro Female Icon" title="Indian Female Icon"></td><td>The male and female icons for individual characters identified as Indian.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendMBB.png" alt="Negro Male Icon" title="Negro Male Icon"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFBB.png" alt="Negro Female Icon" title="Negro Female Icon"></td><td>The male and female icons for individual characters identified as Negro.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendMWW.png" alt="White Male Icon" title="White Male Icon"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFWW.png" alt="White FemaleIcon" title="White Female Icon"></td><td>The male and female icons for individual characters identified as White.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendMBW.png" alt="NegroWhite Male Icon" title="NegroWhite Male Icon"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFBW.png" alt="NegroWhite FemaleIcon" title="NegroWhite Female Icon"></td><td>The male and female icons for individual characters identified as biracial: Negro and White.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendMRW.png" alt="IndianWhite Male Icon" title="IndianWhite Male Icon"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFRW.png" alt="IndianWhite FemaleIcon" title="IndianWhite Female Icon"></td><td>The male and female icons for individual characters identified as biracial: Indian and White.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendMBR.png" alt="NegroIndian Male Icon" title="NegroIndian Male Icon"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFBR.png" alt="NegroIndian Female Icon" title="NegroIndian Female Icon"></td><td>The male and female icons for individual characters identified as biracial: Negro and Indian.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendMI.png" alt="Male Racially Ambiguous Icon" title="Male Racially Ambiguous Icon"> &nbsp; <img src="./DIGITAL Yoknapatawpha_files/LegendFI.png" alt="Female Racially Ambiguous Icon" title="Female Racially Ambiguous Icon"></td><td>The male and female icons for a character whose racial identity cannot be determined.  We use this very sparingly.&nbsp; In Faulkner's world race is a very determinant category, although he typically specifies race only when someone is 'not white' - Indian, Negro, mulatto, quadroon, Japanese and so on.  Nearly every character whose race is not made explicit is unquestionably imagined as white.  But Joe Christmas falls between these categories, and there are a few other instances when we didn't feel comfortable assigning <em>a</em> race.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendRWB.png" alt="Multiracial Male Icon" title="Multiracial Male Icon"></td><td>The icon for the very few characters who are identified as multi-racial: Indian, White and Black.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendGroupMA.png" alt="All-male Group Icon" title="All-male Group Icon"></td><td>When two or more unnamed characters appear together, we use group icons to represent them.  <em>At left</em>: the icon for a group identified as all-male (and Asian).  This and the next 4 icons indicate the five categories of group icons you'll see. In this all-male category and the next two (all-female and both genders), each of the four races in the fictions have their own icons.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendGroupFR.png" alt="All-female Group Icon" title="All-female Group Icon"></td><td>The icon for groups that are identified as all-female.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendGroupMFB.png" alt="MaleFemale Group Icon" title="Male Group Icon"></td><td>The icon for groups that are identified as containing both men and women or boys and girls.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendGroupFMixed.png" alt="Mixed Race Group Icon" title="Mixed Race Group Icon"></td><td>The icon for groups that are identified as mixed-race but single-gender.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendGroupMixedMixed.png" alt="Mixed Race and Gender Group Icon" title="Mixed Race and Gender Group Icon"></td><td>The icon for groups that are identified as mixed-race and dual-gendered.</td></tr><tr><td colspan="2"><strong> &nbsp; &nbsp; &nbsp; &nbsp; Events</strong></td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendFirstEventDate.jpg" alt="Date Story Begins" title="Date Story Begins"></td><td>The vertical line that crosses the timeline below the map indicates the date on which a story begins narratively - that is, the chronological date of its first event. It is always specific to the text being mapped.&nbsp; Here, for example, it indicates that <em>Flags in the Dust</em> - Faulkner's first Yoknapatawpha fiction - opens in 1919, shortly after the end of World War I.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendCurrentEvent.png" alt="Current Event Splash" title="Current Event Splash"></td><td>When you animate a text, events will display in red - as "splashes" on the map and wider or thinner lines on the timeline - when they first appear.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendPreviousEvent.png" alt="Current Event Splash" title="Current Event Splash"></td><td>When the next event appears on the map and timeline, the previous one turns purple and remains visible to indicate where the story has been in space and time.</td></tr><tr><td><img src="./DIGITAL Yoknapatawpha_files/LegendDateHatching.jpg" alt="Indeterminate Date" title="Indeterminate Date"></td><td>Most of the dates in DY's Event database are approximate, but when the possible date range is particularly large - more than half a decade - we use this hatching to indicate the uncertainty.</td></tr></tbody></table>	</div>
+</div>
+
+<script>
+
+function close_all_menu_items()
+{
+	document.getElementById('hmc_1').style.display = 'none';
+	document.getElementById('hmc_2').style.display = 'none';
+	document.getElementById('hmc_3').style.display = 'none';
+	document.getElementById('header_menu_background').style.display = 'none';
+	document.getElementById('hmc_2_video').pause();
+}
+
+function open_menu_item(item_id)
+{
+	document.getElementById('hmc_2_video').pause();
+	
+	if (document.getElementById(item_id).style.display == 'none')
+	{
+		document.getElementById('hmc_1').style.display = 'none';
+		document.getElementById('hmc_2').style.display = 'none';
+		document.getElementById('hmc_3').style.display = 'none';
+		document.getElementById('header_menu_background').style.display = 'block';
+		document.getElementById(item_id).style.display = 'block';
+	}
+	else
+	{
+		document.getElementById(item_id).style.display = 'none';
+		document.getElementById('header_menu_background').style.display = 'none';
+	}	
+}
+
+document.getElementById('header_menu_background').onclick = function(event) { if (event.target == document.getElementById('header_menu_background')) { close_all_menu_items(); } }
+
+close_all_menu_items();
+
+</script>
+
+</div>
+
+<div id="header_menu_underline"> </div>
+
+
+</div>
+
+<div id="content">
+	<div id="main_index_content">
+		<div id="main_index_sub-content">
+
+	    <div id="heatmap-canvas"></div>
+			<div id="loading" style="display: none;">Loading...</div>
+			
+			<div id="search_criteria" title="Seach Criteria"></div>
+			<div id="event_words"></div>
+
+			<!-- ── Global mode navigation bar ──────────────────────────── -->
+			<div id="dy-global-nav">
+				<select id="dy-story-select" title="Switch to another story in the Digital Yoknapatawpha catalog"></select>
+				<div class="dy-nav-btns">
+					<button class="dy-nav-btn active" data-mode="map" title="Bird's-eye map of Yoknapatawpha with all characters and locations visible">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M15.817.113A.5.5 0 0 1 16 .5v14a.5.5 0 0 1-.402.49l-5 1a.5.5 0 0 1-.196 0L5.5 15.01l-4.902.98A.5.5 0 0 1 0 15.5v-14a.5.5 0 0 1 .402-.49l5-1a.5.5 0 0 1 .196 0L10.5.99l4.902-.98a.5.5 0 0 1 .415.103M10 1.91l-4-.8v12.98l4 .8zm1 12.98 4-.8V1.11l-4 .8zm-6-.98V1.11l-4 .8v12.98z"/></svg>
+						Overview
+					</button>
+					<button class="dy-nav-btn" data-mode="map-text" title="Map and event list side by side — navigate events and see them on the map">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M0 1.5A.5.5 0 0 1 .5 1H5a.5.5 0 0 1 .5.5v13a.5.5 0 0 1-.5.5H.5a.5.5 0 0 1-.5-.5zm8 0A.5.5 0 0 1 8.5 1H13a.5.5 0 0 1 .5.5v13a.5.5 0 0 1-.5.5H8.5a.5.5 0 0 1-.5-.5zM1 2v12h3.5V2zm8 0v12h3.5V2z"/><path d="M6.5 1h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1 0-1m0 13h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1 0-1"/></svg>
+						Map + Text
+					</button>
+					<button class="dy-nav-btn" data-mode="fulltext" title="Full annotated text with character, location, keyword and narrative markup">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M2.5 3a.5.5 0 0 0 0 1h11a.5.5 0 0 0 0-1zm0 3a.5.5 0 0 0 0 1h11a.5.5 0 0 0 0-1zm0 3a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 3a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1z"/></svg>
+						Full Text
+					</button>
+				</div>
+			</div>
+
+			<div id="content_2">
+
+			<div id="home"> &nbsp; </div>
+			
+			<div id="mapit_tab">
+				DIGITAL YOKNAPATAWPHA: MapIt
+			</div>
+			
+			 <div id="close_window" onclick="window.close()">
+				 <span>CLOSE WINDOW</span>
+			 </div>
+			 
+	    <div id="container"><div class="konvajs-content" role="presentation" style="position: relative; width: 800px; height: 500px;"><canvas width="1600" height="1000" style="padding: 0px; margin: 0px; border: 0px; background: transparent; position: absolute; top: 0px; left: 0px; width: 800px; height: 500px;"></canvas><canvas width="1600" height="1000" style="padding: 0px; margin: 0px; border: 0px; background: transparent; position: absolute; top: 0px; left: 0px; width: 800px; height: 500px;"></canvas><canvas width="1600" height="1000" style="padding: 0px; margin: 0px; border: 0px; background: transparent; position: absolute; top: 0px; left: 0px; width: 800px; height: 500px;"></canvas><canvas width="1600" height="1000" style="padding: 0px; margin: 0px; border: 0px; background: transparent; position: absolute; top: 0px; left: 0px; width: 800px; height: 500px;"></canvas></div></div>
+
+		<!-- ── Full-text panel: shows Faulkner sentences for the current event ── -->
+		<div id="fulltext-tab">FULL TEXT</div>
+		<div id="fulltext-panel" class="dy-map-mode">
+			<div id="ft-panel-header">
+				<button class="ft-panel-tab" data-tab="events" title="Browse all story events and navigate between them">Events</button>
+				<button class="ft-panel-tab" data-tab="text-hl" title="Read the annotated text with highlights for characters, locations, keywords, and narrative markup">Text (highlight)</button>
+				<button class="ft-panel-tab active" data-tab="about-text" title="Background and editorial notes about this story">About Text</button>
+				<button class="ft-panel-tab" data-tab="about-editors" title="Information about the Digital Yoknapatawpha editorial team">About Editors</button>
+				<button class="ft-panel-tab" data-tab="resources" title="Links to manuscripts, audio, illustrations, and related resources">Other Resources</button>
+				<button class="dy-panel-btn" id="ft-panel-collapse-btn" title="Minimize panel">&#8863;</button>
+			</div>
+			<div id="ft-text-toolbar">
+				<div id="ft-search-bar">
+					<select id="ft-search-mode" title="Search mode">
+						<option value="text">Text</option>
+						<option value="keyword">Keywords</option>
+					</select>
+					<input type="text" id="ft-search-input" placeholder="Search text&hellip;" autocomplete="off">
+					<datalist id="ft-kw-datalist"></datalist>
+					<button class="ft-search-nav-btn" id="ft-search-prev" title="Previous match">&uarr;</button>
+					<button class="ft-search-nav-btn" id="ft-search-next" title="Next match">&darr;</button>
+					<span id="ft-search-count"></span>
+				</div>
+				<div id="ft-section-nav">
+					<div id="ft-read-mode-btns">
+						<button class="ft-read-mode-btn active" data-rmode="scroll" title="Full Text — read the full text as a continuous stream">
+							<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M2 3.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/></svg>
+							Full Text
+						</button>
+						<button class="ft-read-mode-btn" data-rmode="section" title="Section — show one section at a time">
+							<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M7.065 1.476A6.5 6.5 0 1 0 14.787 10.5h-1.005A5.5 5.5 0 1 1 7.065 2.48zm-1.8 3.501a4.5 4.5 0 0 0 8.814 1.523H13a3.5 3.5 0 0 1-6.908-.998zM8 4a3 3 0 0 0-.441 5.97l.151.817A4 4 0 1 1 12 8c0 .628-.152 1.222-.421 1.749l-.764-.435A3 3 0 0 0 8 4"/></svg>
+							Section
+						</button>
+						<button class="ft-read-mode-btn" data-rmode="page" title="Page — advance through the text screen by screen">
+							<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1"/></svg>
+							Page
+						</button>
+					</div>
+					<span class="ft-sec-sep"></span>
+					<span class="ft-sec-label">Section</span>
+					<!-- data-sec must match the .ft-section-num text emitted by build_text_data.py -->
+					<button class="ft-sec-btn" data-sec="April Seventh, 1928." title="Benjy — April Seventh, 1928">Benjy</button>
+					<button class="ft-sec-btn" data-sec="June Second, 1910." title="Quentin — June Second, 1910">Quentin</button>
+					<button class="ft-sec-btn" data-sec="April Sixth, 1928." title="Jason — April Sixth, 1928">Jason</button>
+					<button class="ft-sec-btn" data-sec="April Eighth, 1928." title="Dilsey — April Eighth, 1928">Dilsey</button>
+					<button class="ft-sec-nav-btn" id="ft-sec-prev" title="Previous section / page">&#9664;</button>
+					<span id="ft-read-pos-label"></span>
+					<button class="ft-sec-nav-btn" id="ft-sec-next" title="Next section / page">&#9654;</button>
+					<span class="ft-sec-sep"></span>
+					<button class="ft-fontsize-btn" id="ft-font-decrease" title="Decrease text size">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M6.5 12a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM13 6.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z"/><path d="M10.344 11.742c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1 6.538 6.538 0 0 1-1.398 1.4z"/><path fill-rule="evenodd" d="M3.5 6.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1H4a.5.5 0 0 1-.5-.5z"/></svg>
+					</button>
+					<button class="ft-fontsize-btn" id="ft-font-increase" title="Increase text size">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M6.5 12a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM13 6.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z"/><path d="M10.344 11.742c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1 6.538 6.538 0 0 1-1.398 1.4z"/><path fill-rule="evenodd" d="M6.5 3a.5.5 0 0 1 .5.5V6h2.5a.5.5 0 0 1 0 1H7v2.5a.5.5 0 0 1-1 0V7H3.5a.5.5 0 0 1 0-1H6V3.5a.5.5 0 0 1 .5-.5z"/></svg>
+					</button>
+					<span class="ft-sec-sep"></span>
+					<label class="ft-show-events-label" title="Show event boundaries">
+						<input type="checkbox" id="ft-show-events-check">
+						<span class="ft-pipe-label">| Event Boundaries |</span>
+					</label>
+				</div>
+			</div>
+			<div id="ft-events-view" style="display:none">
+				<div class="ft-placeholder">
+					<p>Navigate to an event using the controls below<br>to see the corresponding passage from the story.</p>
+				</div>
+			</div>
+			<div id="ft-highlight-view"></div>
+			<div id="ft-about-view"></div>
+			<div id="ft-about-editors-view"></div>
+			<div id="ft-other-resources"></div>
+		</div>
+		<div id="info-panel">
+			<div class="info-tabs">
+				<button class="info-tab active" data-tab="it-location" title="Map and description of the event's location">Location</button>
+				<button class="info-tab" data-tab="it-character" title="Characters present at or mentioned in this event">Characters</button>
+				<button class="info-tab" data-tab="it-event" title="Summary and metadata for the selected event">Event</button>
+				<button class="info-tab" data-tab="it-keywords" title="Keywords associated with this event and how often they recur across the story">Keywords</button>
+				<button class="info-collapse-btn" title="Minimize">&#8863;</button>
+			</div>
+			<div id="ip-body">
+				<div id="it-location" class="info-tab-content active" data-label="Location"></div>
+				<div id="it-character" class="info-tab-content" data-label="Characters"></div>
+				<div id="it-event" class="info-tab-content" data-label="Event"></div>
+				<div id="it-keywords" class="info-tab-content" data-label="Keywords"></div>
+			</div>
+		</div>
+
+		<!-- ── Fulltext annotation sidebar (fixed right panel) ────── -->
+		<div id="ft-annot-panel"></div>
+			<div id="layers" style="display: block;">
+			</div>
+			<div id="reset_all" style="display: block;">
+				<input type="button" value="Reset" onclick="reset()">
+			</div>
+			<div id="show_all">
+				<input type="checkbox" value="Reset" onclick="reset()"> All
+			</div>
+			<div id="section_label" style="display: block;">Limit by Section</div>
+			<div>
+				<div id="playback_controls" style="display: block;">
+					 
+					<!-- <input type="radio" value="page" name="step_type" checked >Page <input id="event_type" type="radio" value="event" name="step_type">Event -->
+					 <!-- <input type="button" value="Reset" onclick="reset()"> -->
+					<span id="coords" style="display:none">2491, 1690</span>
+				</div>
+				<div id="sections" style="display: block;">
+				<div class="section section_item" id="s_0" title="I" data-text="RE" data-start="119" data-stop="121" style="left: 0px; width: 145.455px;">I</div><div class="section section_item" id="s_1" title="II" data-text="RE" data-start="121" data-stop="124" style="left: 145.455px; width: 218.182px;">II</div><div class="section section_item" id="s_2" title="III" data-text="RE" data-start="124" data-stop="126" style="left: 363.636px; width: 145.455px;">III</div><div class="section section_item" id="s_3" title="IV" data-text="RE" data-start="126" data-stop="129" style="left: 509.091px; width: 218.182px;">IV</div><div class="section section_item" id="s_4" title="V" data-text="RE" data-start="129" data-stop="130" style="left: 727.273px; width: 72.7273px;">V</div></div>
+				<div id="controls">
+					<div id="slider" class="ui-slider ui-slider-horizontal ui-widget ui-widget-content ui-corner-all"><a class="ui-slider-handle ui-state-default ui-corner-all" href="https://faulkner.iath.virginia.edu/?text=RE#" style="left: 0%;"></a></div>
+					<div id="page_play"><input type="button" value="Play" onclick="play()"><input type="button" value="Stop" onclick="stop_play()"></div>
+					<div id="speed_control"><div id="speed" class="ui-slider ui-slider-horizontal ui-widget ui-widget-content ui-corner-all"><a class="ui-slider-handle ui-state-default ui-corner-all" href="https://faulkner.iath.virginia.edu/?text=RE#" style="left: 51.0204%;"></a></div>Speed</div>
+				</div>
+				<div id="event_controls_offset"> </div>
+				<div id="event_controls" style="display: block;">
+					<div id="label"></div>
+					<div id="e_slider" class="ui-slider ui-slider-horizontal ui-widget ui-widget-content ui-corner-all"><a class="ui-slider-handle ui-state-default ui-corner-all" href="https://faulkner.iath.virginia.edu/?text=RE#" style="left: 0%;"></a></div>
+					<div id="e_page_play">
+						<img alt="Previous Event" src="./DIGITAL Yoknapatawpha_files/rewind.png" height="20" onclick="prev_event()" title="Previous Event"><img alt="Play" src="./DIGITAL Yoknapatawpha_files/play.png" height="20" onclick="play_timeline_by_events()" title="Play"><img alt="Stop" src="./DIGITAL Yoknapatawpha_files/stop.png" height="20" onclick="stop_play()" title="Stop"><img alt="Next Event" src="./DIGITAL Yoknapatawpha_files/ff.png" height="20" onclick="next_event(true)" title="Next Event">
+						<!-- <input type="button" value="Play" onclick="play_events()"><input type="button" value="Stop" onclick="stop_play()"><br>
+						<input type="button" value="Prev" onclick="prev_event()"><input type="button" value="Next" onclick="next_event()"> -->
+							<br>
+						<span id="page-order">
+						Page Order
+						</span>
+						</div>
+						<div id="start">119</div>
+						<div id="stop">130</div>
+					<div id="e_speed_control"><div id="e_speed" class="ui-slider ui-slider-horizontal ui-widget ui-widget-content ui-corner-all"><a class="ui-slider-handle ui-state-default ui-corner-all" href="https://faulkner.iath.virginia.edu/?text=RE#" style="left: 51.0204%;"></a></div>Speed</div>
+				</div>
+
+				<div id="dates_wrapper" style="position:relative;left:-4px;width:808px;padding-top:3px;padding-bottom:3px;overflow:hidden;"> <div id="dates" style="position: relative; width: 800px; margin-left: auto; margin-right: auto; overflow: visible; display: block;"> <div class="first_event " id="s_1" style="left: 612.348px; width: 1px;"></div><div class="range range_item " id="r_1" style="left: 612.348px; width: 5.93502px;"></div><div class="range range_item " id="e_1" style="left: 612.348px; width: 5.93502px;"></div><div class="range range_item " id="r_2" style="left: 311.122px; width: 5.9215px;"></div><div class="range range_item " id="e_2" style="left: 311.122px; width: 5.9215px;"></div><div class="range range_item " id="r_3" style="left: 464.216px; width: 5.9215px;"></div><div class="range range_item " id="e_3" style="left: 464.216px; width: 5.9215px;"></div><div class="range range_item " id="r_4" style="left: 390.137px; width: 5.9215px;"></div><div class="range range_item " id="e_4" style="left: 390.137px; width: 5.9215px;"></div><div class="range range_item " id="r_5" style="left: 548.152px; width: 5.9215px;"></div><div class="range range_item " id="e_5" style="left: 548.152px; width: 5.9215px;"></div><div class="range range_item " id="r_6" style="left: 548.152px; width: 5.9215px;"></div><div class="range range_item " id="e_6" style="left: 548.152px; width: 5.9215px;"></div><div class="range range_item " id="r_7" style="left: 400.02px; width: 5.9215px;"></div><div class="range range_item " id="e_7" style="left: 400.02px; width: 5.9215px;"></div><div class="range range_item " id="r_8" style="left: 400.034px; width: 5.90798px;"></div><div class="range range_item " id="e_8" style="left: 400.034px; width: 5.90798px;"></div><div class="range range_item " id="r_9" style="left: 400.047px; width: 5.89445px;"></div><div class="range range_item " id="e_9" style="left: 400.047px; width: 5.89445px;"></div><div class="range range_item indeterminate" id="r_10" style="left: 246.927px; width: 149.132px;"></div><div class="range range_item indeterminate" id="e_10" style="left: 246.927px; width: 149.132px;"></div><div class="range range_item " id="r_11" style="left: 321.006px; width: 75.0523px;"></div><div class="range range_item " id="e_11" style="left: 321.006px; width: 75.0523px;"></div><div class="range range_item " id="r_12" style="left: 390.137px; width: 5.9215px;"></div><div class="range range_item " id="e_12" style="left: 390.137px; width: 5.9215px;"></div><div class="range range_item " id="r_13" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_13" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="r_14" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_14" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item indeterminate" id="r_15" style="left: 246.94px; width: 149.118px;"></div><div class="range range_item indeterminate" id="e_15" style="left: 246.94px; width: 149.118px;"></div><div class="range range_item " id="r_16" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_16" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="r_17" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_17" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="r_18" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_18" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="r_19" style="left: 396.275px; width: 3.06865px;"></div><div class="range range_item " id="e_19" style="left: 396.275px; width: 3.06865px;"></div><div class="range range_item " id="r_20" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_20" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="r_21" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_21" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="r_22" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_22" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="r_23" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_23" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="r_24" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_24" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="r_25" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_25" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="r_26" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_26" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="r_27" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="e_27" style="left: 395.072px; width: 5.93502px;"></div><div class="range range_item " id="r_28" style="left: 395.072px; width: 10.87px;"></div><div class="range range_item " id="e_28" style="left: 395.072px; width: 10.87px;"></div><div class="range range_item " id="r_29" style="left: 400.169px; width: 69.9685px;"></div><div class="range range_item " id="e_29" style="left: 400.169px; width: 69.9685px;"></div><div class="range range_item " id="r_30" style="left: 464.216px; width: 5.9215px;"></div><div class="range range_item " id="e_30" style="left: 464.216px; width: 5.9215px;"></div><div class="range range_item " id="r_31" style="left: 498.775px; width: 55.2987px;"></div><div class="range range_item " id="e_31" style="left: 498.775px; width: 55.2987px;"></div><div class="range range_item " id="r_32" style="left: 612.348px; width: 5.93502px;"></div><div class="range range_item " id="e_32" style="left: 612.348px; width: 5.93502px;"></div><div class="range range_item " id="r_33" style="left: 612.348px; width: 5.93502px;"></div><div class="range range_item " id="e_33" style="left: 612.348px; width: 5.93502px;"></div><div class="range range_item " id="r_34" style="left: 612.348px; width: 5.93502px;"></div><div class="range range_item " id="e_34" style="left: 612.348px; width: 5.93502px;"></div><div class="range range_item " id="r_35" style="left: 612.348px; width: 5.93502px;"></div><div class="range range_item " id="e_35" style="left: 612.348px; width: 5.93502px;"></div></div>
+
+				</div>
+				<div id="date_labels" style="display: block;">
+					<span>1800</span>
+					<span>1816</span>
+					<span>1832</span>
+					<span>1848</span>
+					<span>1864</span>
+					<span>1880</span>
+					<span>1896</span>
+					<span>1912</span>
+					<span>1928</span>
+					<span>1944</span>
+					<span>1960</span>
+					<!-- <span>1850</span>
+					<span>1857</span>
+					<span>1864</span>
+					<span>1874</span>
+					<span>1881</span>
+					<span>1888</span>
+					<span>1896</span>
+					<span>1903</span>
+					<span>1910</span>
+					<span>1917</span>
+					<span>1925</span> -->
+				</div>
+				<div id="chron_controls" style="display: block;">
+					<div id="c_slider" class="ui-slider ui-slider-horizontal ui-widget ui-widget-content ui-corner-all"><a class="ui-slider-handle ui-state-default ui-corner-all" href="https://faulkner.iath.virginia.edu/?text=RE#" style="left: 0%;"></a></div>
+					<div id="c_page_play">
+						<img alt="Previous Event" src="./DIGITAL Yoknapatawpha_files/rewind.png" height="20" onclick="prev_chron()" title="Previous Event"><img alt="Play" src="./DIGITAL Yoknapatawpha_files/play.png" height="20" onclick="play_chron()" title="Play"><img alt="Stop" src="./DIGITAL Yoknapatawpha_files/stop.png" height="20" onclick="stop_play()" title="Stop"><img alt="Next Event" src="./DIGITAL Yoknapatawpha_files/ff.png" height="20" onclick="next_chron()" title="Next Event"><br>Chronological Order
+						<!-- <input type="button" value="Play" onclick="play_chron()"><input type="button" value="Stop" onclick="stop_play()"><br>
+						<input type="button" value="Prev" onclick="prev_chron()"><input type="button" value="Next" onclick="next_chron()"> -->
+						</div>
+					<div id="c_speed_control"><div id="c_speed" class="ui-slider ui-slider-horizontal ui-widget ui-widget-content ui-corner-all"><a class="ui-slider-handle ui-state-default ui-corner-all" href="https://faulkner.iath.virginia.edu/?text=RE#" style="left: 51.0204%;"></a></div>Speed</div>
+				</div>
+			</div>
+
+			<!-- ── Custom control toolbar ─────────────────────────────── -->
+			<div id="dy-toolbar">
+				<!-- Row 1: section tabs (built by JS) -->
+				<div id="dy-tb-sections"></div>
+				<!-- Row 2: transport + year + mode + speed + reset -->
+				<div id="dy-tb-transport">
+					<button class="dy-btn" id="dy-prev-btn" title="Go to previous event"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.54-.313 1.232.066 1.232.696v7.384c0 .63-.692 1.01-1.232.697L5 8.753V12a.5.5 0 0 1-1 0z"/></svg></button>
+					<button class="dy-btn" id="dy-play-btn" title="Play through events automatically"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"/></svg></button>
+					<button class="dy-btn" id="dy-stop-btn" title="Stop playback"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5"/></svg></button>
+					<button class="dy-btn" id="dy-next-btn" title="Go to next event"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.678 4 4.308v7.384c0 .63.692 1.01 1.233.697L11.5 8.753V12a.5.5 0 0 0 1 0z"/></svg></button>
+					<span id="dy-year-display" title="Year of the current event">&mdash;</span>
+					<div id="dy-mode-toggle">
+						<label title="Navigate events in page order as Faulkner wrote them"><input type="radio" name="dy-mode" value="page" checked> Page order</label>
+						<label title="Navigate events in chronological date order by year"><input type="radio" name="dy-mode" value="chron"> Date order</label>
+					</div>
+					<div id="dy-speed-wrap" title="Adjust how quickly events advance during playback">
+						Slow&nbsp;<input type="range" id="dy-speed-range" min="1" max="5" value="3">&nbsp;Fast
+					</div>
+								<button class="dy-btn" id="dy-reset-btn" title="Reset the map to its starting state"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2z"/><path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466"/></svg></button>
+				</div>
+				<!-- Row 3: event position slider (steps through events in current mode order) -->
+				<div id="dy-tb-slider">
+					<input type="range" id="dy-event-slider" min="0" max="34" value="0" step="1" title="Drag to jump to any event in the story">
+					<div id="dy-slider-ticks"></div>
+				</div>
+				<!-- Row 4: heatmap canvas + year labels -->
+				<div id="dy-tb-dates">
+					<canvas id="dy-heat-canvas" height="25" title="Temporal heat map — darker areas indicate years with more events. Click to jump to an event."></canvas>
+					<div id="dy-year-labels"></div>
+				</div>
+			</div>
+
+			<!-- ── Aggregation panel (full-width, map mode) ─────────────── -->
+			<div id="dy-agg-panel">
+				<div id="dy-agg-tabs">
+					<button class="dy-agg-tab active" data-agg="agg-characters" title="Aggregate view of all characters across the story">Characters</button>
+					<button class="dy-agg-tab" data-agg="agg-locations" title="Aggregate view of all locations and how frequently they appear">Locations</button>
+					<button class="dy-agg-tab" data-agg="agg-events" title="Timeline and summary of all story events">Events</button>
+					<button class="dy-agg-tab" data-agg="agg-keywords" title="Most frequent keywords and themes across all events">Keywords</button>
+					<button class="dy-agg-tab" data-agg="agg-networks" title="Network graph showing relationships between characters and locations">Networks</button>
+					<button class="dy-panel-btn" id="dy-agg-collapse-btn" title="Minimize panel">&#8863;</button>
+				</div>
+				<div id="dy-agg-body">
+					<div id="agg-characters" class="dy-agg-view active"></div>
+					<div id="agg-locations" class="dy-agg-view"></div>
+					<div id="agg-events" class="dy-agg-view"></div>
+					<div id="agg-keywords" class="dy-agg-view"></div>
+					<div id="agg-networks" class="dy-agg-view"></div>
+				</div>
+			</div>
+
+			<!-- <button id='upClick'>&lt;&lt;</button> <button id='downClick'>&gt;&gt;</button> -->
+
+					<div id="shelf_instructions" style="display: none;">
+						<div class="title-section center-text">
+							<!-- h1>... Digital Yoknapatawpha ...</h1 -->
+							<img alt="Digital Yoknapatawpha Stamp" src="./DIGITAL Yoknapatawpha_files/stamp.png" id="stamp_img">
+							<h3>A Collaboration between an International Team of Faulkner Scholars<br>and Technologists at the University of Virginia<br>Major Funding provided by the National Endowment for the Humanities</h3>
+						</div>
+						<div class="intro_text">
+							<p>Here you'll find new ways to appreciate and analyze the 68 Yoknapatawpha fictions that William Faulkner published. 
+								View <a href="https://faulkner.iath.virginia.edu/family/videos-index.php" target="blank">getting started videos</a>. 
+								Or <strong>choose any text from the shelf below to explore it.</strong> Or <strong>use the links above</strong> for multi-text searching and other digital pathways into Faulkner's world.</p>
+						</div>
+						
+						<div style="position:relative;width:780px;height:110px;"> 
+							<div id="dock-container" style="width:780px;height:110px;position:absolute;top:0px;left:0px;overflow:auto;">
+								<div class="mac-dock" style="text-align:left;position:absolute;width:780px;left:0px;display:none"> </div>
+							</div>
+						</div>
+							
+			<!-- <div id="dock-container" style="width:800px;height:110px;position:absolute;top:540px;left:0px;overflow:auto;">
+				<div class="mac-dock" style="text-align:center;position:absolute;width:1650px;left:-30px;display:none"> </div>
+			</div> -->
+
+		</div>
+
+
+
+		
+		
+		<div id="title"><strong><i>The Sound and the Fury</i></strong><br><span class="edited">EDITED BY</span><br><div id="info"><img src="./DIGITAL Yoknapatawpha_files/information-sm.png"></div><div class="names">Johannes H. Burgers, Elizabeth Cornell ; John Corrigan, Jennie J. Joiner</div></div>
+		<!-- ── Title / citation overlay on map canvas ────────────────── -->
+		<div id="dy-title-bar">
+			<div class="dy-title-row">
+				<span class="dy-title-story">The Sound and the Fury</span>
+			</div>
+			<div class="dy-title-row">
+				<span class="dy-title-label">Editors</span>
+				<span class="dy-title-names"></span>
+			</div>
+			<div class="dy-title-row">
+				<span class="dy-title-label">Associate Editors</span>
+				<span class="dy-title-assoc"></span>
+			</div>
+		</div>
+		<div id="event_dialog" title="Event Information"></div>
+		
+		<!-- <div style="position:absolute;bottom:10px;right:10px"><a href="#" onclick="show_book('ZKR')">z</a></div> -->
+		<div id="heat-info">
+			<table id="heat-info-table"></table>
+		</div>
+		<script>
+		            function saveImage() {
+		                var ua = window.navigator.userAgent;
+ 
+		                if (ua.indexOf("Chrome") > 0) {
+		                    // save image without file type
+		                    var canvas = $('.heatmap-canvas')[0];
+							// canvas.width = 2640;
+							// canvas.height = 1650;
+		                    document.location.href = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+ 
+		                    // save image as png
+		                    var link = document.createElement('a');
+		                    link.download = "heatmap.png";
+		                    link.href = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");;
+		                    link.click();
+							return false;
+		                }
+		                else {
+		                    alert("Please use Chrome");
+		                }
+		            }
+					
+					function show_event(nid, location, people_present, people_mentioned) {
+						var str = "<div id=\"etabs\"><ul><li><a href=\"#etabs-2\">Event</a></li><li><a href=\"#etabs-1\">Location</a></li><li><a href=\"#etabs-3\">Characters</a></li></ul><div id=\"etabs-2\" class=\"dialog_content\"></div><div id=\"etabs-1\" class=\"dialog_content\"></div><div id=\"etabs-3\" class=\"dialog_content\"><strong>Present:</strong><div id='event_present'></div><strong>Mentioned:</strong><div id='event_mentioned'></div></div></div>";
+						// alert(value["Location"]);
+						$( "#event_dialog" ).html( str); //"<strong>"+value["LocationTitle"]+"</strong><br>"+value["Description"] );
+						var pos=start;
+						var e = new Array();
+						var c = new Array();
+						var mc = new Array();
+						$('#etabs-1').html('<strong>'+location+'</strong>');
+						// while (pos <= stop) {
+					// 		$( "#tabs-1" ).html("<strong>"+location_labels[value["event_location"]]+"</strong><br>"+location_descriptions[value['event_location']] );
+					// 		var data = page_locations[pos][value["event_location"]]["events"];
+					// 		$.each(data, function(i,v) {
+					// 			e.push(v);
+					// 		})
+					// 		data = page_locations[pos][value["event_location"]]["characters_present"];
+					// 		$.each(data, function(i,v) {
+					// 			c.push(v);
+					// 		})
+					// 		data = page_locations[pos][value["event_location"]]["characters_mentioned"];
+					// 		$.each(data, function(i,v) {
+					// 			mc.push(v);
+					// 		})
+					// 		pos += 1;
+					// 	}
+						// e = array_unique(e);
+						// c = array_unique(c);
+						mc = array_unique(mc);
+						getEventsByNid([nid], '#etabs-2');
+						getCharactersByNid(people_present, '#event_present');
+						getCharactersByNid(people_mentioned, '#event_mentioned');
+						
+						// $.each(e.sort(), function(index, value) {
+						// 	$('#tabs-2').append(value);
+						// })
+						// $.each(c.sort(), function(index, value) {
+						// 	$('#tabs-3').append(value+"<br>");
+						// })
+						$("#etabs").tabs();
+						// if($(this).css('opacity') == "1") {
+							$('#event_dialog').dialog({width:350,});
+							$('#event_dialog').dialog('open');
+						// }
+					}
+		        </script>
+
+		</div>
+
+
+	<div id="content_3" style="display: none;">
+
+  	<ul id="texts_order-radios">
+			<li><input type="radio" onclick="select_fewer_icons(texts_alphabetical);" id="texts_alphabetical-radio" name="texts_order-radio" checked=""> <label for="texts_alphabetical-radio">All texts, alphabetical order</label></li>
+			<li><input type="radio" onclick="select_fewer_icons(texts_by_publish_date);" id="texts_by_publish_date-radio" name="texts_order-radio"> <label for="texts_by_publish_date-radio">All texts, order of publication</label></li>
+			<li><input type="radio" onclick="select_fewer_icons(texts_by_novels);" id="texts_by_novels-radio" name="texts_order-radio"> <label for="texts_by_novels-radio">The novels, order of publication</label></li>
+			<li><input type="radio" onclick="select_fewer_icons(texts_by_collected_stories);" id="texts_by_collected_stories-radio" name="texts_order-radio"> <label for="texts_by_collected_stories-radio">From <em>Collected Stories</em> (Faulkner's order)</label></li>
+			<li><input type="radio" onclick="select_fewer_icons(texts_by_uncollected_stories);" id="texts_by_uncollected_stories-radio" name="texts_order-radio"> <label for="texts_by_uncollected_stories-radio">From <em>Uncollected Stories</em> (Joseph Blotner's order)</label></li>
+			<li><input type="radio" onclick="select_fewer_icons(texts_by_knights);" id="texts_by_knights-radio" name="texts_order-radio"> <label for="texts_by_knights-radio"><em>Knight's Gambit</em> (as published)</label></li>
+		</ul>
+
+		<script> document.getElementById('texts_alphabetical-radio').checked = true; </script>
+
+		<div id="text_title_list_button"><p>A list of links to all the texts under each of these six options is <a href="https://faulkner.iath.virginia.edu/?text=RE#" onclick="$('#text_title_list').show();return false;">available here</a>.</p></div>
+
+		<div id="text_title_list"> </div>
+
+  </div>
+
+
+	</div>
+	</div>
+	</div>
+	<div id="page_footer">
+	<div id="footer_iath_link"><a href="http://www.iath.virginia.edu/">IATH</a></div>
+</div>
+
+
+  
+<div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-1" style="display: none; outline: 0px; z-index: 1000; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-1" class="ui-dialog-title">Information</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="dialog" class="ui-dialog-content ui-widget-content"></div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div><div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-2" style="display: none; outline: 0px; z-index: 1000; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-2" class="ui-dialog-title">&nbsp;</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="about_text" class="ui-dialog-content ui-widget-content" style="display: block;"><div id="about_text_content"></div></div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div><div class="ui-dialog ui-widget ui-widget-content ui-corner-all no-close ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-3" style="outline: 0px; z-index: 1001; position: absolute; height: auto; width: 160px; top: 175.398px; left: 376.5px; display: none;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-3" class="ui-dialog-title">Controls</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="layer_dialog" class="ui-dialog-content ui-widget-content" style="display: block; width: auto; min-height: 109px; height: auto;" scrolltop="0" scrollleft="0">
+			<div id="dy-display-opts">
+				<strong title="Choose how to explore the story">Mode</strong><br>
+				<label title="Bird's-eye map of Yoknapatawpha with all characters and locations visible"><input type="radio" name="dy-display" value="map" checked> Overview</label>
+				<label title="Map and event list side by side — navigate events and see them on the map"><input type="radio" name="dy-display" value="map-text"> Map + Text</label>
+				<label title="Full annotated text with character, location, keyword and narrative markup"><input type="radio" name="dy-display" value="fulltext"> Full Text</label>
+			</div>
+			<!-- map-mode controls (hidden in fulltext mode) -->
+			<div id="dy-map-layer-ctrl">
+			<div class="control-buttons">
+				<span class="dy-btn-label">Zoom</span>
+				<div class="dy-btn-row">
+					<button id="plus" class="dy-btn" title="Zoom in"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/></svg></button><button id="minus" class="dy-btn" title="Zoom out"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8"/></svg></button><button id="reset" class="dy-btn" title="Reset zoom"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/></svg></button><button id="autozoom" class="dy-btn" title="Fit view to Yoknapatawpha locations"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707zm4.344 0a.5.5 0 0 1 .707 0l4.096 4.096V11.5a.5.5 0 0 1 1 0v3.975a.5.5 0 0 1-.5.5H11.5a.5.5 0 0 1 0-1h2.768l-4.096-4.096a.5.5 0 0 1 0-.707zm0-4.344a.5.5 0 0 0 .707 0l4.096-4.096V5.5a.5.5 0 0 0 1 0V1.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707zm-4.344 0a.5.5 0 0 1-.707 0L1.025 1.732V5.5a.5.5 0 0 1-1 0V1.525a.5.5 0 0 1 .5-.5H4.5a.5.5 0 0 1 0 1H1.732l4.096 4.096a.5.5 0 0 1 0 .707z"/></svg></button>
+				</div>
+			</div>
+			<div class="control-buttons">
+				<span class="dy-btn-label">Size</span>
+				<div class="dy-btn-row">
+					<button id="map-size-s" class="dy-btn dy-map-size-btn active" data-size="0" title="Small canvas (800×500)">S</button><button id="map-size-m" class="dy-btn dy-map-size-btn" data-size="1" title="Medium canvas (1000×625)">M</button><button id="map-size-l" class="dy-btn dy-map-size-btn" data-size="2" title="Large canvas (1200×750)">L</button>
+				</div>
+			</div>
+			<strong title="Control map zoom and fit">Locations</strong><br>
+			<input type="checkbox" id="natural" checked="" title="Show natural landscape features such as rivers, fields, and forests">Natural<br>
+			<input type="checkbox" id="manmade" checked="" title="Show man-made structures such as buildings, roads, and estates">Man-made<br>
+			<input type="radio" name="locations" id="locations" checked="" title="Display all locations in Yoknapatawpha">All Locations<br>
+			<input type="radio" name="locations" id="event-locations" title="Show only the locations that appear in this story">Event Locations<br>
+			<div id="search-locations-selection"></div>
+			<input type="radio" name="locations" id="no-locations" title="Hide all location markers">None<br>
+			<span class="dy-ctrl-overview-only"><input type="checkbox" id="show_location_list" title="Open an alphabetical list of locations to filter the map">Alphabetic List<br></span>
+			<span class="dy-ctrl-maptext-only"><hr class="dy-rank-separator"><label title="Toggle location name labels on the map"><input type="checkbox" id="dy-loc-labels-toggle" checked> Labels</label><br></span>
+			<strong title="Control which characters are displayed on the map">Characters</strong><br>
+			<span class="dy-ctrl-overview-only">
+				<input type="radio" id="characters-all" name="characters" onclick="onCharFilterChange();" title="Show all characters across Yoknapatawpha">All<br>
+				<input type="radio" id="characters-major" name="characters" onclick="onCharFilterChange();" title="Show only major characters">Major<br>
+				<input type="radio" id="characters-major-regular" name="characters" onclick="onCharFilterChange();" title="Show major and secondary characters">Major &amp; Secondary<br>
+				<input type="radio" id="characters-home" name="characters" onclick="show_characters_home();contentLayer.draw();" checked="" title="Show characters associated with their home location">Home<br>
+				<div id="results-checkbox"></div>
+				<input type="radio" id="characters-none" name="characters" onclick="onCharFilterChange();" title="Hide all characters">None<br>
+				<input type="checkbox" id="show_character_list" title="Open an alphabetical list of characters to filter the map">Alphabetic List<br>
+			</span>
+			<span class="dy-ctrl-maptext-only">
+				<input type="checkbox" id="dy-rank-major" checked title="Show major characters on the map">Major<br>
+				<input type="checkbox" id="dy-rank-secondary" checked title="Show secondary characters on the map">Secondary<br>
+				<input type="checkbox" id="dy-rank-minor" checked title="Show minor characters on the map">Minor<br>
+				<input type="checkbox" id="dy-rank-peripheral" checked title="Show peripheral characters on the map">Peripheral<br>
+				<input type="checkbox" id="dy-rank-mentioned" checked title="Show characters who are mentioned but not physically present">Mentioned<br>
+				<hr class="dy-rank-separator">
+				<label class="dy-char-labels-row" title="Toggle character name labels on the map"><input type="checkbox" id="dy-labels-toggle" checked> Labels</label>
+			</span>
+			<span class="dy-ctrl-overview-only"><strong title="Control event markers and heat overlays">Events</strong><br>
+			<!-- <input type="checkbox" id="play_events" checked >During Play<br> -->
+			<input type="checkbox" id="events" title="Show all event markers on the map">All<br>
+			<input type="checkbox" id="heatmap_toggle" title="Show a heat map of event density across the map">Heatmap<br></span>
+			<span class="dy-ctrl-maptext-only"><strong title="Control event overlays">Events</strong><br>
+			<input type="checkbox" id="dy-spatial-heatmap-toggle" title="Show a heat map of event density by location">Heatmap<br></span>
+		<div id="dy-other-res-controls" style="display:none"><strong>Other Resources</strong><br><a href="https://faulkner.drupal.shanti.virginia.edu/node/7862?canvas" target="_blank">Manuscripts Etc.</a><br><a href="https://faulkner.drupal.shanti.virginia.edu/node/8140?canvas" target="_blank">Audio Clips</a><br><a href="https://faulkner.drupal.shanti.virginia.edu/node/16685?canvas" target="_blank">Magazine Illustrations</a><br><a href="https://faulkner.iath.virginia.edu/characters-force.html?text=RE" target="_blank">Location-Character Graph</a></div>
+		</div><!-- end #dy-map-layer-ctrl -->
+		<!-- fulltext-mode controls (hidden in map modes) -->
+		<div id="dy-ft-layer-ctrl" style="display:none">
+			<strong title="Choose which annotation categories are highlighted in the text">Annotations</strong>
+			<label title="Highlight location references in the text"><input type="checkbox" data-annot="locations" checked> Locations</label>
+			<label title="Highlight character references in the text"><input type="checkbox" data-annot="characters" checked> Characters</label>
+			<label title="Highlight event boundaries in the text"><input type="checkbox" data-annot="events" checked> Events</label>
+			<label title="Highlight keyword occurrences in the text"><input type="checkbox" data-annot="keywords" checked> Keywords</label>
+			<strong title="Apply color-coded structural markup to the text">Markup</strong>
+			<label title="Color-code passages by their narrative position — flashback, linear, or flashforward"><input type="checkbox" id="ft-markup-narrative"> Narrative Progression</label>
+			<div id="ft-markup-narrative-opts" style="display:none">
+				<label><input type="checkbox" id="ft-markup-flashforward" checked> Flashforward (<span class="ft-markup-icon ft-flashforward"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M7.596 7.304a.802.802 0 0 1 0 1.392l-6.363 3.692C.713 12.69 0 12.345 0 11.692V4.308c0-.653.713-.998 1.233-.696z"/><path d="M15.596 7.304a.802.802 0 0 1 0 1.392l-6.363 3.692C8.713 12.69 8 12.345 8 11.692V4.308c0-.653.713-.998 1.233-.696z"/></svg></span>)</label>
+				<label><input type="checkbox" id="ft-markup-flashback" checked> Flashback (<span class="ft-markup-icon ft-flashback"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M8.404 7.304a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/><path d="M.404 7.304a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696z"/></svg></span>)</label>
+				<label><input type="checkbox" id="ft-markup-linear" checked> Linear (<span class="ft-markup-icon ft-linear"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5zm14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5z"/></svg></span>)</label>
+			</div>
+			<label title="Color-code passages by narrative status — intradiegetic, extradiegetic, or metadiegetic"><input type="checkbox" id="ft-markup-ns"> Narrative Status</label>
+			<div id="ft-markup-ns-opts" style="display:none"></div>
+			<label title="Color-code passages by their temporal relation to the story present — past, present, or future"><input type="checkbox" id="ft-markup-temporality"> Temporality</label>
+			<div id="ft-markup-temporality-opts" style="display:none"></div>
+		</div></div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div><div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-4" style="display: none; outline: 0px; z-index: 1000; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-4" class="ui-dialog-title">Location List</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="location_list" class="ui-dialog-content ui-widget-content" style="display: block;">
+			<div id="location_list_content"><input type="checkbox" value="Alabama">Alabama<br><input type="checkbox" value="Baptist Parsonage">Baptist Parsonage<br><input type="checkbox" value="Grierson House">Grierson House<br><input type="checkbox" value="Jefferson Cemetery">Jefferson Cemetery<br><input type="checkbox" value="Jefferson Courthouse and Square">Jefferson Courthouse and Square<br><input type="checkbox" value="Jefferson Department Store">Jefferson Department Store<br><input type="checkbox" value="Jefferson Drugstore">Jefferson Drugstore<br><input type="checkbox" value="Jefferson Jeweler">Jefferson Jeweler<br><input type="checkbox" value="Jefferson Town Hall">Jefferson Town Hall<br></div>
+			<div style="text-align:center"><input type="button" onclick="show_specific_locations()" value="Show"><input type="button" onclick="reset_location_selection()" value="Reset"></div>
+		</div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div><div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-id-5" style="display: none; outline: 0px; z-index: 1000; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix"><span id="ui-id-5" class="ui-dialog-title">Character List</span><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="ui-dialog-titlebar-close ui-corner-all" role="button"><span class="ui-icon ui-icon-closethick">close</span></a></div><div id="character_list" class="ui-dialog-content ui-widget-content" style="display: block;">
+			<div id="character_list_content"><input type="checkbox" value="Homer Barron"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Homer Barron')">Homer Barron</a><br><input type="checkbox" value="Emily Grierson"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Emily Grierson')">Emily Grierson</a><br><input type="checkbox" value="Mr. Grierson"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Mr. Grierson')">Mr. Grierson</a><br><input type="checkbox" value="Colonel Sartoris"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Colonel Sartoris')">Colonel Sartoris</a><br><input type="checkbox" value="Judge Stevens"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Judge Stevens')">Judge Stevens</a><br><input type="checkbox" value="Tobe"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Tobe')">Tobe</a><br><input type="checkbox" value="Unnamed Alabama Kinfolk"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Alabama Kinfolk')">Unnamed Alabama Kinfolk</a><br><input type="checkbox" value="Unnamed Baptist Minister"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Baptist Minister')">Unnamed Baptist Minister</a><br><input type="checkbox" value="Board of Aldermen (1880s)"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Board of Aldermen (1880s)')">Board of Aldermen (1880s)</a><br><input type="checkbox" value="Board of Aldermen (1910s)"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Board of Aldermen (1910s)')">Board of Aldermen (1910s)</a><br><input type="checkbox" value="Unnamed Dead Confederate Soldiers"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Dead Confederate Soldiers')">Unnamed Dead Confederate Soldiers</a><br><input type="checkbox" value="Unnamed Dead Union Soldiers"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Dead Union Soldiers')">Unnamed Dead Union Soldiers</a><br><input type="checkbox" value="Unnamed Doctors"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Doctors')">Unnamed Doctors</a><br><input type="checkbox" value="Unnamed Druggist"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Druggist')">Unnamed Druggist</a><br><input type="checkbox" value="Unnamed Elks' Club Members"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Elks\' Club Members')">Unnamed Elks' Club Members</a><br><input type="checkbox" value="Unnamed Jefferson Townspeople"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Jefferson Townspeople')">Unnamed Jefferson Townspeople</a><br><input type="checkbox" value="Unnamed Jeweler"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Jeweler')">Unnamed Jeweler</a><br><input type="checkbox" value="Unnamed Ladies"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Ladies')">Unnamed Ladies</a><br><input type="checkbox" value="Unnamed Little Boys"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Little Boys')">Unnamed Little Boys</a><br><input type="checkbox" value="Unnamed Mayor"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Mayor')">Unnamed Mayor</a><br><input type="checkbox" value="Unnamed Ministers"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Ministers')">Unnamed Ministers</a><br><input type="checkbox" value="Unnamed Narrator"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Narrator')">Unnamed Narrator</a><br><input type="checkbox" value="Unnamed Negro Delivery Boy"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Negro Delivery Boy')">Unnamed Negro Delivery Boy</a><br><input type="checkbox" value="Unnamed Negro Paving Crew"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Negro Paving Crew')">Unnamed Negro Paving Crew</a><br><input type="checkbox" value="Unnamed Negro Women"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Negro Women')">Unnamed Negro Women</a><br><input type="checkbox" value="Unnamed Neighbor Man"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Neighbor Man')">Unnamed Neighbor Man</a><br><input type="checkbox" value="Unnamed Neighbor Woman"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Neighbor Woman')">Unnamed Neighbor Woman</a><br><input type="checkbox" value="Unnamed Very Old Men"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Very Old Men')">Unnamed Very Old Men</a><br><input type="checkbox" value="Baptist Minister's Wife"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Baptist Minister\'s Wife')">Baptist Minister's Wife</a><br><input type="checkbox" value="Unnamed Young Girls"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Unnamed Young Girls')">Unnamed Young Girls</a><br><input type="checkbox" value="Old Lady Wyatt"><a href="https://faulkner.iath.virginia.edu/?text=RE#" class="list_link" onclick="show_character('Old Lady Wyatt')">Old Lady Wyatt</a><br></div>
+			<div style="text-align:center"><input type="button" onclick="show_specific_characters()" value="Show"><input type="button" onclick="reset_character_selection()" value="Reset"></div>
+		</div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se ui-icon-grip-diagonal-se" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 1000;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 1000;"></div></div>
+
+<script src="./dy-mockup.js"></script>
+</body></html>

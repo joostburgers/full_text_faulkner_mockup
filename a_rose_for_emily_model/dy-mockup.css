@@ -2067,6 +2067,8 @@
 	   on; everything else is chrome and is dropped.
 	   ══════════════════════════════════════════════════════════ */
 	#ft-print-header { display: none; }
+	/* Only ever rendered by the print stylesheet. */
+	#ft-print-doc { display: none; }
 
 	/* ── Print options dialog ─────────────────────────────────────── */
 	#ft-print-overlay {
@@ -2218,8 +2220,7 @@
 		}
 		#ft-print-doc .ft-section-num:first-child { break-before: auto; page-break-before: auto; }
 
-		#ft-print-header {
-			display: block !important;
+		.ft-print-head {
 			margin-bottom: 16pt;
 			padding-bottom: 9pt;
 			border-bottom: 2px solid #333;

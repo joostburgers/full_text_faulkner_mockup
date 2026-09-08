@@ -2636,8 +2636,7 @@
 				events:     want.appxEvents,
 				keywords:   want.keywords
 			});
-			buildPrintHeader(want);
-			var placement = _moveToPrintDoc();
+			var placement = _moveToPrintDoc(want);
 
 			var restored = false;
 			var restore = function() {
@@ -2662,15 +2661,24 @@
 	// them, move the pieces into a plain container on <body> for the print run.
 	// Moving (not cloning) keeps element ids, so the injected markup styles that
 	// target #ft-highlight-view still apply.
-	function _moveToPrintDoc() {
+	function _moveToPrintDoc(want) {
 		var host = document.getElementById('ft-print-doc');
 		if (!host) {
 			host = document.createElement('div');
 			host.id = 'ft-print-doc';
 			document.body.appendChild(host);
 		}
+		host.innerHTML = '';
+
+		// Built here rather than toggling a hidden element, so nothing has to
+		// out-specify a base display:none for the header to appear.
+		var head = document.createElement('div');
+		head.className = 'ft-print-head';
+		head.innerHTML = printHeaderHtml(want);
+		host.appendChild(head);
+
 		var moved = [];
-		['ft-print-header', 'ft-highlight-view', 'ft-print-appendix'].forEach(function(id) {
+		['ft-highlight-view', 'ft-print-appendix'].forEach(function(id) {
 			var el = document.getElementById(id);
 			if (!el) return;
 			moved.push({ el: el, parent: el.parentNode, next: el.nextSibling });
@@ -2701,9 +2709,7 @@
 		return out;
 	}
 
-	function buildPrintHeader(want) {
-		var hdr = document.getElementById('ft-print-header');
-		if (!hdr) return;
+	function printHeaderHtml(want) {
 		var titleEl = document.querySelector('#dy-title-bar .dy-title-story');
 		var edEl    = document.querySelector('#dy-title-bar .dy-title-names');
 		var asEl    = document.querySelector('#dy-title-bar .dy-title-assoc');
@@ -2717,7 +2723,7 @@
 
 		var bits = [];
 		bits.push('<div class="ft-print-brand">Digital Yoknapatawpha \u00b7 Annotated Texts</div>');
-		bits.push('<div class="ft-print-title">' + esc(titleEl ? titleEl.textContent : '') + '</div>');
+		bits.push('<div class="ft-print-title">' + esc(titleEl ? titleEl.textContent.trim() : '') + '</div>');
 
 		// Publication details, reused from the About Text panel.
 		document.querySelectorAll('#ft-about-view .ft-pub-row').forEach(function(row) {
@@ -2740,7 +2746,7 @@
 		if (appx.length) {
 			bits.push('<div class="ft-print-meta">Appendices: ' + esc(appx.join(', ')) + '</div>');
 		}
-		hdr.innerHTML = bits.join('');
+		return bits.join('');
 	}
 
 	// Stored parents for restoring panels when leaving fulltext mode

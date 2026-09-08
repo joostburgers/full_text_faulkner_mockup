@@ -820,31 +820,16 @@
 		labelGap: 12,
 		rowPad: 30
 	};
-	// Prominence is shown by size, stepping 15% per rank from Secondary.
+	// Prominence is shown by size, stepping 30% per rank from Secondary.
 	var DEMO_RANK = {
-		'Major':      1.15,
+		'Major':      1.30,
 		'Secondary':  1.00,
-		'Minor':      0.85,
-		'Peripheral': 0.7225
+		'Minor':      0.70,
+		'Peripheral': 0.49
 	};
-	var DEMO_MAX_RANK = 1.15;
-	var DEMO_MENTIONED_OPACITY = 0.25;
+	var DEMO_RANK_ORDER = { 'Major': 0, 'Secondary': 1, 'Minor': 2, 'Peripheral': 3 };
+	var DEMO_MAX_RANK = 1.30;
 	var _demoRetries = 0;
-
-	// Characters that are never present in an event, only referred to.
-	function _mentionedOnlyIds() {
-		var present = {}, mentioned = {}, out = {};
-		reEventsList.forEach(function(ev) {
-			(ev.characters_present || '').split(',').forEach(function(id) {
-				id = id.trim(); if (id) present[id] = 1;
-			});
-			(ev.characters_mentioned || '').split(',').forEach(function(id) {
-				id = id.trim(); if (id) mentioned[id] = 1;
-			});
-		});
-		Object.keys(mentioned).forEach(function(id) { if (!present[id]) out[id] = 1; });
-		return out;
-	}
 
 	function _demoLabel(text, x, y, fontSize) {
 		var t = new Konva.Text({
@@ -932,13 +917,19 @@
 		var k = Math.min(vw / nomW, vh / nomH);
 		if (!isFinite(k) || k <= 0) k = 1;
 
-		var mentOnly = _mentionedOnlyIds();
 		var cellW = DEMO.icon * k;
 		var bandH = DEMO.icon * DEMO_MAX_RANK * k;
 		var y = vy;
 
 		keys.forEach(function(key) {
-			var list = groups[key].slice().sort();
+			// Most prominent first, so each row reads Major through Peripheral.
+			var list = groups[key].slice().sort(function(a, b) {
+				var ra = DEMO_RANK_ORDER[(byName[a] || {}).rank];
+				var rb = DEMO_RANK_ORDER[(byName[b] || {}).rank];
+				if (ra === undefined) ra = 9;
+				if (rb === undefined) rb = 9;
+				return (ra - rb) || a.localeCompare(b);
+			});
 			_demoLabel(key + '  (' + list.length + ')', vx, y, DEMO.labelFs * k);
 			y += (DEMO.labelFs + DEMO.labelGap) * k;
 
@@ -948,11 +939,6 @@
 
 				var rec  = byName[name] || {};
 				var mult = DEMO_RANK[rec.rank] || DEMO_RANK.Secondary;
-				var op   = 1;
-				if (mentOnly[String(rec.id)]) {
-					mult = DEMO_RANK.Peripheral;
-					op   = DEMO_MENTIONED_OPACITY;
-				}
 				var size = DEMO.icon * mult * k;
 
 				var ch = current_characters[name];
@@ -960,7 +946,7 @@
 				ch.image.setX(vx + col * step * k + (cellW - size) / 2);
 				ch.image.setY(y + (bandH - size) / 2);
 				ch.image.setScale(mult * k);
-				ch.image.setOpacity(op);
+				ch.image.setOpacity(1);
 				ch.image.moveToTop();
 				ch.image.show();
 			});

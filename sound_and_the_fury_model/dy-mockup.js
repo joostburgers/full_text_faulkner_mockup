@@ -1159,6 +1159,68 @@
 		return r + ',' + g + ',' + bv;
 	}
 	var dyYearMin = 1850, dyYearMax = 1924; // set by buildDateTicks
+
+	// ── Year axis ─────────────────────────────────────────────────
+	// Texts like The Sound and the Fury have a handful of very early events that
+	// would otherwise stretch the axis and crowd everything into the right edge.
+	// When that early region is sparse it collapses into one short segment,
+	// marked with a break glyph; otherwise the axis stays strictly linear.
+	var DY_YEAR = {
+		cutoff:       1890,
+		segmentShare: 0.125, // width of the collapsed segment, as a share of one interval
+		maxPreShare:  0.10,  // collapse only if fewer than this share of events precede the cutoff
+		targetLabels: 8,
+		niceSteps:    [5, 10, 20, 25, 50]
+	};
+	var _yrAxis = { start: 1890, end: 1930, step: 10, preFrac: 0, preLo: 1890, hasPre: false };
+
+	function buildYearAxis(years) {
+		var preYears = years.filter(function(y) { return y < DY_YEAR.cutoff; });
+		var hasPre = preYears.length > 0 &&
+		             years.length > 0 &&
+		             (preYears.length / years.length) < DY_YEAR.maxPreShare;
+
+		var dataLo = hasPre ? DY_YEAR.cutoff : dyYearMin;
+		var raw = Math.max(1, dyYearMax - dataLo) / (DY_YEAR.targetLabels - 1);
+		var step = DY_YEAR.niceSteps.reduce(function(best, s) {
+			return Math.abs(s - raw) < Math.abs(best - raw) ? s : best;
+		}, DY_YEAR.niceSteps[0]);
+
+		var lo = Math.floor(dataLo / step) * step;
+		var hi = Math.ceil((dyYearMax + 1) / step) * step;
+		if (hi <= lo) hi = lo + step;
+		var intervals = (hi - lo) / step;
+		_yrAxis = {
+			start:   lo,
+			end:     hi,
+			step:    step,
+			hasPre:  hasPre,
+			preLo:   preYears.length ? Math.min.apply(null, preYears) : lo,
+			preFrac: hasPre ? DY_YEAR.segmentShare / (DY_YEAR.segmentShare + intervals) : 0
+		};
+	}
+
+	// Year → 0..1 position along the axis.
+	function yearFrac(yr) {
+		var a = _yrAxis;
+		if (a.hasPre && yr < DY_YEAR.cutoff) {
+			var span = (DY_YEAR.cutoff - a.preLo) || 1;
+			var t = (yr - a.preLo) / span;
+			return Math.min(Math.max(t, 0), 1) * a.preFrac;
+		}
+		var u = (yr - a.start) / (a.end - a.start);
+		return a.preFrac + Math.min(Math.max(u, 0), 1) * (1 - a.preFrac);
+	}
+
+	function fracToYear(f) {
+		var a = _yrAxis;
+		if (a.hasPre && f <= a.preFrac) {
+			var t = a.preFrac ? f / a.preFrac : 0;
+			return a.preLo + t * (DY_YEAR.cutoff - a.preLo);
+		}
+		var u = (f - a.preFrac) / (1 - a.preFrac);
+		return a.start + u * (a.end - a.start);
+	}
 	var _sliderEvPositions = []; // float positions parallel to getDyList(); rebuilt by buildSliderTicks
 	var dyActiveSection = null; // { yearMin, yearMax } or null when no section selected
 
@@ -1191,9 +1253,7 @@
 		ctx.fillStyle = '#d0d0d0';
 		ctx.fillRect(0, 0, W, H);
 
-		var scaleStart = dyYearMin - 2;
-		var scaleSpan  = (dyYearMax + 2) - scaleStart;
-		function xFor(yr) { return (yr - scaleStart) / scaleSpan * W; }
+		function xFor(yr) { return yearFrac(yr) * W; }
 
 		// ── Aggregate dyHeatCounts (keyed by nid) into yearCounts ──
 		// All events at the same calendar year pool their heat together.
@@ -1278,22 +1338,32 @@
 		var TICK_AREA = 7;
 		ctx.fillStyle = 'rgba(255,255,255,0.38)';
 		ctx.fillRect(0, H - TICK_AREA, W, TICK_AREA);
-		// Minor ticks every 5 years
-		var firstMinor = Math.ceil(scaleStart / 5) * 5;
+		// Minor ticks at half the label step
+		var _ax = _yrAxis;
+		var _minor = Math.max(1, _ax.step / 2);
 		ctx.strokeStyle = 'rgba(80,80,80,0.65)';
 		ctx.lineWidth = 1;
 		ctx.setLineDash([]);
-		for (var tyr = firstMinor; tyr <= scaleStart + scaleSpan; tyr += 5) {
+		for (var tyr = _ax.start; tyr <= _ax.end; tyr += _minor) {
 			var tx = xFor(tyr);
 			ctx.beginPath(); ctx.moveTo(tx, H - 3); ctx.lineTo(tx, H); ctx.stroke();
 		}
 		// Major ticks every 10 years (taller, darker)
-		var firstMajor = Math.ceil(scaleStart / 10) * 10;
 		ctx.strokeStyle = 'rgba(40,40,40,0.80)';
 		ctx.lineWidth = 1.5;
-		for (var tyr = firstMajor; tyr <= scaleStart + scaleSpan; tyr += 10) {
-			var tx = xFor(tyr);
-			ctx.beginPath(); ctx.moveTo(tx, H - TICK_AREA); ctx.lineTo(tx, H); ctx.stroke();
+		for (var tyr2 = _ax.start; tyr2 <= _ax.end; tyr2 += _ax.step) {
+			var tx2 = xFor(tyr2);
+			ctx.beginPath(); ctx.moveTo(tx2, H - TICK_AREA); ctx.lineTo(tx2, H); ctx.stroke();
+		}
+		// Break glyph where the compressed early segment meets the linear axis
+		if (_ax.hasPre) {
+			var bxp = _ax.preFrac * W;
+			ctx.strokeStyle = 'rgba(40,40,40,0.85)';
+			ctx.lineWidth = 1.5;
+			ctx.beginPath();
+			ctx.moveTo(bxp - 4, H); ctx.lineTo(bxp,     H - TICK_AREA - 2);
+			ctx.moveTo(bxp,     H); ctx.lineTo(bxp + 4, H - TICK_AREA - 2);
+			ctx.stroke();
 		}
 
 		// Current-event tick: dark line on grey bg
@@ -1703,8 +1773,24 @@
 		slider.step  = 0.001;
 		slider.value = 0;
 
-		// Tick marks: one per unique page at equal visual intervals
+		// Tick marks: thin them to roughly TARGET_TICKS so long texts don't crowd.
+		var TARGET_TICKS = 11;
+		var pageNums = seenPages.map(function(p) { return parseInt(p, 10) || 0; });
+		var pgSpan = Math.max.apply(null, pageNums) - Math.min.apply(null, pageNums);
+		var raw = Math.max(1, pgSpan / (TARGET_TICKS - 1));
+		var NICE = [1, 2, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100];
+		var pgStep = NICE.reduce(function(best, s) {
+			return Math.abs(s - raw) < Math.abs(best - raw) ? s : best;
+		}, NICE[0]);
+
+		var lastLabelled = null;
 		seenPages.forEach(function(pg, pi) {
+			var num = parseInt(pg, 10) || 0;
+			var isLast = pi === P - 1;
+			if (lastLabelled !== null && !isLast && (num - lastLabelled) < pgStep) return;
+			if (isLast && lastLabelled !== null && (num - lastLabelled) < pgStep / 2) return;
+			lastLabelled = num;
+
 			var pct = P > 1 ? (pi / (P - 1) * 100).toFixed(2) : '0.00';
 			var tick = document.createElement('div');
 			tick.className = 'dy-pg-tick';
@@ -1731,6 +1817,7 @@
 		});
 		dyYearMin = years.length ? Math.min.apply(null, years) : 1850;
 		dyYearMax = years.length ? Math.max.apply(null, years) : 1924;
+		buildYearAxis(years);
 
 		// Size canvas now that we know the container width
 		var canvas = document.getElementById('dy-heat-canvas');
@@ -1740,9 +1827,7 @@
 			canvas.addEventListener('click', function(e) {
 				var rect = canvas.getBoundingClientRect();
 				var pct  = (e.clientX - rect.left) / rect.width;
-				var scaleStart = dyYearMin - 2;
-				var scaleSpan  = (dyYearMax + 2) - scaleStart;
-				var clickYear  = scaleStart + pct * scaleSpan;
+				var clickYear = fracToYear(pct);
 				var best = reEventsList[0], bestDist = Infinity;
 				reEventsList.forEach(function(ev) {
 					if (!ev.event_date) return;
@@ -1755,18 +1840,33 @@
 			dyDrawHeatmap(null); // draw the initial empty bar
 		}
 
-		// Year labels below canvas: every 10 years within the data range
+		// Year labels below canvas, at the axis step
 		var labelsDiv = document.getElementById('dy-year-labels');
 		if (labelsDiv) {
 			labelsDiv.innerHTML = '';
-			var scaleStart = dyYearMin - 2;
-			var scaleSpan  = (dyYearMax + 2) - scaleStart;
-			var firstLabel = Math.ceil(dyYearMin / 10) * 10;
-			for (var yr = firstLabel; yr <= dyYearMax; yr += 10) {
+			var ax = _yrAxis;
+			if (ax.hasPre) {
+				var pre = document.createElement('span');
+				pre.className = 'dy-yr-lbl dy-yr-lbl-pre';
+				pre.textContent = '\u2039' + DY_YEAR.cutoff;
+				pre.title = 'All events before ' + DY_YEAR.cutoff + ' (compressed)';
+				pre.style.left = '0%';
+				labelsDiv.appendChild(pre);
+
+				var brk = document.createElement('span');
+				brk.className = 'dy-yr-break';
+				brk.textContent = '\u2215\u2215';
+				brk.title = 'Axis break \u2014 the span to the left is not to scale';
+				brk.style.left = (ax.preFrac * 100).toFixed(2) + '%';
+				labelsDiv.appendChild(brk);
+			}
+			// When collapsed, the '‹cutoff' label already marks the boundary year.
+			var firstLabel = ax.hasPre ? ax.start + ax.step : ax.start;
+			for (var yr = firstLabel; yr <= dyYearMax; yr += ax.step) {
 				var sp = document.createElement('span');
 				sp.className = 'dy-yr-lbl';
 				sp.textContent = yr;
-				sp.style.left = ((yr - scaleStart) / scaleSpan * 100).toFixed(2) + '%';
+				sp.style.left = (yearFrac(yr) * 100).toFixed(2) + '%';
 				labelsDiv.appendChild(sp);
 			}
 		}

@@ -2147,17 +2147,8 @@
 			background: #fff !important;
 			height: auto !important;
 			overflow: visible !important;
-		}
-
-		/* layoutPanels() sets an inline min-height here; it would print as blank pages. */
-		#content_2, #content_3, #main_index_content, #main_index_sub-content, #wrapper {
-			position: static !important;
-			min-height: 0 !important;
-			height: auto !important;
-			width: auto !important;
 			margin: 0 !important;
 			padding: 0 !important;
-			overflow: visible !important;
 		}
 
 		/* Annotation colours are the point of the printout, so keep them. */
@@ -2166,51 +2157,52 @@
 			print-color-adjust: exact !important;
 		}
 
-		/* Chrome */
-		#dy-global-nav, #dy-controls-panel, #ft-annot-panel, #ft-ctrl-ghost,
-		#ft-annot-ghost, #ft-panel-header, #ft-text-toolbar, #dy-toolbar,
-		#dy-agg-panel, #info-panel, #container, #dy-title-bar, #dy-zoom-panel,
-		#playback_controls, #header, #footer, #shelf_instructions, .mac-dock,
-		#text_title_list, #text_title_list_button, .ui-dialog, .dy-panel-btn,
-		#ft-reading, #ft-events-view, #ft-about-view, #ft-about-editors-view,
-		#ft-other-resources {
-			display: none !important;
-		}
+		/* Everything except the print container is dropped. The reading column has
+		   been moved onto <body>, so none of the app's fixed/scrolling parents
+		   apply to it any more. */
+		body.dy-printing > * { display: none !important; }
+		body.dy-printing > #ft-print-doc { display: block !important; }
 
-		/* Reading column fills the page */
-		#ft-layout, #fulltext-panel {
-			position: static !important;
-			display: block !important;
-			width: auto !important;
-			max-width: none !important;
-			height: auto !important;
-			min-height: 0 !important;
-			margin: 0 !important;
-			padding: 0 !important;
-			border: none !important;
-			overflow: visible !important;
-			box-shadow: none !important;
-		}
-		#ft-highlight-view {
-			display: block !important;
+		#ft-print-doc {
 			position: static !important;
 			width: auto !important;
 			height: auto !important;
 			max-height: none !important;
+			margin: 0 !important;
+			padding: 0 !important;
 			overflow: visible !important;
+			background: #fff !important;
+		}
+		#ft-print-doc #ft-highlight-view {
+			display: block !important;
+			position: static !important;
+			flex: none !important;
+			width: auto !important;
+			height: auto !important;
+			min-height: 0 !important;
+			max-height: none !important;
+			overflow: visible !important;
+			margin: 0 !important;
 			padding: 0 !important;
 			border: none !important;
+			background: none !important;
 			font-size: 11pt;
 			line-height: 1.55;
 			column-count: 1 !important;
 		}
-		#ft-highlight-view p { orphans: 2; widows: 2; }
-		.ft-section-num {
+		#ft-print-doc #ft-highlight-view .ft-hl-section { display: block !important; }
+		#ft-print-doc #ft-highlight-view .ft-hl-span    { display: inline !important; visibility: visible !important; }
+		#ft-print-doc #ft-highlight-view p {
+			display: block !important;
+			orphans: 2;
+			widows: 2;
+		}
+		#ft-print-doc .ft-section-num {
 			break-before: page;
 			page-break-before: always;
 			margin-top: 0;
 		}
-		.ft-section-num:first-child { break-before: auto; page-break-before: auto; }
+		#ft-print-doc .ft-section-num:first-child { break-before: auto; page-break-before: auto; }
 
 		#ft-print-header {
 			display: block !important;
@@ -2224,15 +2216,6 @@
 
 		/* Always print the complete text, whatever the on-screen reading mode. */
 		#ft-print-overlay { display: none !important; }
-		.ft-hl-section,
-		#ft-highlight-view .ft-hl-span,
-		#ft-highlight-view p { display: revert !important; visibility: visible !important; }
-		#ft-highlight-view.ft-page-mode,
-		#ft-layout #ft-highlight-view.ft-page-mode {
-			overflow: visible !important;
-			height: auto !important;
-			max-height: none !important;
-		}
 
 		/* Appendices */
 		#ft-print-appendix {

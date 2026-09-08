@@ -2603,6 +2603,10 @@
 			};
 			close();
 
+			// Section and page modes clip the column; print always shows everything.
+			var prevMode = _ftReadMode;
+			if (prevMode !== 'scroll') _setFtReadMode('scroll');
+
 			var snap = _snapshotMarkup();
 			_applyMarkupChoice(want);
 			buildPrintAppendix({
@@ -2612,18 +2616,57 @@
 				keywords:   want.keywords
 			});
 			buildPrintHeader(want);
+			var placement = _moveToPrintDoc();
 
+			var restored = false;
 			var restore = function() {
+				if (restored) return;
+				restored = true;
+				_restoreFromPrintDoc(placement);
 				_restoreMarkup(snap);
+				if (prevMode !== 'scroll') _setFtReadMode(prevMode);
 				var box = document.getElementById('ft-print-appendix');
 				if (box) box.innerHTML = '';
 				window.removeEventListener('afterprint', restore);
 			};
 			window.addEventListener('afterprint', restore);
 			window.print();
-			// Safari and some PDF drivers never fire afterprint.
-			setTimeout(function() { if (!overlay.hidden) return; restore(); }, 3000);
+			// Some PDF drivers never fire afterprint.
+			setTimeout(restore, 3000);
 		});
+	}
+
+	// The reading column lives inside fixed, scrolling, zero-height flex parents
+	// that browsers paginate one line at a time. Rather than out-specify all of
+	// them, move the pieces into a plain container on <body> for the print run.
+	// Moving (not cloning) keeps element ids, so the injected markup styles that
+	// target #ft-highlight-view still apply.
+	function _moveToPrintDoc() {
+		var host = document.getElementById('ft-print-doc');
+		if (!host) {
+			host = document.createElement('div');
+			host.id = 'ft-print-doc';
+			document.body.appendChild(host);
+		}
+		var moved = [];
+		['ft-print-header', 'ft-highlight-view', 'ft-print-appendix'].forEach(function(id) {
+			var el = document.getElementById(id);
+			if (!el) return;
+			moved.push({ el: el, parent: el.parentNode, next: el.nextSibling });
+			host.appendChild(el);
+		});
+		document.body.classList.add('dy-printing');
+		return moved;
+	}
+
+	function _restoreFromPrintDoc(moved) {
+		document.body.classList.remove('dy-printing');
+		(moved || []).forEach(function(m) {
+			if (m.next && m.next.parentNode === m.parent) m.parent.insertBefore(m.el, m.next);
+			else m.parent.appendChild(m.el);
+		});
+		var host = document.getElementById('ft-print-doc');
+		if (host && host.parentNode) host.parentNode.removeChild(host);
 	}
 
 	// Summarise the chosen layers so the printout records the reading assembled.

@@ -1843,6 +1843,105 @@
 	var dyDisplayMode = 'map';
 	var _suppressScroll = false;
 
+	// ── Panel layout ──────────────────────────────────────────────
+	// All overlay panel geometry is derived from the map rect here so that
+	// CSS never competes with JS for position/size.
+	var DY_LAYOUT = {
+		CONTENT_W:    1300,  // #content_2 width
+		EDGE_GAP:       10,  // right column -> viewport right edge
+		COL_GAP:        10,  // map right edge -> right column
+		PANEL_GAP:       8,  // fulltext panel -> info panel
+		TOOLBAR_GAP:    33,  // map bottom -> toolbar top
+		AGG_GAP:        95,  // map bottom -> aggregation panel top
+		TITLE_INSET:    60,  // title bar sits this far above map bottom
+		MIN_PANEL_W:   360,  // below this the fulltext panel goes vertical
+		FT_SPLIT:      0.6   // share of map height for fulltext when info is visible
+	};
+	var _mapSizes = [
+		{ w: 800,  h: 500 },
+		{ w: 1000, h: 625 },
+		{ w: 1200, h: 750 }
+	];
+	var _mapSizeIdx = 0;
+
+	function layoutPanels() {
+		// Fulltext mode reparents these panels into a flex wrapper; leave them alone.
+		if (dyDisplayMode === 'fulltext') return;
+		var container = document.getElementById('container');
+		if (!container) return;
+
+		var L         = DY_LAYOUT;
+		var sz        = _mapSizes[_mapSizeIdx];
+		var mapTop    = container.offsetTop;
+		var mapBottom = mapTop + sz.h;
+
+		var colLeft = sz.w + L.COL_GAP;
+		var colW    = Math.max((L.CONTENT_W - L.EDGE_GAP) - colLeft, 0);
+
+		// Legacy theme pins #container to 500px; keep the box in sync with the stage.
+		container.style.height = sz.h + 'px';
+
+		var ftPanel   = document.getElementById('fulltext-panel');
+		var infoPanel = document.getElementById('info-panel');
+		var infoShown = infoPanel && getComputedStyle(infoPanel).display !== 'none';
+
+		var ftH = sz.h, ipTop = 0, ipH = 0;
+		if (infoShown) {
+			ftH   = Math.round(sz.h * L.FT_SPLIT);
+			ipH   = sz.h - ftH - L.PANEL_GAP;
+			ipTop = mapTop + ftH + L.PANEL_GAP;
+		}
+
+		if (ftPanel) {
+			ftPanel.style.left   = colLeft + 'px';
+			ftPanel.style.top    = mapTop + 'px';
+			ftPanel.style.width  = colW + 'px';
+			ftPanel.style.height = ftH + 'px';
+			ftPanel.classList.toggle('fp-v-minimized', colW < L.MIN_PANEL_W);
+		}
+		if (infoPanel && infoShown) {
+			infoPanel.style.left   = colLeft + 'px';
+			infoPanel.style.top    = ipTop + 'px';
+			infoPanel.style.width  = colW + 'px';
+			infoPanel.style.height = ipH + 'px';
+		}
+
+		var ctrlPanel = document.getElementById('dy-controls-panel');
+		if (ctrlPanel) {
+			ctrlPanel.style.top    = mapTop + 'px';
+			ctrlPanel.style.height = sz.h + 'px';
+			var dialog = ctrlPanel.querySelector('#layer_dialog');
+			if (dialog) dialog.style.height = sz.h + 'px';
+		}
+
+		var toolbar = document.getElementById('dy-toolbar');
+		if (toolbar) {
+			toolbar.style.left  = '0px';
+			toolbar.style.top   = (mapBottom + L.TOOLBAR_GAP) + 'px';
+			toolbar.style.width = sz.w + 'px';
+		}
+
+		var aggPanel = document.getElementById('dy-agg-panel');
+		var aggTop   = mapBottom + L.AGG_GAP;
+		if (aggPanel) {
+			aggPanel.style.left  = '0px';
+			aggPanel.style.top   = aggTop + 'px';
+			aggPanel.style.width = (L.CONTENT_W - L.EDGE_GAP) + 'px';
+			aggPanel.classList.toggle('dy-agg-minimized', _mapSizeIdx === 2);
+		}
+
+		var titleBar = document.getElementById('dy-title-bar');
+		if (titleBar) titleBar.style.top = (mapBottom - L.TITLE_INSET) + 'px';
+
+		// Absolute children can't stretch #content_2, so grow it to fit the tallest panel.
+		var c2 = document.getElementById('content_2');
+		if (c2) {
+			var aggShown  = aggPanel && getComputedStyle(aggPanel).display !== 'none';
+			var contentH  = aggShown ? aggTop + aggPanel.offsetHeight : mapBottom;
+			c2.style.minHeight = Math.max(contentH + 20, 960) + 'px';
+		}
+	}
+
 	// Scroll el into view within its own scrollable container, never the outer page.
 	function scrollToEl(container, el) {
 		var top = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
@@ -2198,6 +2297,7 @@
 	var _panelResets = {};
 	function _resetAllPanels() {
 		Object.keys(_panelResets).forEach(function(k) { _panelResets[k](); });
+		layoutPanels();
 	}
 
 	// _posAnnotPanel kept as no-op guard (no longer called, safe to remove later)
@@ -2355,6 +2455,8 @@
 			// Annotation panel starts hidden — only shown on explicit event click
 			clearReadingAnnotation();
 		}
+
+		layoutPanels();
 	}
 
 	// ── Character filter change handler (works in both map and map-text modes) ──
@@ -2413,7 +2515,7 @@
 				fp.style.height    = _savedFpH + 'px';
 				btn.innerHTML = '&#8863;'; // ⊟ minimize
 				setTimeout(function() {
-					if (!_slid) { ip.style.height = ''; fp.style.height = ''; ip.style.transform = ''; }
+					if (!_slid) { ip.style.transform = ''; layoutPanels(); }
 				}, 300);
 			}
 		});
@@ -2458,7 +2560,7 @@
 					fp.classList.remove('fp-v-minimized');
 					fp.style.width = '460px';
 					btn.innerHTML = '&#8863;'; // ⊟ minimize
-					setTimeout(function() { if (!_collapsed) fp.style.width = ''; }, 300);
+					setTimeout(function() { if (!_collapsed) layoutPanels(); }, 300);
 				}
 			} else {
 				// ── Map+Text: collapse fp to header height, expand ip stacked ──
@@ -2494,7 +2596,7 @@
 					ip.style.height = _savedIpH + 'px';
 					btn.innerHTML = '&#8863;'; // ⊟ minimize
 					setTimeout(function() {
-						if (!_collapsed) { fp.style.height = ''; ip.style.top = ''; ip.style.height = ''; }
+						if (!_collapsed) layoutPanels();
 					}, 300);
 				}
 			}
@@ -3592,12 +3694,6 @@
 		})();
 
 		// ── Map canvas resize (S / M / L) ──────────────────────────
-		var _mapSizes = [
-			{ w: 800,  h: 500 },
-			{ w: 1000, h: 625 },
-			{ w: 1200, h: 750 }
-		];
-		var _mapSizeIdx = 0;
 		function resizeMapCanvas(idx) {
 			_mapSizeIdx = idx;
 			var sz = _mapSizes[idx];
@@ -3629,57 +3725,7 @@
 			heatLayer.draw();
 			drawSpatialHeatmap();
 
-			// Update dependent layout elements using container offset
-			var containerTop = document.getElementById('container').offsetTop;
-			var ctrlPanel = document.getElementById('dy-controls-panel');
-			var dialog    = ctrlPanel && ctrlPanel.querySelector('#layer_dialog');
-			if (ctrlPanel) ctrlPanel.style.height = sz.h + 'px';
-			if (dialog)    dialog.style.height    = sz.h + 'px';
-			
-			// Update toolbar
-			var toolbar = document.getElementById('dy-toolbar');
-			if (toolbar) { 
-				toolbar.style.top = (containerTop + sz.h + 33) + 'px'; 
-				toolbar.style.width = sz.w + 'px'; 
-			}
-			
-			// Reposition and resize panels relative to new map width
-			var mapRight = sz.w + 10;  // 10px gap between map and fulltext panel
-			var viewportRightGap = 10;  // 10px gap between panel and viewport right edge
-			var ftPanelWidth = (1300 - viewportRightGap) - mapRight;  // fulltext shrinks as map grows
-			var ftPanel = document.getElementById('fulltext-panel');
-			if (ftPanel) {
-				ftPanel.style.left = mapRight + 'px';
-				ftPanel.style.width = Math.max(ftPanelWidth, 0) + 'px';  // never go negative
-				
-				// Apply minimized mode based on map size
-				// idx 0 (S, 800px): normal
-				// idx 1 (M, 1000px): minimized ft-panel
-				// idx 2 (L, 1200px): minimized ft-panel
-				if (idx >= 1) {
-					ftPanel.classList.add('fp-v-minimized');
-				} else {
-					ftPanel.classList.remove('fp-v-minimized');
-				}
-			}
-			
-			// Aggregation panel: applies minimized class when map is L (idx 2)
-			var aggPanel = document.getElementById('dy-agg-panel');
-			if (aggPanel) { 
-				aggPanel.style.width = '1300px';
-				aggPanel.style.top = (containerTop + sz.h + 95) + 'px';
-				
-				// Minimize agg panel body when map is large (idx 2)
-				if (idx === 2) {
-					aggPanel.classList.add('dy-agg-minimized');
-				} else {
-					aggPanel.classList.remove('dy-agg-minimized');
-				}
-			}
-			
-			// dy-title-bar: position 40px from bottom of canvas
-			var titleBar = document.getElementById('dy-title-bar');
-			if (titleBar) titleBar.style.top = (containerTop + sz.h - 60) + 'px';
+			layoutPanels();
 
 			// Sync button active state
 			document.querySelectorAll('.dy-map-size-btn').forEach(function(btn, i) {

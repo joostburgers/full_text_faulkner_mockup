@@ -103,14 +103,12 @@
 	}
 
 	/* ── Full-text panel (right col, top) ─────────────────────── */
+	/* Position and size are set by layoutPanels() in dy-mockup.js */
 	#fulltext-panel {
 		position: absolute;
-		left: 810px;
-		top: 24px;
-		width: 460px;
-		height: 560px;
 		background: #fff;
 		border: 1px solid #ccc;
+		box-sizing: border-box;
 		overflow-y: auto;
 		overflow-x: hidden;
 		font-family: Georgia, 'Times New Roman', serif;
@@ -503,13 +501,12 @@
 	.agg-type-count { flex-shrink: 0; color: #999; font-size: 0.77rem; }
 
 	/* ── Info panel (right col, below text panel) ─────────────── */
+	/* Position and size are set by layoutPanels() in dy-mockup.js */
 	#info-panel {
 		position: absolute;
-		left: 810px;
-		top: 593px;
-		width: 460px;
 		background: #fff;
 		border: 1px solid #ccc;
+		box-sizing: border-box;
 		font-family: Georgia, 'Times New Roman', serif;
 		font-size: 0.9rem;
 		line-height: 1.25;
@@ -897,8 +894,6 @@
 	/* ── Fulltext panel: flex so header stays fixed ───────────────── */
 	#fulltext-panel {
 		overflow: hidden;
-		display: flex;
-		flexDirection: column;
 		flex-direction: column;
 	}
 	#ft-panel-header {
@@ -1993,7 +1988,7 @@
 			margin-bottom: 1.75rem;
 		}
 
-		div.intro_text p,
+		div.intro_text p
 		{
 			font-family: Georgia, "Times New Roman", Times, serif;
 			font-size: 1rem;

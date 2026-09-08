@@ -2455,6 +2455,27 @@
 		if (m.tempOpts.length) _fire(m.tempOpts[0], 'change');
 		m.narrOpts.forEach(function(el) { _fire(el, 'change'); });
 		[m.events, m.narrative, m.ns, m.temp].forEach(function(el) { _fire(el, 'change'); });
+
+		// The rebuild only runs while a layer is active, so a layer switched on
+		// purely for printing would otherwise leave its rules behind on screen.
+		var hl = document.getElementById('ft-highlight-view');
+		var anyChecked = function(list) {
+			return Array.prototype.some.call(list, function(el) { return el.checked; });
+		};
+		if (!anyChecked(m.nsOpts)) {
+			var nsStyle = document.getElementById('ft-ns-style');
+			if (nsStyle) nsStyle.textContent = '';
+			if (hl) hl.classList.remove('ft-ns-mode');
+		}
+		if (!anyChecked(m.tempOpts)) {
+			var tempStyle = document.getElementById('ft-temp-style');
+			if (tempStyle) tempStyle.textContent = '';
+			if (hl) hl.classList.remove('ft-temp-mode');
+		}
+		if (hl && !anyChecked(m.narrOpts)) {
+			hl.classList.remove('ft-show-flashforward', 'ft-show-flashback', 'ft-show-linear');
+		}
+		if (hl && m.events && !m.events.checked) hl.classList.remove('ft-show-pipes');
 	}
 
 	// Turn a layer on wholesale: if the reader has not picked sub-options, select
@@ -2685,6 +2706,7 @@
 		if (!hdr) return;
 		var titleEl = document.querySelector('#dy-title-bar .dy-title-story');
 		var edEl    = document.querySelector('#dy-title-bar .dy-title-names');
+		var asEl    = document.querySelector('#dy-title-bar .dy-title-assoc');
 		var active  = activeAnnotationLabels(want);
 
 		var appx = [];
@@ -2694,11 +2716,24 @@
 		if (want && want.keywords)   appx.push('Keywords');
 
 		var bits = [];
+		bits.push('<div class="ft-print-brand">Digital Yoknapatawpha \u00b7 Annotated Texts</div>');
 		bits.push('<div class="ft-print-title">' + esc(titleEl ? titleEl.textContent : '') + '</div>');
-		if (edEl && edEl.textContent) {
-			bits.push('<div class="ft-print-meta">Edited by ' + esc(edEl.textContent) + '</div>');
+
+		// Publication details, reused from the About Text panel.
+		document.querySelectorAll('#ft-about-view .ft-pub-row').forEach(function(row) {
+			var txt = row.textContent.replace(/\s+/g, ' ').trim();
+			if (!txt || /manuscript/i.test(txt) || /not reconciled/i.test(txt)) return;
+			bits.push('<div class="ft-print-pub">' + esc(txt) + '</div>');
+		});
+
+		if (edEl && edEl.textContent.trim()) {
+			bits.push('<div class="ft-print-pub">Editors: ' + esc(edEl.textContent.trim()) + '</div>');
 		}
-		bits.push('<div class="ft-print-meta">Digital Yoknapatawpha \u00b7 complete text \u00b7 ' +
+		if (asEl && asEl.textContent.trim() && !/not reconciled/i.test(asEl.textContent)) {
+			bits.push('<div class="ft-print-pub">Associate editors: ' + esc(asEl.textContent.trim()) + '</div>');
+		}
+
+		bits.push('<div class="ft-print-meta">Complete text \u00b7 printed ' +
 			new Date().toLocaleDateString() + '</div>');
 		bits.push('<div class="ft-print-meta">Markup: ' +
 			(active.length ? esc(active.join(', ')) : 'none') + '</div>');

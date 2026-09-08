@@ -2192,6 +2192,20 @@
 		}
 		#ft-print-doc #ft-highlight-view .ft-hl-section { display: block !important; }
 		#ft-print-doc #ft-highlight-view .ft-hl-span    { display: inline !important; visibility: visible !important; }
+
+		/* Spans are clickable on screen; drop the affordances but keep the
+		   deliberate markup (colour, borders, temporality background images). */
+		#ft-print-doc #ft-highlight-view .ft-hl-span {
+			cursor: auto !important;
+			background-color: transparent !important;
+			border-radius: 0 !important;
+			box-shadow: none !important;
+			opacity: 1 !important;
+		}
+		#ft-print-doc #ft-highlight-view a {
+			color: inherit !important;
+			text-decoration: none !important;
+		}
 		#ft-print-doc #ft-highlight-view p {
 			display: block !important;
 			orphans: 2;
@@ -2206,13 +2220,24 @@
 
 		#ft-print-header {
 			display: block !important;
-			margin-bottom: 14pt;
-			padding-bottom: 8pt;
-			border-bottom: 1px solid #999;
+			margin-bottom: 16pt;
+			padding-bottom: 9pt;
+			border-bottom: 2px solid #333;
 			font-family: Georgia, 'Times New Roman', serif;
 		}
-		.ft-print-title { font-size: 15pt; font-weight: bold; }
-		.ft-print-meta  { font-size: 9pt; color: #444; margin-top: 2pt; }
+		.ft-print-brand {
+			font-family: Trebuchet MS, Tahoma, sans-serif;
+			font-size: 8pt;
+			font-weight: bold;
+			letter-spacing: 0.14em;
+			text-transform: uppercase;
+			color: #666;
+			margin-bottom: 6pt;
+		}
+		.ft-print-title { font-size: 17pt; font-weight: bold; margin-bottom: 5pt; }
+		.ft-print-pub   { font-size: 9.5pt; color: #333; margin-top: 1pt; }
+		.ft-print-meta  { font-size: 8.5pt; color: #666; margin-top: 1pt; }
+		.ft-print-meta:first-of-type { margin-top: 6pt; }
 
 		/* Always print the complete text, whatever the on-screen reading mode. */
 		#ft-print-overlay { display: none !important; }

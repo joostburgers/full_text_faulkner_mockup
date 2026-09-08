@@ -805,8 +805,8 @@
 	// ── Demographic overview ──────────────────────────────────────
 	// Most characters have no recorded home, so the Home view drops them all on
 	// the town centre and says nothing about the cast. This lays every character
-	// out in rows by race / class / gender / individual-or-group, largest group
-	// first, and fits the whole grid to the stage.
+	// out in rows by race / gender / individual-or-group, largest group first,
+	// and fits the whole grid to the stage.
 	var DEMO = {
 		x0: 140, y0: 150,   // grid origin in map image coordinates
 		icon: 60,
@@ -814,7 +814,10 @@
 		rowIcons: 22,       // icons per line before wrapping
 		labelFs: 46,
 		labelGap: 14,
-		rowPad: 38
+		rowPad: 38,
+		padLeft: 175,       // screen px; clears the controls panel overlay
+		padRight: 24,
+		padTop: 20
 	};
 	var _demoPrevView = null;
 
@@ -866,8 +869,9 @@
 			var ch = current_characters[name];
 			if (!ch || !ch.image) return;
 			var rec = byName[name] || {};
-			var key = [rec.race || 'Unspecified', rec['class'] || 'Unspecified',
-			           rec.gender || 'Unspecified', rec.individual_group || 'Individual'].join(' \u00b7 ');
+			var key = [rec.race || 'Unspecified',
+			           rec.gender || 'Unspecified',
+			           rec.individual_group || 'Individual'].join(' \u00b7 ');
 			(groups[key] = groups[key] || []).push(name);
 		});
 
@@ -902,12 +906,14 @@
 		// Fit the grid to the stage.
 		var gridW = Math.max(maxX - DEMO.x0, 1);
 		var gridH = Math.max(y - DEMO.y0, 1);
-		var padX = 24, padY = 20;
-		var scale = Math.min((stage.width() - padX * 2) / gridW,
-		                     (stage.height() - padY * 2) / gridH);
+		var scale = Math.min((stage.width() - DEMO.padLeft - DEMO.padRight) / gridW,
+		                     (stage.height() - DEMO.padTop * 2) / gridH);
 		if (!isFinite(scale) || scale <= 0) scale = 0.3;
 		contentLayer.scale({ x: scale, y: scale });
-		contentLayer.position({ x: padX - DEMO.x0 * scale, y: padY - DEMO.y0 * scale });
+		contentLayer.position({
+			x: DEMO.padLeft - DEMO.x0 * scale,
+			y: DEMO.padTop - DEMO.y0 * scale
+		});
 		contentLayer.draw();
 	}
 

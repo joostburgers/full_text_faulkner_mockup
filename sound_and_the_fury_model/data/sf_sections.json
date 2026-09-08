@@ -1,0 +1,32 @@
+{
+  "results": [
+    {
+      "text_code": "SF",
+      "display_title": "April Seventh, 1928",
+      "start": "3",
+      "stop": "75",
+      "tooltip_title": ""
+    },
+    {
+      "text_code": "SF",
+      "display_title": "June Second, 1910",
+      "start": "76",
+      "stop": "179",
+      "tooltip_title": ""
+    },
+    {
+      "text_code": "SF",
+      "display_title": "April Sixth, 1928",
+      "start": "180",
+      "stop": "264",
+      "tooltip_title": ""
+    },
+    {
+      "text_code": "SF",
+      "display_title": "April Eighth, 1928",
+      "start": "265",
+      "stop": "321",
+      "tooltip_title": ""
+    }
+  ]
+}

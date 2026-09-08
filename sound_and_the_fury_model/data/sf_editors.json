@@ -1,0 +1,40 @@
+{
+  "results": [
+    {
+      "text_code": "SF",
+      "display_name": "Sarah Perkins",
+      "sort_name": "Perkins, Sarah",
+      "about": "<p>Sarah Perkins is a doctoral candidate in English at Stanford University. Currently a Mellon fellow at the Stanford Humanities Center and a former fellow at the Center for Comparative Studies in Race and Ethnicity (CCSRE), she specializes in late nineteenth and early twentieth century American literature. Her dissertation, <em>Dixie Bound: An American Mystery</em>, explores the cultural history of the song, \"I Wish I Was In Dixie.\"</p>"
+    },
+    {
+      "text_code": "SF",
+      "display_name": "Julie Napolin",
+      "sort_name": "Napolin, Julie",
+      "about": "<p>Julie Beth Napolin is Associate Professor of Digital Humanities at The New School. In 2013-2014 she was an Associate Director of Digital Yoknapatawpha. Her book, <em>The Fact of Resonance: Modernist Acoustics and Narrative Form</em> (Fordham UP 2020), reads the work of Faulkner within the soundscape of global modernism and was shortlisted for the 2021 Memory Studies Association First Book Award. She is the Co-President of the William Faulkner Society and President of the New School chapter of the AAUP. She's published work on Faulkner in <em>Symploke</em>, <em>Fifty Years After Faulkner</em>, <em>Faulkner and the Family</em>, and <em>Faulkner and Slavery</em>. She is the producer of an oral history of Henry Street Settlement in the time of Covid-19, acquired by the NYPL in 2022.</p>"
+    },
+    {
+      "text_code": "SF",
+      "display_name": "Ren Denton",
+      "sort_name": "Denton, Ren",
+      "about": "<p>Ren Denton holds a Ph.D. in Literary and Cultural Studies and an M.F.A. in Creative Writing and is an Associate Professor of English at East Georgia State College, where she teaches American and African American Literature. Her publications include articles on Faulkner in <em>Critical Insights: The Sound and the Fury</em> edited by Taylor Hagood, <em>Faulkner Conference Series: Faulkner and Hurston</em> edited by Christopher Rieger and Andrew B. Leiter, and <em>Digitizing Faulkner: Yoknapatawpha in the Twenty-First Century</em> edited by Theresa M. Towner. She has also presented her teaching experience with Digital Yoknapatawpha at the Faulkner and Yoknapatawpha Conference. She has created and co-created with Victoria Bryan several Digital Yoknapatawpha worksheets for the classroom.</p>"
+    },
+    {
+      "text_code": "SF",
+      "display_name": "Robert Coleman",
+      "sort_name": "Coleman, Robert",
+      "about": "<p>Robert Coleman is Assistant Dean of the College of Arts & Sciences at the University of South Alabama and the editor of <em>Studies in American Culture</em>.</p>"
+    },
+    {
+      "text_code": "SF",
+      "display_name": "Taylor Hagood",
+      "sort_name": "Hagood, Taylor",
+      "about": "<p>Taylor Hagood is Professor of American literature at Florida Atlantic University. His publications include <em>Faulkner's Imperialism: Space, Place, and the Materiality of Myth</em>; <em>Following Faulkner: The Critical Response to Yoknapatawpha's Architect</em>; and <em>Faulkner, Writer of Disability</em>, winner of the C. Hugh Holman Award for Best Book in Southern Studies. He has published articles on Faulkner and served as President of the William Faulkner Society (2018-2021).</p>"
+    },
+    {
+      "text_code": "SF",
+      "display_name": "Johannes H. Burgers",
+      "sort_name": "Burgers, Johannes H.",
+      "about": "<p>Johannes Burgers is an Associate Professor of English and Digital Humanities at James Madison University in Virginia and the Co-Director of Digital Yoknapatawpha. Together with Chris Rieger, he directed Teaching and Learning Faulkner in the Digital Age, an NEH grant-funded project to add new learning modules to the site's teaching and learning section. He works on advanced data visualizations of DY's data, and has published in venues such as <em>Mississippi Quarterly</em>, <em>Cultural Analytics</em>, and <em>Digital Humanities Quarterly</em>.</p>"
+    }
+  ]
+}

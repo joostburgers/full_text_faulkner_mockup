@@ -2177,25 +2177,46 @@
 			display: none !important;
 		}
 
-		/* Reading column fills the page */
-		#ft-layout, #fulltext-panel {
+		/* Reading column fills the page.
+		   These must out-specify "#ft-layout #ft-highlight-view { height: 0 }",
+		   which otherwise collapses the column to a single scrolling line. */
+		#ft-layout {
+			position: static !important;
+			top: auto !important; left: auto !important;
+			right: auto !important; bottom: auto !important;
+			display: block !important;
+			width: auto !important;
+			height: auto !important;
+			overflow: visible !important;
+			background: none !important;
+			box-shadow: none !important;
+			z-index: auto !important;
+		}
+		#ft-layout #fulltext-panel,
+		#fulltext-panel {
 			position: static !important;
 			display: block !important;
+			flex: none !important;
 			width: auto !important;
 			max-width: none !important;
 			height: auto !important;
 			min-height: 0 !important;
+			max-height: none !important;
 			margin: 0 !important;
 			padding: 0 !important;
 			border: none !important;
 			overflow: visible !important;
 			box-shadow: none !important;
 		}
+		#ft-layout #ft-highlight-view,
+		#ft-layout #ft-highlight-view.ft-page-mode,
 		#ft-highlight-view {
 			display: block !important;
 			position: static !important;
+			flex: none !important;
 			width: auto !important;
 			height: auto !important;
+			min-height: 0 !important;
 			max-height: none !important;
 			overflow: visible !important;
 			padding: 0 !important;
@@ -2204,7 +2225,7 @@
 			line-height: 1.55;
 			column-count: 1 !important;
 		}
-		#ft-highlight-view p { orphans: 2; widows: 2; }
+		#ft-highlight-view p { orphans: 2; widows: 2; break-inside: auto; }
 		.ft-section-num {
 			break-before: page;
 			page-break-before: always;
@@ -2224,15 +2245,9 @@
 
 		/* Always print the complete text, whatever the on-screen reading mode. */
 		#ft-print-overlay { display: none !important; }
-		.ft-hl-section,
-		#ft-highlight-view .ft-hl-span,
-		#ft-highlight-view p { display: revert !important; visibility: visible !important; }
-		#ft-highlight-view.ft-page-mode,
-		#ft-layout #ft-highlight-view.ft-page-mode {
-			overflow: visible !important;
-			height: auto !important;
-			max-height: none !important;
-		}
+		#ft-highlight-view .ft-hl-section { display: block !important; }
+		#ft-highlight-view .ft-hl-span    { display: inline !important; visibility: visible !important; }
+		#ft-highlight-view p              { display: block !important; }
 
 		/* Appendices */
 		#ft-print-appendix {

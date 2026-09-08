@@ -2603,6 +2603,10 @@
 			};
 			close();
 
+			// Section and page modes clip the column; print always shows everything.
+			var prevMode = _ftReadMode;
+			if (prevMode !== 'scroll') _setFtReadMode('scroll');
+
 			var snap = _snapshotMarkup();
 			_applyMarkupChoice(want);
 			buildPrintAppendix({
@@ -2613,16 +2617,20 @@
 			});
 			buildPrintHeader(want);
 
+			var restored = false;
 			var restore = function() {
+				if (restored) return;
+				restored = true;
 				_restoreMarkup(snap);
+				if (prevMode !== 'scroll') _setFtReadMode(prevMode);
 				var box = document.getElementById('ft-print-appendix');
 				if (box) box.innerHTML = '';
 				window.removeEventListener('afterprint', restore);
 			};
 			window.addEventListener('afterprint', restore);
 			window.print();
-			// Safari and some PDF drivers never fire afterprint.
-			setTimeout(function() { if (!overlay.hidden) return; restore(); }, 3000);
+			// Some PDF drivers never fire afterprint.
+			setTimeout(restore, 3000);
 		});
 	}
 

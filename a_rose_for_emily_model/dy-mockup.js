@@ -814,6 +814,7 @@
 		padTop: 18,
 		padBottom: 14,
 		icon: 60,       // nominal icon size, in map image units
+		targetIconPx: 20, // preferred on-screen size of a Secondary icon
 		colGap: 14,
 		rowIcons: 22,
 		labelFs: 46,
@@ -916,6 +917,10 @@
 
 		var k = Math.min(vw / nomW, vh / nomH);
 		if (!isFinite(k) || k <= 0) k = 1;
+		// Fitting alone lets a small cast stretch to fill the canvas, so hold a
+		// steady on-screen icon size and only shrink when the grid needs it.
+		var kTarget = (DEMO.targetIconPx / s) / DEMO.icon;
+		if (isFinite(kTarget) && kTarget > 0) k = Math.min(k, kTarget);
 
 		var cellW = DEMO.icon * k;
 		var bandH = DEMO.icon * DEMO_MAX_RANK * k;

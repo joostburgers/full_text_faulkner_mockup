@@ -397,7 +397,7 @@ var search_end_page = null;
 							if (v['display_name']) _assocNames.push(v['display_name']);
 						});
 					}
-					_assocEl.textContent = _assocNames.join(', ') || '';
+					_assocEl.textContent = _assocNames.join(', ') || 'Data not reconciled yet';
 					_assocEl.closest('.dy-title-row').style.display = _assocNames.length ? '' : 'none';
 				}
 
@@ -463,7 +463,7 @@ var search_end_page = null;
 					if (_t['page_start'] && _t['page_stop']) {
 						_pubHdr += '<span class="ft-pub-row"><span class="ft-pub-label">Pages: </span>' + _t['page_start'] + '&#x2013;' + _t['page_stop'] + '</span>';
 					}
-					_pubHdr += '<span class="ft-pub-row"><span class="ft-pub-label">Manuscript images: </span><a href="https://faulkner.drupal.shanti.virginia.edu/node/7862?canvas" target="_blank" rel="noopener">View manuscript images at Digital Yoknapatawpha</a></span>';
+					_pubHdr += '<span class="ft-pub-row"><span class="ft-pub-label">Manuscript images: </span><em class="ft-unreconciled">Data not reconciled yet</em></span>';
 					_pubHdr += '</div>';
 
 					// Build citation block
@@ -554,7 +554,7 @@ var search_end_page = null;
 								});
 								html += '<div class="ft-res-section">';
 								html += '<h4 class="ft-res-heading">Teaching</h4>';
-								html += '<ul class="ft-res-list">' + (teachItems || '<li class="ft-res-empty">No lessons available</li>') + '</ul>';
+								html += '<ul class="ft-res-list">' + (teachItems || '<li class="ft-res-empty">Data not reconciled yet</li>') + '</ul>';
 								html += '</div>';
 
 								// ── Archive ───────────────────────────────
@@ -570,7 +570,7 @@ var search_end_page = null;
 								}
 								html += '<div class="ft-res-section">';
 								html += '<h4 class="ft-res-heading">Archive</h4>';
-								html += '<ul class="ft-res-list">' + (archiveItems || '<li class="ft-res-empty">No archive resources</li>') + '</ul>';
+								html += '<ul class="ft-res-list">' + (archiveItems || '<li class="ft-res-empty">Data not reconciled yet</li>') + '</ul>';
 								html += '</div>';
 
 								// ── Visualizations ────────────────────────

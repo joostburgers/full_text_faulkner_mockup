@@ -3585,79 +3585,12 @@
 			// Current story code from URL ?text=XX
 			var params = new URLSearchParams(window.location.search);
 			var currentCode = (params.get('text') || DY_TEXT.code).toUpperCase();
-			// Full DY catalog in display order
+			// Only the texts that exist as local mockups.
 			var catalog = [
-				// Novels
-				{code:'FD', label:'Flags in the Dust', type:'novel'},
-				{code:'SF', label:'The Sound and the Fury', type:'novel'},
-				{code:'LD', label:'As I Lay Dying', type:'novel'},
-				{code:'SY', label:'Sanctuary', type:'novel'},
-				{code:'LA', label:'Light in August', type:'novel'},
-				{code:'AA', label:'Absalom, Absalom!', type:'novel'},
-				{code:'UV', label:'The Unvanquished', type:'novel'},
-				{code:'H',  label:'The Hamlet', type:'novel'},
-				{code:'GDM',label:'Go Down, Moses', type:'novel'},
-				{code:'ID', label:'Intruder in the Dust', type:'novel'},
-				{code:'RQ', label:'Requiem for a Nun', type:'novel'},
-				{code:'T',  label:'The Town', type:'novel'},
-				{code:'M',  label:'The Mansion', type:'novel'},
-				{code:'R',  label:'The Reivers', type:'novel'},
-				// Short fiction
-				{code:'RE',  label:'\u201cA Rose for Emily\u201d', type:'story'},
-				{code:'RL',  label:'\u201cRed Leaves\u201d', type:'story'},
-				{code:'DS',  label:'\u201cDry September\u201d', type:'story'},
-				{code:'TES', label:'\u201cThat Evening Sun\u201d', type:'story'},
-				{code:'AD',  label:'\u201cAd Astra\u201d', type:'story'},
-				{code:'HR',  label:'\u201cHair\u201d', type:'story'},
-				{code:'SH',  label:'\u201cSpotted Horses\u201d', type:'story'},
-				{code:'TH',  label:'\u201cThe Hound\u201d', type:'story'},
-				{code:'ADP', label:'\u201cAll the Dead Pilots\u201d', type:'story'},
-				{code:'J',   label:'\u201cA Justice\u201d', type:'story'},
-				{code:'DD',  label:'\u201cDeath Drag\u201d', type:'story'},
-				{code:'CB',  label:'\u201cCentaur in Brass\u201d', type:'story'},
-				{code:'LJC', label:'\u201cLizards in Jamshyd\u2019s Courtyard\u201d', type:'story'},
-				{code:'SMO', label:'\u201cSmoke\u201d', type:'story'},
-				{code:'MZG', label:'\u201cMiss Zilphia Gant\u201d', type:'story'},
-				{code:'TWQ', label:'\u201cThere Was a Queen\u201d', type:'story'},
-				{code:'BE',  label:'\u201cBeyond\u201d', type:'story'},
-				{code:'W',   label:'\u201cWash\u201d', type:'story'},
-				{code:'ELY', label:'\u201cElly\u201d', type:'story'},
-				{code:'ABH', label:'\u201cA Bear Hunt\u201d', type:'story'},
-				{code:'MY',  label:'\u201cMule in the Yard\u201d', type:'story'},
-				{code:'AMB', label:'\u201cAmbuscade\u201d', type:'story'},
-				{code:'RET', label:'\u201cRetreat\u201d', type:'story'},
-				{code:'RAI', label:'\u201cRaid\u201d', type:'story'},
-				{code:'SAS', label:'\u201cSkirmish at Sartoris\u201d', type:'story'},
-				{code:'TWB', label:'\u201cThat Will Be Fine\u201d', type:'story'},
-				{code:'UW',  label:'\u201cUncle Willy\u201d', type:'story'},
-				{code:'LIO', label:'\u201cLion\u201d', type:'story'},
-				{code:'FAH', label:'\u201cFool About a Horse\u201d', type:'story'},
-				{code:'UNV', label:'\u201cThe Unvanquished\u201d', type:'story'},
-				{code:'VEN', label:'\u201cVendee\u201d', type:'story'},
-				{code:'MNK', label:'\u201cMonk\u201d', type:'story'},
-				{code:'BB',  label:'\u201cBarn Burning\u201d', type:'story'},
-				{code:'HUW', label:'\u201cHand Upon the Waters\u201d', type:'story'},
-				{code:'POL', label:'\u201cA Point of Law\u201d', type:'story'},
-				{code:'OLD', label:'\u201cThe Old People\u201d', type:'story'},
-				{code:'PAN', label:'\u201cPantaloon in Black\u201d', type:'story'},
-				{code:'GOL', label:'\u201cGold Is Not Always\u201d', type:'story'},
-				{code:'TO',  label:'\u201cTomorrow\u201d', type:'story'},
-				{code:'GOD', label:'\u201cGo Down, Moses\u201d', type:'story'},
-				{code:'TM',  label:'\u201cThe Tall Men\u201d', type:'story'},
-				{code:'TWS', label:'\u201cTwo Soldiers\u201d', type:'story'},
-				{code:'DEL', label:'\u201cDelta Autumn\u201d', type:'story'},
-				{code:'BAR', label:'\u201cThe Bear\u201d', type:'story'},
-				{code:'SL',  label:'\u201cShingles for the Lord\u201d', type:'story'},
-				{code:'MGM', label:'\u201cMy Grandmother Millard\u2026\u201d', type:'story'},
-				{code:'SNP', label:'\u201cShall Not Perish\u201d', type:'story'},
-				{code:'AC',  label:'\u201cAppendix: Compson\u201d', type:'story'},
-				{code:'EIC', label:'\u201cAn Error in Chemistry\u201d', type:'story'},
-				{code:'CRT', label:'\u201cA Courtship\u201d', type:'story'},
-				{code:'KGB', label:'\u201cKnight\u2019s Gambit\u201d', type:'story'},
-				{code:'NC',  label:'\u201cA Name for the City\u201d', type:'story'},
-				{code:'RAM', label:'\u201cRace at Morning\u201d', type:'story'},
-				{code:'BP',  label:'\u201cBy the People\u201d', type:'story'},
-				{code:'WCD', label:'\u201cWith Caution and Dispatch\u201d', type:'story'}
+				{code:'SF', label:'The Sound and the Fury', type:'novel',
+				 href:'../sound_and_the_fury_model/DIGITAL Yoknapatawpha.html?text=SF'},
+				{code:'RE', label:'\u201cA Rose for Emily\u201d', type:'story',
+				 href:'../a_rose_for_emily_model/DIGITAL Yoknapatawpha.html?text=RE'}
 			];
 			// Group headers
 			var novelGroup = document.createElement('optgroup');
@@ -3679,8 +3612,8 @@
 			sel.addEventListener('change', function() {
 				var code = sel.value;
 				if (code === currentCode) return;
-				// Navigate to live DY for other stories; stay on mockup for current
-				window.location.href = 'https://faulkner.iath.virginia.edu/?text=' + encodeURIComponent(code);
+				var item = catalog.filter(function(c) { return c.code === code; })[0];
+				if (item) window.location.href = item.href;
 			});
 		})();
 		var _origShowChars = typeof window.show_characters === 'function' ? window.show_characters : null;

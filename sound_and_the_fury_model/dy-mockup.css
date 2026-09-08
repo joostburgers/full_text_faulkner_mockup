@@ -861,6 +861,13 @@
 		margin-top: auto;
 	}
 
+	/* Placeholder where mockup data has not been reconciled with DY yet */
+	.ft-unreconciled,
+	.ft-res-empty {
+		color: #a08a5a;
+		font-style: italic;
+	}
+
 	/* ── Other Resources view inside right panel ──────────────────── */
 	#ft-other-resources {
 		display: none;

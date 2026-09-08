@@ -2557,10 +2557,11 @@ close_all_menu_items();
 			<span class="dy-ctrl-maptext-only"><hr class="dy-rank-separator"><label title="Toggle location name labels on the map"><input type="checkbox" id="dy-loc-labels-toggle" checked> Labels</label><br></span>
 			<strong title="Control which characters are displayed on the map">Characters</strong><br>
 			<span class="dy-ctrl-overview-only">
+				<input type="radio" id="characters-demographics" name="characters" onclick="onCharFilterChange();" checked="" title="Group every character by race, class, gender and individual or group">Demographics<br>
 				<input type="radio" id="characters-all" name="characters" onclick="onCharFilterChange();" title="Show all characters across Yoknapatawpha">All<br>
 				<input type="radio" id="characters-major" name="characters" onclick="onCharFilterChange();" title="Show only major characters">Major<br>
 				<input type="radio" id="characters-major-regular" name="characters" onclick="onCharFilterChange();" title="Show major and secondary characters">Major &amp; Secondary<br>
-				<input type="radio" id="characters-home" name="characters" onclick="show_characters_home();contentLayer.draw();" checked="" title="Show characters associated with their home location">Home<br>
+				<input type="radio" id="characters-home" name="characters" onclick="restoreViewFromDemographics();show_characters_home();contentLayer.draw();" title="Show characters associated with their home location">Home<br>
 				<div id="results-checkbox"></div>
 				<input type="radio" id="characters-none" name="characters" onclick="onCharFilterChange();" title="Hide all characters">None<br>
 				<input type="checkbox" id="show_character_list" title="Open an alphabetical list of characters to filter the map">Alphabetic List<br>

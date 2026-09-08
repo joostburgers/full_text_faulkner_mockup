@@ -802,6 +802,128 @@
 		dyKonvaOverlays = [];
 	}
 
+	// ── Demographic overview ──────────────────────────────────────
+	// Most characters have no recorded home, so the Home view drops them all on
+	// the town centre and says nothing about the cast. This lays every character
+	// out in rows by race / class / gender / individual-or-group, largest group
+	// first, and fits the whole grid to the stage.
+	var DEMO = {
+		x0: 140, y0: 150,   // grid origin in map image coordinates
+		icon: 60,
+		colGap: 14,
+		rowIcons: 22,       // icons per line before wrapping
+		labelFs: 46,
+		labelGap: 14,
+		rowPad: 38
+	};
+	var _demoPrevView = null;
+
+	function _demoLabel(text, x, y) {
+		var t = new Konva.Text({
+			x: x, y: y, text: text,
+			fontSize: DEMO.labelFs,
+			fontFamily: 'Calibri, Tahoma, sans-serif',
+			fontStyle: 'bold',
+			fill: '#3a3a3a'
+		});
+		contentLayer.add(t);
+		dyKonvaOverlays.push(t);
+		return t;
+	}
+
+	function _charRecordsByName() {
+		var byName = {};
+		Object.keys(charById).forEach(function(id) {
+			var c = charById[id];
+			if (c && c.name) byName[c.name] = c;
+		});
+		return byName;
+	}
+
+	function drawDemographicCharacters() {
+		if (typeof current_characters === 'undefined' || typeof contentLayer === 'undefined') return;
+		clearKonvaOverlays();
+
+		// Remember the view so the other character filters can restore it.
+		if (!_demoPrevView) {
+			_demoPrevView = { scale: contentLayer.scaleX(), x: contentLayer.x(), y: contentLayer.y() };
+		}
+
+		// Fade the map: this reads as a chart, not as geography.
+		if (typeof current_locations !== 'undefined') {
+			$.each(current_locations, function(title, img) {
+				if (img && typeof img.setOpacity === 'function') {
+					img.setOpacity(0.10);
+					if (typeof img.show === 'function') img.show();
+				}
+			});
+		}
+		$.each(current_characters, function(n, ch) { if (ch && ch.image) ch.image.hide(); });
+
+		var byName = _charRecordsByName();
+		var groups = {};
+		Object.keys(current_characters).forEach(function(name) {
+			var ch = current_characters[name];
+			if (!ch || !ch.image) return;
+			var rec = byName[name] || {};
+			var key = [rec.race || 'Unspecified', rec['class'] || 'Unspecified',
+			           rec.gender || 'Unspecified', rec.individual_group || 'Individual'].join(' \u00b7 ');
+			(groups[key] = groups[key] || []).push(name);
+		});
+
+		var keys = Object.keys(groups).sort(function(a, b) {
+			return (groups[b].length - groups[a].length) || a.localeCompare(b);
+		});
+
+		var step = DEMO.icon + DEMO.colGap;
+		var y = DEMO.y0, maxX = DEMO.x0;
+
+		keys.forEach(function(key) {
+			var names = groups[key].slice().sort();
+			_demoLabel(key + '  (' + names.length + ')', DEMO.x0, y);
+			y += DEMO.labelFs + DEMO.labelGap;
+
+			names.forEach(function(name, i) {
+				var col = i % DEMO.rowIcons;
+				if (i && col === 0) y += step;
+				var x = DEMO.x0 + col * step;
+				var ch = current_characters[name];
+				ch.image.setX(x);
+				ch.image.setY(y);
+				ch.image.setScale(1);
+				ch.image.setOpacity(1);
+				ch.image.moveToTop();
+				ch.image.show();
+				if (x + DEMO.icon > maxX) maxX = x + DEMO.icon;
+			});
+			y += DEMO.icon + DEMO.rowPad;
+		});
+
+		// Fit the grid to the stage.
+		var gridW = Math.max(maxX - DEMO.x0, 1);
+		var gridH = Math.max(y - DEMO.y0, 1);
+		var padX = 24, padY = 20;
+		var scale = Math.min((stage.width() - padX * 2) / gridW,
+		                     (stage.height() - padY * 2) / gridH);
+		if (!isFinite(scale) || scale <= 0) scale = 0.3;
+		contentLayer.scale({ x: scale, y: scale });
+		contentLayer.position({ x: padX - DEMO.x0 * scale, y: padY - DEMO.y0 * scale });
+		contentLayer.draw();
+	}
+
+	function restoreViewFromDemographics() {
+		if (!_demoPrevView || typeof contentLayer === 'undefined') return;
+		contentLayer.scale({ x: _demoPrevView.scale, y: _demoPrevView.scale });
+		contentLayer.position({ x: _demoPrevView.x, y: _demoPrevView.y });
+		_demoPrevView = null;
+		clearKonvaOverlays();
+		if (typeof current_locations !== 'undefined') {
+			$.each(current_locations, function(title, img) {
+				if (img && typeof img.setOpacity === 'function') img.setOpacity(1);
+			});
+		}
+	}
+
 	// ── Map character assembly ────────────────────────────────────
 	function updateMapCharacters(ev, location) {
 		if (typeof current_characters === 'undefined' || typeof contentLayer === 'undefined') return;
@@ -2849,6 +2971,8 @@
 			}
 			if (typeof show_characters === 'function') { show_characters(); }
 			if (window.contentLayer && typeof contentLayer.draw === 'function') { contentLayer.draw(); }
+			// Honour the selected character filter, which defaults to Demographics.
+			onCharFilterChange();
 		} else if (mode === 'map-text') {
 			if (ftPanel)    { ftPanel.style.display = 'flex'; ftPanel.classList.remove('dy-map-mode'); }
 			if (ctrlPanel)  { ctrlPanel.classList.remove('dy-map-mode'); ctrlPanel.classList.add('dy-map-text-mode'); }
@@ -2926,11 +3050,18 @@
 	function onCharFilterChange() {
 		if (dyDisplayMode === 'map-text') {
 			if (currentEv) updateMapCharacters(currentEv, currentLocation || currentEv.event_location || '');
-		} else {
-			show_characters();
-			contentLayer.draw();
+			return;
 		}
+		var demo = document.getElementById('characters-demographics');
+		if (demo && demo.checked) { drawDemographicCharacters(); return; }
+		restoreViewFromDemographics();
+		show_characters();
+		contentLayer.draw();
 	}
+	// The legacy control markup calls these inline.
+	window.onCharFilterChange = onCharFilterChange;
+	window.drawDemographicCharacters = drawDemographicCharacters;
+	window.restoreViewFromDemographics = restoreViewFromDemographics;
 
 	// ── Panel tabs (Events | Text | About) ───────────────────────
 	function initPanelTabs() {

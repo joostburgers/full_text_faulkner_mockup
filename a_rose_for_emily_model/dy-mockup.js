@@ -1862,8 +1862,16 @@
 	var _mapSizeIdx = 0;
 
 	function layoutPanels() {
-		// Fulltext mode reparents these panels into a flex wrapper; leave them alone.
-		if (dyDisplayMode === 'fulltext') return;
+		var ftPanel   = document.getElementById('fulltext-panel');
+		var infoPanel = document.getElementById('info-panel');
+
+		// Fulltext mode reparents these panels into a flex wrapper; leave geometry
+		// alone, but drop the narrow-column classes so they can't leak into it.
+		if (dyDisplayMode === 'fulltext') {
+			if (ftPanel)   ftPanel.classList.remove('fp-v-minimized');
+			if (infoPanel) infoPanel.classList.remove('ip-v-minimized');
+			return;
+		}
 		var container = document.getElementById('container');
 		if (!container) return;
 
@@ -1881,8 +1889,6 @@
 		// Legacy theme pins #container to 500px; keep the box in sync with the stage.
 		container.style.height = sz.h + 'px';
 
-		var ftPanel   = document.getElementById('fulltext-panel');
-		var infoPanel = document.getElementById('info-panel');
 		var infoShown = infoPanel && getComputedStyle(infoPanel).display !== 'none';
 
 		// Fulltext panel always spans the full height of the map.

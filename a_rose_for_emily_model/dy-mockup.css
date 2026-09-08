@@ -810,28 +810,33 @@
 	#fulltext-panel:not(.dy-map-mode) .ft-panel-tab[data-tab="about-text"],
 	#fulltext-panel:not(.dy-map-mode) .ft-panel-tab[data-tab="about-editors"] { display: none; }
 
-	/* ── Vertically-minimized fulltext panel (overview/map mode only) ─── */
-	/* Layout: content on left (flex: 1), header/tabs on right (flex: 0 0 auto) */
+	/* ── Vertically-minimized fulltext panel (narrow right column) ───── */
+	/* The tab strip becomes a rail pinned to the right edge; content keeps its
+	   normal vertical stacking so the text toolbar stays above the text. */
 	#fulltext-panel.fp-v-minimized {
 		display: flex;
-		flex-direction: row-reverse;  /* reverse: header/tabs on right, content on left */
+		flex-direction: column;
 		overflow: hidden;
+		padding-right: 30px;
+		box-sizing: border-box;
 	}
 	#fulltext-panel.fp-v-minimized #ft-panel-header {
+		position: absolute;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		width: 30px;
 		display: flex;
 		flex-direction: column;
-		flex: 0 0 auto;
-		width: auto;
-		height: 100%;
 		overflow: hidden;
+		background: #f7f7f7;
 		border-left: 1px solid #ddd;
 		border-bottom: none;
 	}
 	#fulltext-panel.fp-v-minimized .ft-panel-tab {
 		flex: 0 0 auto;
 		writing-mode: vertical-rl;
-		
-		padding: 5px 10px;
+		padding: 5px 0;
 		white-space: nowrap;
 		border: none;
 		border-top: 1px solid #ddd;
@@ -852,32 +857,8 @@
 	}
 	#fulltext-panel.fp-v-minimized #ft-panel-collapse-btn {
 		flex: 0 0 auto;
-		padding: 6px 4px;
-		margin: auto 0;
-	}
-	/* Content on left: hide all view containers, show only active */
-	#fulltext-panel.fp-v-minimized #ft-events-view,
-	#fulltext-panel.fp-v-minimized #ft-text-toolbar,
-	#fulltext-panel.fp-v-minimized #ft-highlight-view,
-	#fulltext-panel.fp-v-minimized #ft-about-view,
-	#fulltext-panel.fp-v-minimized #ft-other-resources {
-		display: none !important;
-	}
-	/* Show view that has active state or is currently visible */
-	#fulltext-panel.fp-v-minimized #ft-events-view.active,
-	#fulltext-panel.fp-v-minimized #ft-text-toolbar.active,
-	#fulltext-panel.fp-v-minimized #ft-highlight-view.active,
-	#fulltext-panel.fp-v-minimized #ft-about-view.active,
-	#fulltext-panel.fp-v-minimized #ft-other-resources.active,
-	#fulltext-panel.fp-v-minimized #ft-events-view[style*="display: block"],
-	#fulltext-panel.fp-v-minimized #ft-text-toolbar[style*="display: block"],
-	#fulltext-panel.fp-v-minimized #ft-highlight-view[style*="display: block"],
-	#fulltext-panel.fp-v-minimized #ft-about-view[style*="display: block"],
-	#fulltext-panel.fp-v-minimized #ft-other-resources[style*="display: block"] {
-		display: block !important;
-		flex: 1;
-		min-width: 0;
-		overflow-y: auto;
+		padding: 6px 0;
+		margin-top: auto;
 	}
 
 	/* ── Other Resources view inside right panel ──────────────────── */

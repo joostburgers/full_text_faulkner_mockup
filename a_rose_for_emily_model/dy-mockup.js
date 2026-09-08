@@ -820,7 +820,31 @@
 		labelGap: 12,
 		rowPad: 30
 	};
+	// Prominence is shown by size, stepping 15% per rank from Secondary.
+	var DEMO_RANK = {
+		'Major':      1.15,
+		'Secondary':  1.00,
+		'Minor':      0.85,
+		'Peripheral': 0.7225
+	};
+	var DEMO_MAX_RANK = 1.15;
+	var DEMO_MENTIONED_OPACITY = 0.25;
 	var _demoRetries = 0;
+
+	// Characters that are never present in an event, only referred to.
+	function _mentionedOnlyIds() {
+		var present = {}, mentioned = {}, out = {};
+		reEventsList.forEach(function(ev) {
+			(ev.characters_present || '').split(',').forEach(function(id) {
+				id = id.trim(); if (id) present[id] = 1;
+			});
+			(ev.characters_mentioned || '').split(',').forEach(function(id) {
+				id = id.trim(); if (id) mentioned[id] = 1;
+			});
+		});
+		Object.keys(mentioned).forEach(function(id) { if (!present[id]) out[id] = 1; });
+		return out;
+	}
 
 	function _demoLabel(text, x, y, fontSize) {
 		var t = new Konva.Text({
@@ -885,8 +909,9 @@
 		});
 		if (!keys.length) { contentLayer.draw(); return; }
 
-		// Nominal grid size, before fitting.
-		var step = DEMO.icon + DEMO.colGap;
+		// Nominal grid size, before fitting. Rows are as tall as the largest rank.
+		var step   = DEMO.icon + DEMO.colGap;
+		var lineH  = DEMO.icon * DEMO_MAX_RANK + DEMO.colGap;
 		var linesFor = function(n) { return Math.ceil(n / DEMO.rowIcons); };
 		var widest = keys.reduce(function(w, k) {
 			return Math.max(w, Math.min(groups[k].length, DEMO.rowIcons));
@@ -894,7 +919,7 @@
 		var nomW = widest * step;
 		var nomH = keys.reduce(function(h, k) {
 			return h + DEMO.labelFs + DEMO.labelGap
-			         + linesFor(groups[k].length) * step + DEMO.rowPad;
+			         + linesFor(groups[k].length) * lineH + DEMO.rowPad;
 		}, 0);
 
 		// The slice of image space the layer is currently showing, in image units.
@@ -907,7 +932,11 @@
 		var k = Math.min(vw / nomW, vh / nomH);
 		if (!isFinite(k) || k <= 0) k = 1;
 
+		var mentOnly = _mentionedOnlyIds();
+		var cellW = DEMO.icon * k;
+		var bandH = DEMO.icon * DEMO_MAX_RANK * k;
 		var y = vy;
+
 		keys.forEach(function(key) {
 			var list = groups[key].slice().sort();
 			_demoLabel(key + '  (' + list.length + ')', vx, y, DEMO.labelFs * k);
@@ -915,16 +944,27 @@
 
 			list.forEach(function(name, i) {
 				var col = i % DEMO.rowIcons;
-				if (i && col === 0) y += step * k;
+				if (i && col === 0) y += lineH * k;
+
+				var rec  = byName[name] || {};
+				var mult = DEMO_RANK[rec.rank] || DEMO_RANK.Secondary;
+				var op   = 1;
+				if (mentOnly[String(rec.id)]) {
+					mult = DEMO_RANK.Peripheral;
+					op   = DEMO_MENTIONED_OPACITY;
+				}
+				var size = DEMO.icon * mult * k;
+
 				var ch = current_characters[name];
-				ch.image.setX(vx + col * step * k);
-				ch.image.setY(y);
-				ch.image.setScale(k);
-				ch.image.setOpacity(1);
+				// Centre each icon in its cell so mixed sizes stay aligned.
+				ch.image.setX(vx + col * step * k + (cellW - size) / 2);
+				ch.image.setY(y + (bandH - size) / 2);
+				ch.image.setScale(mult * k);
+				ch.image.setOpacity(op);
 				ch.image.moveToTop();
 				ch.image.show();
 			});
-			y += (DEMO.icon + DEMO.rowPad) * k;
+			y += bandH + DEMO.rowPad * k;
 		});
 		contentLayer.draw();
 	}
@@ -940,7 +980,9 @@
 		}
 		if (typeof current_characters !== 'undefined' && window.$) {
 			$.each(current_characters, function(n, ch) {
-				if (ch && ch.image && typeof ch.image.setScale === 'function') ch.image.setScale(1);
+				if (!ch || !ch.image) return;
+				if (typeof ch.image.setScale === 'function')   ch.image.setScale(1);
+				if (typeof ch.image.setOpacity === 'function') ch.image.setOpacity(1);
 			});
 		}
 	}

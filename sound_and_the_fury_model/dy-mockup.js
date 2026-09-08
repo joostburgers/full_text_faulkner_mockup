@@ -921,6 +921,18 @@
 		var bandH = DEMO.icon * DEMO_MAX_RANK * k;
 		var y = vy;
 
+		// Konva 1.x setScale() takes {x, y}; a bare number is ignored. Scale is
+		// also relative to each icon's own pixel size, so measure that first.
+		var natW = 0;
+		names.some(function(n) {
+			var im = current_characters[n] && current_characters[n].image;
+			if (im && typeof im.getWidth === 'function' && im.getWidth()) {
+				natW = im.getWidth();
+				return true;
+			}
+		});
+		if (!natW) natW = DEMO.icon;
+
 		keys.forEach(function(key) {
 			// Most prominent first, so each row reads Major through Peripheral.
 			var list = groups[key].slice().sort(function(a, b) {
@@ -940,12 +952,14 @@
 				var rec  = byName[name] || {};
 				var mult = DEMO_RANK[rec.rank] || DEMO_RANK.Secondary;
 				var size = DEMO.icon * mult * k;
+				var nodeScale = size / natW;
 
 				var ch = current_characters[name];
 				// Centre each icon in its cell so mixed sizes stay aligned.
 				ch.image.setX(vx + col * step * k + (cellW - size) / 2);
 				ch.image.setY(y + (bandH - size) / 2);
-				ch.image.setScale(mult * k);
+				ch.image.setScaleX(nodeScale);
+				ch.image.setScaleY(nodeScale);
 				ch.image.setOpacity(1);
 				ch.image.moveToTop();
 				ch.image.show();
@@ -967,7 +981,7 @@
 		if (typeof current_characters !== 'undefined' && window.$) {
 			$.each(current_characters, function(n, ch) {
 				if (!ch || !ch.image) return;
-				if (typeof ch.image.setScale === 'function')   ch.image.setScale(1);
+				if (typeof ch.image.setScaleX === 'function') { ch.image.setScaleX(1); ch.image.setScaleY(1); }
 				if (typeof ch.image.setOpacity === 'function') ch.image.setOpacity(1);
 			});
 		}

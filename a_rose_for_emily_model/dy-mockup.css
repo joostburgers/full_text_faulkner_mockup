@@ -2068,6 +2068,78 @@
 	   ══════════════════════════════════════════════════════════ */
 	#ft-print-header { display: none; }
 
+	/* ── Print options dialog ─────────────────────────────────────── */
+	#ft-print-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 9000;
+		background: rgba(0,0,0,0.35);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	#ft-print-overlay[hidden] { display: none; }
+	#ft-print-dialog {
+		width: 420px;
+		max-width: 92vw;
+		max-height: 88vh;
+		overflow-y: auto;
+		background: #fff;
+		border: 1px solid #bbb;
+		border-radius: 4px;
+		box-shadow: 0 6px 28px rgba(0,0,0,0.3);
+		padding: 18px 20px 14px;
+		font-family: Trebuchet MS, Tahoma, sans-serif;
+		font-size: 12px;
+		color: #333;
+	}
+	#ft-print-dialog h3 {
+		margin: 0 0 6px;
+		font-family: Georgia, 'Times New Roman', serif;
+		font-size: 16px;
+	}
+	.ft-print-dlg-note { margin: 0 0 12px; color: #666; line-height: 1.45; }
+	.ft-print-group {
+		border: 1px solid #e0e0e0;
+		border-radius: 3px;
+		margin: 0 0 12px;
+		padding: 8px 10px 10px;
+	}
+	.ft-print-group legend {
+		padding: 0 5px;
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.07em;
+		color: #888;
+	}
+	.ft-print-group label {
+		display: flex;
+		align-items: baseline;
+		gap: 6px;
+		margin: 4px 0;
+		cursor: pointer;
+	}
+	.ft-print-hint { color: #999; font-size: 11px; }
+	.ft-print-actions { display: flex; justify-content: flex-end; gap: 8px; }
+	.ft-print-actions button {
+		padding: 5px 14px;
+		border: 1px solid #bbb;
+		border-radius: 3px;
+		background: #f4f4f4;
+		cursor: pointer;
+		font-size: 12px;
+	}
+	.ft-print-actions button:hover { background: #e8e8e8; }
+	.ft-print-actions .ft-print-primary {
+		background: #3a4a5a;
+		border-color: #33414f;
+		color: #fff;
+	}
+	.ft-print-actions .ft-print-primary:hover { background: #46596c; }
+
+	/* Appendices are print-only */
+	#ft-print-appendix { display: none; }
+
 	@media print {
 		@page { margin: 18mm 16mm; }
 
@@ -2149,5 +2221,44 @@
 		}
 		.ft-print-title { font-size: 15pt; font-weight: bold; }
 		.ft-print-meta  { font-size: 9pt; color: #444; margin-top: 2pt; }
+
+		/* Always print the complete text, whatever the on-screen reading mode. */
+		#ft-print-overlay { display: none !important; }
+		.ft-hl-section,
+		#ft-highlight-view .ft-hl-span,
+		#ft-highlight-view p { display: revert !important; visibility: visible !important; }
+		#ft-highlight-view.ft-page-mode,
+		#ft-layout #ft-highlight-view.ft-page-mode {
+			overflow: visible !important;
+			height: auto !important;
+			max-height: none !important;
+		}
+
+		/* Appendices */
+		#ft-print-appendix {
+			display: block !important;
+			break-before: page;
+			page-break-before: always;
+		}
+		#ft-print-appendix:empty { display: none !important; }
+		.ft-appx { break-before: page; page-break-before: always; }
+		.ft-appx:first-child { break-before: auto; page-break-before: auto; }
+		.ft-appx-title {
+			font-family: Georgia, 'Times New Roman', serif;
+			font-size: 13pt;
+			margin: 0 0 8pt;
+			padding-bottom: 4pt;
+			border-bottom: 1px solid #999;
+		}
+		.ft-appx-list { margin: 0; font-size: 9.5pt; line-height: 1.45; }
+		.ft-appx-list dt {
+			font-weight: bold;
+			margin-top: 6pt;
+			break-after: avoid;
+			page-break-after: avoid;
+		}
+		.ft-appx-list dd { margin: 0 0 0 12pt; }
+		.ft-appx-meta { display: block; color: #555; font-size: 8.5pt; font-style: italic; }
+		.ft-appx-desc { display: block; }
 	}
 

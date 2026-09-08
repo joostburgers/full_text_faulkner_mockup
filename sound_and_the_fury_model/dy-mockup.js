@@ -671,6 +671,7 @@
 		initInfoCollapse();
 		initFpCollapse();
 		initAggPanelCollapse();
+		initPrintDialog();
 	}
 
 	// ── Activate an event item ────────────────────────────────────
@@ -2409,58 +2410,258 @@
 		});
 
 		var printBtn = document.getElementById('ft-print-btn');
-		if (printBtn) printBtn.addEventListener('click', function() {
-			buildPrintHeader();
+		if (printBtn) printBtn.addEventListener('click', openPrintDialog);
+	}
+
+	// ── Print ─────────────────────────────────────────────────────
+	// The printout is always the complete text. The dialog only chooses which
+	// markup layers render inline and which reference lists are appended.
+
+	function _fire(el, type) {
+		if (el) el.dispatchEvent(new Event(type, { bubbles: true }));
+	}
+
+	function _markupInputs() {
+		return {
+			events:    document.getElementById('ft-show-events-check'),
+			narrative: document.getElementById('ft-markup-narrative'),
+			ns:        document.getElementById('ft-markup-ns'),
+			temp:      document.getElementById('ft-markup-temporality'),
+			nsOpts:    document.querySelectorAll('#ft-markup-ns-opts .ft-ns-avail input'),
+			tempOpts:  document.querySelectorAll('#ft-markup-temporality-opts input'),
+			narrOpts:  [document.getElementById('ft-markup-flashforward'),
+			            document.getElementById('ft-markup-flashback'),
+			            document.getElementById('ft-markup-linear')].filter(Boolean)
+		};
+	}
+
+	// Capture every input the print run may touch so the UI can be put back.
+	function _snapshotMarkup() {
+		var m = _markupInputs();
+		var snap = [];
+		function add(el) { if (el) snap.push({ el: el, checked: el.checked }); }
+		[m.events, m.narrative, m.ns, m.temp].forEach(add);
+		m.nsOpts.forEach(add);
+		m.tempOpts.forEach(add);
+		m.narrOpts.forEach(add);
+		return snap;
+	}
+
+	function _restoreMarkup(snap) {
+		snap.forEach(function(s) { s.el.checked = s.checked; });
+		// Re-run the listeners that rebuild the injected style rules.
+		var m = _markupInputs();
+		if (m.nsOpts.length)   _fire(m.nsOpts[0], 'change');
+		if (m.tempOpts.length) _fire(m.tempOpts[0], 'change');
+		m.narrOpts.forEach(function(el) { _fire(el, 'change'); });
+		[m.events, m.narrative, m.ns, m.temp].forEach(function(el) { _fire(el, 'change'); });
+	}
+
+	// Turn a layer on wholesale: if the reader has not picked sub-options, select
+	// them all so the choice in the dialog is meaningful on its own.
+	function _applyMarkupChoice(want) {
+		var m = _markupInputs();
+
+		if (m.events) { m.events.checked = !!want.events; _fire(m.events, 'change'); }
+
+		if (m.narrative) {
+			m.narrative.checked = !!want.narrative;
+			if (want.narrative && !m.narrOpts.some(function(el) { return el.checked; })) {
+				m.narrOpts.forEach(function(el) { el.checked = true; });
+			}
+			_fire(m.narrative, 'change');
+			m.narrOpts.forEach(function(el) { _fire(el, 'change'); });
+		}
+
+		if (m.ns) {
+			m.ns.checked = !!want.ns;
+			if (want.ns && !Array.prototype.some.call(m.nsOpts, function(el) { return el.checked; })) {
+				m.nsOpts.forEach(function(el) { el.checked = true; });
+			} else if (!want.ns) {
+				m.nsOpts.forEach(function(el) { el.checked = false; });
+			}
+			_fire(m.ns, 'change');
+			if (m.nsOpts.length) _fire(m.nsOpts[0], 'change');
+		}
+
+		if (m.temp) {
+			m.temp.checked = !!want.temp;
+			if (want.temp && !Array.prototype.some.call(m.tempOpts, function(el) { return el.checked; })) {
+				m.tempOpts.forEach(function(el) { el.checked = true; });
+			} else if (!want.temp) {
+				m.tempOpts.forEach(function(el) { el.checked = false; });
+			}
+			_fire(m.temp, 'change');
+			if (m.tempOpts.length) _fire(m.tempOpts[0], 'change');
+		}
+	}
+
+	function _appendixSection(title, rows) {
+		if (!rows.length) return '';
+		return '<section class="ft-appx">'
+			+ '<h2 class="ft-appx-title">' + esc(title) + '</h2>'
+			+ '<dl class="ft-appx-list">' + rows.join('') + '</dl>'
+			+ '</section>';
+	}
+
+	function buildPrintAppendix(want) {
+		var box = document.getElementById('ft-print-appendix');
+		if (!box) return;
+		var out = '';
+
+		if (want.characters) {
+			var chars = Object.keys(charById).map(function(k) { return charById[k]; });
+			chars.sort(function(a, b) {
+				return (a.sort_name || a.name || '').localeCompare(b.sort_name || b.name || '');
+			});
+			out += _appendixSection('Appendix: Characters', chars.map(function(c) {
+				var meta = [c.rank, c.race, c['class'], c.gender].filter(Boolean).join(' \u00b7 ');
+				return '<dt>' + esc(c.name || '') + '</dt><dd>'
+					+ (meta ? '<span class="ft-appx-meta">' + esc(meta) + '</span>' : '')
+					+ (c.biography ? '<span class="ft-appx-desc">' + esc(c.biography) + '</span>' : '')
+					+ '</dd>';
+			}));
+		}
+
+		if (want.locations) {
+			var locs = Object.keys(locByTitle).map(function(k) { return locByTitle[k]; });
+			locs.sort(function(a, b) {
+				return (a.display_label || a.location_title || '').localeCompare(b.display_label || b.location_title || '');
+			});
+			out += _appendixSection('Appendix: Locations', locs.map(function(l) {
+				return '<dt>' + esc(l.display_label || l.location_title || '') + '</dt><dd>'
+					+ (l.location_type ? '<span class="ft-appx-meta">' + esc(l.location_type) + '</span>' : '')
+					+ (l.description ? '<span class="ft-appx-desc">' + esc(l.description) + '</span>' : '')
+					+ '</dd>';
+			}));
+		}
+
+		if (want.events) {
+			out += _appendixSection('Appendix: Events', reEventsList.map(function(ev) {
+				var meta = [ev.page_number ? 'p.' + ev.page_number : '', ev.event_date, ev.event_location]
+					.filter(Boolean).join(' \u00b7 ');
+				return '<dt>' + esc(meta) + '</dt><dd>'
+					+ (ev.summary ? '<span class="ft-appx-desc">' + esc(ev.summary) + '</span>' : '')
+					+ '</dd>';
+			}));
+		}
+
+		if (want.keywords) {
+			var all = (reKeywords && reKeywords.all) || {};
+			var terms = Object.keys(all).sort(function(a, b) { return all[b] - all[a]; });
+			out += _appendixSection('Appendix: Keywords', terms.map(function(t) {
+				var full = (reKeywordIndex && reKeywordIndex.full && reKeywordIndex.full[t]) || t;
+				return '<dt>' + esc(t) + ' <span class="ft-appx-meta">(' + all[t] + ')</span></dt>'
+					+ '<dd><span class="ft-appx-desc">' + esc(full) + '</span></dd>';
+			}));
+		}
+
+		box.innerHTML = out;
+	}
+
+	function openPrintDialog() {
+		var overlay = document.getElementById('ft-print-overlay');
+		if (!overlay) { window.print(); return; }
+		var m = _markupInputs();
+		var hl = document.getElementById('ft-highlight-view');
+
+		// Pre-tick to match what is already on screen.
+		var set = function(id, on) { var el = document.getElementById(id); if (el) el.checked = !!on; };
+		set('ftp-mk-events', m.events && m.events.checked);
+		set('ftp-mk-narrative', hl && (hl.classList.contains('ft-show-flashforward') ||
+			hl.classList.contains('ft-show-flashback') || hl.classList.contains('ft-show-linear')));
+		set('ftp-mk-ns', hl && hl.classList.contains('ft-ns-mode'));
+		set('ftp-mk-temp', hl && hl.classList.contains('ft-temp-mode'));
+
+		overlay.hidden = false;
+	}
+
+	function initPrintDialog() {
+		var overlay = document.getElementById('ft-print-overlay');
+		if (!overlay) return;
+		var close = function() { overlay.hidden = true; };
+
+		var cancel = document.getElementById('ftp-cancel');
+		if (cancel) cancel.addEventListener('click', close);
+		overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+		document.addEventListener('keydown', function(e) {
+			if (e.key === 'Escape' && !overlay.hidden) close();
+		});
+
+		var go = document.getElementById('ftp-go');
+		if (go) go.addEventListener('click', function() {
+			var on = function(id) { var el = document.getElementById(id); return !!(el && el.checked); };
+			var want = {
+				events:     on('ftp-mk-events'),
+				narrative:  on('ftp-mk-narrative'),
+				ns:         on('ftp-mk-ns'),
+				temp:       on('ftp-mk-temp'),
+				characters: on('ftp-ap-characters'),
+				locations:  on('ftp-ap-locations'),
+				appxEvents: on('ftp-ap-events'),
+				keywords:   on('ftp-ap-keywords')
+			};
+			close();
+
+			var snap = _snapshotMarkup();
+			_applyMarkupChoice(want);
+			buildPrintAppendix({
+				characters: want.characters,
+				locations:  want.locations,
+				events:     want.appxEvents,
+				keywords:   want.keywords
+			});
+			buildPrintHeader(want);
+
+			var restore = function() {
+				_restoreMarkup(snap);
+				var box = document.getElementById('ft-print-appendix');
+				if (box) box.innerHTML = '';
+				window.removeEventListener('afterprint', restore);
+			};
+			window.addEventListener('afterprint', restore);
 			window.print();
+			// Safari and some PDF drivers never fire afterprint.
+			setTimeout(function() { if (!overlay.hidden) return; restore(); }, 3000);
 		});
 	}
 
-	// Summarise which annotation layers are switched on, so the printout records
-	// the reading the user actually assembled.
-	function activeAnnotationLabels() {
+	// Summarise the chosen layers so the printout records the reading assembled.
+	function activeAnnotationLabels(want) {
 		var out = [];
-		var hl = document.getElementById('ft-highlight-view');
-
-		if (document.getElementById('ft-show-events-check') &&
-		    document.getElementById('ft-show-events-check').checked) {
-			out.push('Event boundaries');
-		}
-		[['ft-markup-narrative', 'Narrative order'],
-		 ['ft-markup-ns',        'Narrative status'],
-		 ['ft-markup-temporality', 'Temporality']].forEach(function(pair) {
-			var el = document.getElementById(pair[0]);
-			if (el && el.checked) out.push(pair[1]);
-		});
-		if (hl) {
-			[['ft-show-flashforward', 'flash-forward'],
-			 ['ft-show-flashback',    'flashback'],
-			 ['ft-show-linear',       'linear']].forEach(function(pair) {
-				if (hl.classList.contains(pair[0])) out.push(pair[1]);
-			});
-		}
-		var kw = document.querySelectorAll('.ft-kw-pill.ft-kw-active, .fa-kw-pill.active');
-		if (kw.length) out.push(kw.length + ' keyword' + (kw.length > 1 ? 's' : ''));
+		if (!want) return out;
+		if (want.events)    out.push('Event boundaries');
+		if (want.narrative) out.push('Narrative progression');
+		if (want.ns)        out.push('Narrative status');
+		if (want.temp)      out.push('Temporality');
 		return out;
 	}
 
-	function buildPrintHeader() {
+	function buildPrintHeader(want) {
 		var hdr = document.getElementById('ft-print-header');
 		if (!hdr) return;
 		var titleEl = document.querySelector('#dy-title-bar .dy-title-story');
 		var edEl    = document.querySelector('#dy-title-bar .dy-title-names');
-		var mode    = document.querySelector('.ft-read-mode-btn.active');
-		var active  = activeAnnotationLabels();
+		var active  = activeAnnotationLabels(want);
+
+		var appx = [];
+		if (want && want.characters) appx.push('Characters');
+		if (want && want.locations)  appx.push('Locations');
+		if (want && want.appxEvents) appx.push('Events');
+		if (want && want.keywords)   appx.push('Keywords');
 
 		var bits = [];
 		bits.push('<div class="ft-print-title">' + esc(titleEl ? titleEl.textContent : '') + '</div>');
 		if (edEl && edEl.textContent) {
 			bits.push('<div class="ft-print-meta">Edited by ' + esc(edEl.textContent) + '</div>');
 		}
-		bits.push('<div class="ft-print-meta">Digital Yoknapatawpha \u00b7 ' +
-			esc(mode ? mode.textContent.trim() : 'Full Text') + ' view \u00b7 ' +
+		bits.push('<div class="ft-print-meta">Digital Yoknapatawpha \u00b7 complete text \u00b7 ' +
 			new Date().toLocaleDateString() + '</div>');
-		bits.push('<div class="ft-print-meta">Annotations: ' +
+		bits.push('<div class="ft-print-meta">Markup: ' +
 			(active.length ? esc(active.join(', ')) : 'none') + '</div>');
+		if (appx.length) {
+			bits.push('<div class="ft-print-meta">Appendices: ' + esc(appx.join(', ')) + '</div>');
+		}
 		hdr.innerHTML = bits.join('');
 	}
 

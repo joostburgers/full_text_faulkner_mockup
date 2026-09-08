@@ -536,6 +536,36 @@
 	#info-panel .info-tab:last-child { border-right: none; }
 	#info-panel .info-tab.active { background: #fff; color: #333; font-weight: bold; }
 	#info-panel .info-tab:hover:not(.active) { background: #e4e4e4; }
+
+	/* ── Vertically-minimized info panel (narrow right column) ───── */
+	#info-panel.ip-v-minimized {
+		flex-direction: row-reverse;
+		overflow: hidden;
+	}
+	#info-panel.ip-v-minimized .info-tabs {
+		flex: 0 0 auto;
+		flex-direction: column;
+		height: 100%;
+		border-bottom: none;
+		border-left: 1px solid #ccc;
+	}
+	#info-panel.ip-v-minimized .info-tab {
+		flex: 0 0 auto;
+		writing-mode: vertical-rl;
+		padding: 6px 3px;
+		border-right: none;
+		border-top: 1px solid #ccc;
+		font-size: 10px;
+		white-space: nowrap;
+	}
+	#info-panel.ip-v-minimized .info-tab:first-child { border-top: none; }
+	#info-panel.ip-v-minimized .info-collapse-btn { display: none; }
+	#info-panel.ip-v-minimized #ip-body {
+		flex: 1;
+		min-width: 0;
+		overflow-y: auto;
+	}
+	#info-panel.ip-v-minimized .info-tab-content.active { max-height: none; }
 	#info-panel .info-tab-content { display: none; padding: 10px 14px 12px; }
 	#info-panel .info-tab-content.active { display: block; max-height: 130px; overflow-y: auto; }
 	#info-panel .info-tab-content strong { font-weight: bold; }
@@ -1912,10 +1942,11 @@
 				display: none;
 		}
 
+		/* Legacy DY homepage blurb + text shelf; overlaps the map and toolbar.
+		   !important because the legacy page calls .show() on it inline. */
 		#shelf_instructions
 		{
-			/* font-size: 90%; */
-			/* line-height: 1.5em; */
+			display: none !important;
 		}
 
 		#upClick 

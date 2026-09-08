@@ -1850,12 +1850,9 @@
 		CONTENT_W:    1300,  // #content_2 width
 		EDGE_GAP:       10,  // right column -> viewport right edge
 		COL_GAP:        10,  // map right edge -> right column
-		PANEL_GAP:       8,  // fulltext panel -> info panel
-		TOOLBAR_GAP:    33,  // map bottom -> toolbar top
-		AGG_GAP:        95,  // map bottom -> aggregation panel top
+		GUTTER:         10,  // map bottom -> toolbar / info / aggregation panel
 		TITLE_INSET:    60,  // title bar sits this far above map bottom
-		MIN_PANEL_W:   360,  // below this the fulltext panel goes vertical
-		FT_SPLIT:      0.6   // share of map height for fulltext when info is visible
+		MIN_PANEL_W:   360   // below this the right-column panels go vertical
 	};
 	var _mapSizes = [
 		{ w: 800,  h: 500 },
@@ -1875,8 +1872,11 @@
 		var mapTop    = container.offsetTop;
 		var mapBottom = mapTop + sz.h;
 
-		var colLeft = sz.w + L.COL_GAP;
-		var colW    = Math.max((L.CONTENT_W - L.EDGE_GAP) - colLeft, 0);
+		// Right column runs from the map's right edge to the content edge.
+		var colLeft  = sz.w + L.COL_GAP;
+		var colW     = Math.max((L.CONTENT_W - L.EDGE_GAP) - colLeft, 0);
+		var belowMap = mapBottom + L.GUTTER;
+		var narrow   = colW < L.MIN_PANEL_W;
 
 		// Legacy theme pins #container to 500px; keep the box in sync with the stage.
 		container.style.height = sz.h + 'px';
@@ -1885,25 +1885,13 @@
 		var infoPanel = document.getElementById('info-panel');
 		var infoShown = infoPanel && getComputedStyle(infoPanel).display !== 'none';
 
-		var ftH = sz.h, ipTop = 0, ipH = 0;
-		if (infoShown) {
-			ftH   = Math.round(sz.h * L.FT_SPLIT);
-			ipH   = sz.h - ftH - L.PANEL_GAP;
-			ipTop = mapTop + ftH + L.PANEL_GAP;
-		}
-
+		// Fulltext panel always spans the full height of the map.
 		if (ftPanel) {
 			ftPanel.style.left   = colLeft + 'px';
 			ftPanel.style.top    = mapTop + 'px';
 			ftPanel.style.width  = colW + 'px';
-			ftPanel.style.height = ftH + 'px';
-			ftPanel.classList.toggle('fp-v-minimized', colW < L.MIN_PANEL_W);
-		}
-		if (infoPanel && infoShown) {
-			infoPanel.style.left   = colLeft + 'px';
-			infoPanel.style.top    = ipTop + 'px';
-			infoPanel.style.width  = colW + 'px';
-			infoPanel.style.height = ipH + 'px';
+			ftPanel.style.height = sz.h + 'px';
+			ftPanel.classList.toggle('fp-v-minimized', narrow);
 		}
 
 		var ctrlPanel = document.getElementById('dy-controls-panel');
@@ -1914,18 +1902,33 @@
 			if (dialog) dialog.style.height = sz.h + 'px';
 		}
 
-		var toolbar = document.getElementById('dy-toolbar');
+		// Toolbar sits directly under the map and matches its width.
+		var toolbar     = document.getElementById('dy-toolbar');
+		var toolbarH    = 0;
+		var toolbarShown = toolbar && getComputedStyle(toolbar).display !== 'none';
 		if (toolbar) {
 			toolbar.style.left  = '0px';
-			toolbar.style.top   = (mapBottom + L.TOOLBAR_GAP) + 'px';
+			toolbar.style.top   = belowMap + 'px';
 			toolbar.style.width = sz.w + 'px';
+			if (toolbarShown) toolbarH = toolbar.offsetHeight;
+		}
+
+		// Info panel shares the toolbar's baseline and height, filling the right column.
+		if (infoPanel && infoShown) {
+			infoPanel.style.left  = colLeft + 'px';
+			infoPanel.style.top   = belowMap + 'px';
+			infoPanel.style.width = colW + 'px';
+			if (toolbarH) infoPanel.style.height = toolbarH + 'px';
+			infoPanel.classList.toggle('ip-v-minimized', narrow);
+			// Inline display wins over the stylesheet, so set the flex mode here.
+			infoPanel.style.display = narrow ? 'flex' : 'block';
 		}
 
 		var aggPanel = document.getElementById('dy-agg-panel');
-		var aggTop   = mapBottom + L.AGG_GAP;
+		var aggShown = aggPanel && getComputedStyle(aggPanel).display !== 'none';
 		if (aggPanel) {
 			aggPanel.style.left  = '0px';
-			aggPanel.style.top   = aggTop + 'px';
+			aggPanel.style.top   = belowMap + 'px';
 			aggPanel.style.width = (L.CONTENT_W - L.EDGE_GAP) + 'px';
 			aggPanel.classList.toggle('dy-agg-minimized', _mapSizeIdx === 2);
 		}
@@ -1933,12 +1936,14 @@
 		var titleBar = document.getElementById('dy-title-bar');
 		if (titleBar) titleBar.style.top = (mapBottom - L.TITLE_INSET) + 'px';
 
-		// Absolute children can't stretch #content_2, so grow it to fit the tallest panel.
+		// Absolute children can't stretch #content_2, so grow it to fit the lowest panel.
 		var c2 = document.getElementById('content_2');
 		if (c2) {
-			var aggShown  = aggPanel && getComputedStyle(aggPanel).display !== 'none';
-			var contentH  = aggShown ? aggTop + aggPanel.offsetHeight : mapBottom;
-			c2.style.minHeight = Math.max(contentH + 20, 960) + 'px';
+			var lowest = mapBottom;
+			if (toolbarShown)          lowest = Math.max(lowest, belowMap + toolbarH);
+			if (infoShown)             lowest = Math.max(lowest, belowMap + infoPanel.offsetHeight);
+			if (aggShown)              lowest = Math.max(lowest, belowMap + aggPanel.offsetHeight);
+			c2.style.minHeight = Math.max(lowest + 20, 960) + 'px';
 		}
 	}
 

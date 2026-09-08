@@ -805,29 +805,30 @@
 	// ── Demographic overview ──────────────────────────────────────
 	// Most characters have no recorded home, so the Home view drops them all on
 	// the town centre and says nothing about the cast. This lays every character
-	// out in rows by race / gender / individual-or-group, largest group first,
-	// and fits the whole grid to the stage.
+	// out in rows by race / gender / individual-or-group, largest group first.
+	// The grid is fitted inside whatever the layer is currently showing, so the
+	// map transform is never touched and switching filters cannot shift the view.
 	var DEMO = {
-		x0: 140, y0: 150,   // grid origin in map image coordinates
-		icon: 60,
+		padLeft: 205,   // screen px; clears the 192px controls panel overlay
+		padRight: 20,
+		padTop: 18,
+		padBottom: 14,
+		icon: 60,       // nominal icon size, in map image units
 		colGap: 14,
-		rowIcons: 22,       // icons per line before wrapping
+		rowIcons: 22,
 		labelFs: 46,
-		labelGap: 14,
-		rowPad: 38,
-		padLeft: 175,       // screen px; clears the controls panel overlay
-		padRight: 24,
-		padTop: 20
+		labelGap: 12,
+		rowPad: 30
 	};
-	var _demoPrevView = null;
+	var _demoRetries = 0;
 
-	function _demoLabel(text, x, y) {
+	function _demoLabel(text, x, y, fontSize) {
 		var t = new Konva.Text({
 			x: x, y: y, text: text,
-			fontSize: DEMO.labelFs,
+			fontSize: fontSize,
 			fontFamily: 'Calibri, Tahoma, sans-serif',
 			fontStyle: 'bold',
-			fill: '#3a3a3a'
+			fill: '#333'
 		});
 		contentLayer.add(t);
 		dyKonvaOverlays.push(t);
@@ -844,13 +845,18 @@
 	}
 
 	function drawDemographicCharacters() {
-		if (typeof current_characters === 'undefined' || typeof contentLayer === 'undefined') return;
-		clearKonvaOverlays();
+		if (typeof current_characters === 'undefined' ||
+		    typeof contentLayer === 'undefined' ||
+		    typeof stage === 'undefined') return;
 
-		// Remember the view so the other character filters can restore it.
-		if (!_demoPrevView) {
-			_demoPrevView = { scale: contentLayer.scaleX(), x: contentLayer.x(), y: contentLayer.y() };
+		var names = Object.keys(current_characters);
+		if (!names.length) {
+			// Legacy character data is still loading; try again shortly.
+			if (_demoRetries++ < 24) setTimeout(drawDemographicCharacters, 250);
+			return;
 		}
+		_demoRetries = 0;
+		clearKonvaOverlays();
 
 		// Fade the map: this reads as a chart, not as geography.
 		if (typeof current_locations !== 'undefined') {
@@ -865,7 +871,7 @@
 
 		var byName = _charRecordsByName();
 		var groups = {};
-		Object.keys(current_characters).forEach(function(name) {
+		names.forEach(function(name) {
 			var ch = current_characters[name];
 			if (!ch || !ch.image) return;
 			var rec = byName[name] || {};
@@ -874,58 +880,67 @@
 			           rec.individual_group || 'Individual'].join(' \u00b7 ');
 			(groups[key] = groups[key] || []).push(name);
 		});
-
 		var keys = Object.keys(groups).sort(function(a, b) {
 			return (groups[b].length - groups[a].length) || a.localeCompare(b);
 		});
+		if (!keys.length) { contentLayer.draw(); return; }
 
+		// Nominal grid size, before fitting.
 		var step = DEMO.icon + DEMO.colGap;
-		var y = DEMO.y0, maxX = DEMO.x0;
+		var linesFor = function(n) { return Math.ceil(n / DEMO.rowIcons); };
+		var widest = keys.reduce(function(w, k) {
+			return Math.max(w, Math.min(groups[k].length, DEMO.rowIcons));
+		}, 1);
+		var nomW = widest * step;
+		var nomH = keys.reduce(function(h, k) {
+			return h + DEMO.labelFs + DEMO.labelGap
+			         + linesFor(groups[k].length) * step + DEMO.rowPad;
+		}, 0);
 
+		// The slice of image space the layer is currently showing, in image units.
+		var s  = contentLayer.scaleX() || 1;
+		var vx = (DEMO.padLeft - contentLayer.x()) / s;
+		var vy = (DEMO.padTop  - contentLayer.y()) / s;
+		var vw = (stage.width()  - DEMO.padLeft - DEMO.padRight)  / s;
+		var vh = (stage.height() - DEMO.padTop  - DEMO.padBottom) / s;
+
+		var k = Math.min(vw / nomW, vh / nomH);
+		if (!isFinite(k) || k <= 0) k = 1;
+
+		var y = vy;
 		keys.forEach(function(key) {
-			var names = groups[key].slice().sort();
-			_demoLabel(key + '  (' + names.length + ')', DEMO.x0, y);
-			y += DEMO.labelFs + DEMO.labelGap;
+			var list = groups[key].slice().sort();
+			_demoLabel(key + '  (' + list.length + ')', vx, y, DEMO.labelFs * k);
+			y += (DEMO.labelFs + DEMO.labelGap) * k;
 
-			names.forEach(function(name, i) {
+			list.forEach(function(name, i) {
 				var col = i % DEMO.rowIcons;
-				if (i && col === 0) y += step;
-				var x = DEMO.x0 + col * step;
+				if (i && col === 0) y += step * k;
 				var ch = current_characters[name];
-				ch.image.setX(x);
+				ch.image.setX(vx + col * step * k);
 				ch.image.setY(y);
-				ch.image.setScale(1);
+				ch.image.setScale(k);
 				ch.image.setOpacity(1);
 				ch.image.moveToTop();
 				ch.image.show();
-				if (x + DEMO.icon > maxX) maxX = x + DEMO.icon;
 			});
-			y += DEMO.icon + DEMO.rowPad;
-		});
-
-		// Fit the grid to the stage.
-		var gridW = Math.max(maxX - DEMO.x0, 1);
-		var gridH = Math.max(y - DEMO.y0, 1);
-		var scale = Math.min((stage.width() - DEMO.padLeft - DEMO.padRight) / gridW,
-		                     (stage.height() - DEMO.padTop * 2) / gridH);
-		if (!isFinite(scale) || scale <= 0) scale = 0.3;
-		contentLayer.scale({ x: scale, y: scale });
-		contentLayer.position({
-			x: DEMO.padLeft - DEMO.x0 * scale,
-			y: DEMO.padTop - DEMO.y0 * scale
+			y += (DEMO.icon + DEMO.rowPad) * k;
 		});
 		contentLayer.draw();
 	}
 
+	// Kept for the legacy control markup; the transform is no longer touched, so
+	// this only has to undo the faded map and the grid labels.
 	function restoreViewFromDemographics() {
-		if (!_demoPrevView || typeof contentLayer === 'undefined') return;
-		contentLayer.scale({ x: _demoPrevView.scale, y: _demoPrevView.scale });
-		contentLayer.position({ x: _demoPrevView.x, y: _demoPrevView.y });
-		_demoPrevView = null;
 		clearKonvaOverlays();
-		if (typeof current_locations !== 'undefined') {
+		if (typeof current_locations !== 'undefined' && window.$) {
 			$.each(current_locations, function(title, img) {
 				if (img && typeof img.setOpacity === 'function') img.setOpacity(1);
+			});
+		}
+		if (typeof current_characters !== 'undefined' && window.$) {
+			$.each(current_characters, function(n, ch) {
+				if (ch && ch.image && typeof ch.image.setScale === 'function') ch.image.setScale(1);
 			});
 		}
 	}
@@ -2977,8 +2992,6 @@
 			}
 			if (typeof show_characters === 'function') { show_characters(); }
 			if (window.contentLayer && typeof contentLayer.draw === 'function') { contentLayer.draw(); }
-			// Honour the selected character filter, which defaults to Demographics.
-			onCharFilterChange();
 		} else if (mode === 'map-text') {
 			if (ftPanel)    { ftPanel.style.display = 'flex'; ftPanel.classList.remove('dy-map-mode'); }
 			if (ctrlPanel)  { ctrlPanel.classList.remove('dy-map-mode'); ctrlPanel.classList.add('dy-map-text-mode'); }
@@ -4197,6 +4210,10 @@
 		window._dyShowCharsOverride = true; // start in map-text mode
 		window.show_characters = function() {
 			if (!window._dyShowCharsOverride && _origShowChars) _origShowChars.apply(this, arguments);
+			// The legacy code calls this once its character data lands, which is the
+			// first point the demographic grid can actually be built.
+			var demo = document.getElementById('characters-demographics');
+			if (dyDisplayMode === 'map' && demo && demo.checked) drawDemographicCharacters();
 		};
 		// Wire Display Options radios (legacy, kept for compatibility)
 		document.querySelectorAll('input[name="dy-display"]').forEach(function(r) {
